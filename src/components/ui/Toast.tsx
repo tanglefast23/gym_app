@@ -21,6 +21,9 @@ interface ToastState {
   removeToast: (id: string) => void;
 }
 
+/** Map of toast id → timeout handle, kept outside Zustand to avoid non-serializable state. */
+const timerMap = new Map<string, ReturnType<typeof setTimeout>>();
+
 export const useToastStore = create<ToastState>((set) => ({
   toasts: [],
 
@@ -32,14 +35,21 @@ export const useToastStore = create<ToastState>((set) => ({
       toasts: [...state.toasts, toast],
     }));
 
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
+      timerMap.delete(id);
       set((state) => ({
         toasts: state.toasts.filter((t) => t.id !== id),
       }));
     }, duration);
+    timerMap.set(id, timeoutId);
   },
 
   removeToast: (id) => {
+    const timeoutId = timerMap.get(id);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timerMap.delete(id);
+    }
     set((state) => ({
       toasts: state.toasts.filter((t) => t.id !== id),
     }));
