@@ -686,7 +686,6 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
             <ExerciseDisplay
               exerciseName={currentExerciseName}
               exerciseId={currentStep.exerciseId}
-              blockNumber={(currentStep.blockIndex ?? 0) + 1}
               setIndex={currentStep.setIndex ?? 0}
               totalSets={currentStep.totalSets ?? 1}
               repsMin={currentStep.repsMin ?? 1}
