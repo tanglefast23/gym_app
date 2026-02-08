@@ -386,12 +386,14 @@ export default function HomePage() {
         title={selectedTemplate?.name}
       >
         <div className="flex flex-col gap-1">
-          <ActionRow
-            icon={<Play className="h-5 w-5 text-accent" />}
-            label="Start Workout"
+          <button
+            type="button"
             onClick={handleStartWorkout}
-            className="text-accent"
-          />
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-4 text-left text-lg font-bold text-accent transition-colors hover:bg-surface active:bg-surface"
+          >
+            <Play className="h-8 w-8 text-accent" fill="currentColor" />
+            <span>Start Workout</span>
+          </button>
           <ActionRow
             icon={<Pencil className="h-5 w-5 text-text-secondary" />}
             label="Edit"
