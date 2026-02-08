@@ -551,6 +551,100 @@ body.workout-active {
   animation: shimmer 3s ease-in-out infinite, rainbow-border 6s linear infinite;
 }
 
+/* ─── Light Mode Enhanced Design System ─── */
+
+/* Primary button gradient (orange → pink) */
+.light button.bg-accent {
+  background: linear-gradient(135deg, #F97316 0%, #EC4899 100%) !important;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+}
+
+/* Skip/CTA pill buttons (rest timer, etc.) */
+.light .rounded-3xl.bg-accent {
+  background: linear-gradient(135deg, #F97316 0%, #EC4899 100%) !important;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+}
+
+/* Gradient badge for PR pills (orange → amber) */
+.light .btn-gradient {
+  background: linear-gradient(90deg, #F97316, #FBBF24) !important;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.25);
+}
+
+/* Continue workout banner gradient */
+.light .continue-banner {
+  background: linear-gradient(135deg, #F97316 0%, #EC4899 100%) !important;
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.25) !important;
+}
+
+/* ─── Color-Coded Workout Card Shadows (Home Page) ─── */
+.light .space-y-3 > .animate-fade-in-up:nth-child(3n+1) .rounded-2xl.border {
+  box-shadow: 0 2px 12px rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.15);
+}
+
+.light .space-y-3 > .animate-fade-in-up:nth-child(3n+2) .rounded-2xl.border {
+  box-shadow: 0 2px 12px rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.15);
+}
+
+.light .space-y-3 > .animate-fade-in-up:nth-child(3n+3) .rounded-2xl.border {
+  box-shadow: 0 2px 12px rgba(78, 205, 196, 0.12);
+  border-color: rgba(78, 205, 196, 0.15);
+}
+
+/* ─── Workout Complete Stat Card Colors ─── */
+.light .stat-card-orange {
+  box-shadow: 0 2px 12px rgba(249, 115, 22, 0.15);
+  border-color: rgba(249, 115, 22, 0.25) !important;
+}
+
+.light .stat-card-purple {
+  box-shadow: 0 2px 12px rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.2) !important;
+}
+
+.light .stat-card-teal {
+  box-shadow: 0 2px 12px rgba(78, 205, 196, 0.15);
+  border-color: rgba(78, 205, 196, 0.25) !important;
+  background: linear-gradient(135deg, rgba(78, 205, 196, 0.08) 0%, rgba(78, 205, 196, 0.04) 100%) !important;
+}
+
+/* ─── Light Mode Timer Ring ─── */
+/* Thicker stroke and lighter track for prominent ring */
+.light svg.absolute.inset-0 circle:first-of-type {
+  stroke: #E5E7EB !important;
+  stroke-width: 10;
+}
+
+.light svg.absolute.inset-0 circle:last-of-type {
+  stroke-width: 10;
+}
+
+/* Subtle shadow around the timer ring */
+.light svg.absolute.inset-0 {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.06));
+}
+
+/* ─── Light Mode Rest Timer Controls ─── */
+/* Round ±10s control buttons */
+.light .rounded-full.bg-elevated.border {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ─── Light Mode Bottom Tab Bar ─── */
+.light nav[aria-label="Main navigation"] {
+  border-color: transparent;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* ─── Light Mode Weight Recap ─── */
+/* Quick action buttons — subtle depth */
+.light .bg-elevated.rounded-xl {
+  background: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
 /* ─── Reduced Motion ─── */
 @media (prefers-reduced-motion: reduce) {
   *,
