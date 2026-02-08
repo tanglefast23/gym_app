@@ -413,7 +413,8 @@ body.workout-active {
 .tab-active-glow::after {
   content: '';
   position: absolute;
-  top: -1px;
+  /* Lift the active indicator slightly so the tab content has more breathing room. */
+  top: -4px;
   left: 25%;
   right: 25%;
   height: 2px;

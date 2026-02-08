@@ -61,15 +61,18 @@ export function BottomTabBar() {
                 active ? 'tab-active-glow' : '',
               ].join(' ')}
             >
-              <Icon className="h-5 w-5" />
-              <span
-                className={[
-                  'text-[11px]',
-                  active ? 'font-semibold' : 'font-medium',
-                ].join(' ')}
-              >
-                {tab.label}
-              </span>
+              {/* Shift the icon/label down a touch so the tab feels visually centered. */}
+              <div className="flex flex-col items-center gap-1 translate-y-[6px]">
+                <Icon className="h-5 w-5" />
+                <span
+                  className={[
+                    'text-[11px]',
+                    active ? 'font-semibold' : 'font-medium',
+                  ].join(' ')}
+                >
+                  {tab.label}
+                </span>
+              </div>
             </Link>
           );
         })}
