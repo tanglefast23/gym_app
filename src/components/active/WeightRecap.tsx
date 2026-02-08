@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Copy, CopyCheck, Check } from 'lucide-react';
-import { Button, Stepper } from '@/components/ui';
+import { ChevronLeft, ChevronRight, Copy, CopyCheck, Check, Trash2 } from 'lucide-react';
+import { Button, Stepper, ConfirmDialog } from '@/components/ui';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { getLastPerformedSets } from '@/lib/queries';
 import { playSfx } from '@/lib/sfx';
@@ -22,6 +22,7 @@ interface WeightRecapProps {
   onUpsertSet: (index: number, set: PerformedSet) => void;
   onComplete: () => void;
   onSavePartial: () => void;
+  onDiscard?: () => void;
 }
 
 /** Filter to only exercise-type steps. */
@@ -61,6 +62,7 @@ export const WeightRecap = ({
   onUpsertSet,
   onComplete,
   onSavePartial,
+  onDiscard,
 }: WeightRecapProps) => {
   const unitSystem = useSettingsStore((s) => s.unitSystem);
   const weightStepsKg = useSettingsStore((s) => s.weightStepsKg);
@@ -218,6 +220,7 @@ export const WeightRecap = ({
   const [applyFeedback, setApplyFeedback] = useState(false);
   const [sameWeightFeedback, setSameWeightFeedback] = useState(false);
   const [savingPartial, setSavingPartial] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   /** Save the current draft as a performed set. */
   const saveDraft = useCallback(() => {
@@ -585,7 +588,39 @@ export const WeightRecap = ({
           ) : null}
           {savingPartial ? 'Saving...' : 'Save Partial'}
         </button>
+
+        {/* Discard workout button */}
+        {onDiscard ? (
+          <button
+            type="button"
+            onClick={() => setShowDiscardConfirm(true)}
+            className={[
+              'flex w-full items-center justify-center gap-2',
+              'rounded-xl px-4 py-3',
+              'text-sm font-medium text-red-400',
+              'transition-all duration-150',
+              'hover:bg-red-500/10 active:scale-[0.98]',
+            ].join(' ')}
+          >
+            <Trash2 className="h-4 w-4" />
+            Discard Workout
+          </button>
+        ) : null}
       </div>
+
+      {/* Discard confirmation */}
+      <ConfirmDialog
+        isOpen={showDiscardConfirm}
+        onClose={() => setShowDiscardConfirm(false)}
+        onConfirm={() => {
+          setShowDiscardConfirm(false);
+          onDiscard?.();
+        }}
+        title="Discard workout?"
+        description="This will delete the entire workout session. No data will be saved."
+        confirmText="Discard"
+        variant="danger"
+      />
     </div>
   );
 };

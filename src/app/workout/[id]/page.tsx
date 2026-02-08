@@ -409,6 +409,14 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     router.push('/');
   }, [resetStore, router]);
 
+  /** Discard workout entirely — no data saved. */
+  const handleDiscard = useCallback(async () => {
+    await db.crashRecovery.delete('recovery').catch(() => {});
+    sessionStorage.removeItem('active-workout');
+    resetStore();
+    router.push('/');
+  }, [resetStore, router]);
+
   // ---------------------------------------------------------------------------
   // Exercise steps for recap (memoised filter)
   // ---------------------------------------------------------------------------
@@ -500,6 +508,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
           onUpsertSet={upsertSet}
           onComplete={handleSaveWorkout}
           onSavePartial={handleSaveWorkout}
+          onDiscard={handleDiscard}
         />
         <ToastContainer />
       </div>
@@ -529,6 +538,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
         {currentStep?.type === 'exercise' ? (
           <ExerciseDisplay
             exerciseName={currentExerciseName}
+            exerciseId={currentStep.exerciseId}
             setIndex={currentStep.setIndex ?? 0}
             totalSets={currentStep.totalSets ?? 1}
             repsMin={currentStep.repsMin ?? 1}

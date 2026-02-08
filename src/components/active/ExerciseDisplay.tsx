@@ -3,9 +3,14 @@
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui';
 import { useHaptics } from '@/hooks';
+import { getLastPerformedSets } from '@/lib/queries';
+import { formatWeight } from '@/lib/calculations';
+import { useSettingsStore } from '@/stores/settingsStore';
+import type { PerformedSet } from '@/types/workout';
 
 interface ExerciseDisplayProps {
   exerciseName: string;
+  exerciseId?: string;
   setIndex: number;
   totalSets: number;
   repsMin: number;
@@ -17,8 +22,27 @@ interface ExerciseDisplayProps {
   onDone: () => void;
 }
 
+/** Compute average weight and a suggested bump from previous sets. */
+function computeWeightSuggestion(
+  sets: PerformedSet[],
+  unit: 'kg' | 'lb',
+): { avgG: number; suggestedG: number } | null {
+  const withWeight = sets.filter((s) => s.weightG > 0);
+  if (withWeight.length === 0) return null;
+
+  const totalG = withWeight.reduce((sum, s) => sum + s.weightG, 0);
+  const avgG = Math.round(totalG / withWeight.length);
+
+  // Modest increase: +2.5kg or +5lb (in grams)
+  const bumpG = unit === 'kg' ? 2500 : 2268; // 2.5kg or ~5lb
+  const suggestedG = avgG + bumpG;
+
+  return { avgG, suggestedG };
+}
+
 export const ExerciseDisplay = ({
   exerciseName,
+  exerciseId,
   setIndex,
   totalSets,
   repsMin,
@@ -30,6 +54,7 @@ export const ExerciseDisplay = ({
   onDone,
 }: ExerciseDisplayProps) => {
   const haptics = useHaptics();
+  const unitSystem = useSettingsStore((s) => s.unitSystem);
 
   const initialVisualSrc = useMemo(() => {
     const key = visualKey && visualKey.trim().length > 0 ? visualKey : 'default';
@@ -41,6 +66,22 @@ export const ExerciseDisplay = ({
   useEffect(() => {
     setVisualSrc(initialVisualSrc);
   }, [initialVisualSrc]);
+
+  // Fetch previous session's weight data
+  const [weightHint, setWeightHint] = useState<{
+    avgG: number;
+    suggestedG: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!exerciseId) return;
+    let cancelled = false;
+    getLastPerformedSets(exerciseId).then((sets) => {
+      if (cancelled) return;
+      setWeightHint(computeWeightSuggestion(sets, unitSystem));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [exerciseId, unitSystem]);
 
   const handleDone = useCallback(() => {
     haptics.press();
@@ -92,6 +133,18 @@ export const ExerciseDisplay = ({
 
       {/* Rep target */}
       <p className="text-3xl font-bold text-accent">{repLabel}</p>
+
+      {/* Previous avg + suggested weight */}
+      {weightHint ? (
+        <p className="text-sm text-text-muted">
+          Last avg {formatWeight(weightHint.avgG, unitSystem)}
+          {' · '}
+          Try{' '}
+          <span className="font-semibold text-accent">
+            [{formatWeight(weightHint.suggestedG, unitSystem)}]
+          </span>
+        </p>
+      ) : null}
 
       {/* Done button */}
       <div className="mt-auto w-full">
