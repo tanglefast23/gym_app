@@ -157,7 +157,7 @@ export const ExerciseDisplay = ({
           size="xl"
           fullWidth
           onClick={handleDone}
-          className="rounded-2xl font-bold"
+          className="rounded-2xl font-bold animate-pulse-glow"
         >
           DONE
         </Button>

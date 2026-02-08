@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from './Button';
 import { lockBodyScroll, unlockBodyScroll } from '@/lib/scrollLock';
+import { useFocusTrap } from '@/hooks';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -34,13 +35,15 @@ export const ConfirmDialog = ({
   const overlayRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  useFocusTrap(panelRef, isOpen && isBrowser, onClose);
+
   useEffect(() => {
     if (isOpen) {
       lockBodyScroll();
       const raf = requestAnimationFrame(() => {
         overlayRef.current?.classList.replace('bg-black/0', 'bg-black/60');
-        panelRef.current?.classList.remove('scale-95', 'opacity-0');
-        panelRef.current?.classList.add('scale-100', 'opacity-100');
+        panelRef.current?.classList.remove('opacity-0');
+        panelRef.current?.classList.add('animate-scale-in');
       });
       return () => {
         cancelAnimationFrame(raf);
@@ -81,7 +84,7 @@ export const ConfirmDialog = ({
     >
       <div
         ref={panelRef}
-        className="w-full max-w-sm rounded-2xl bg-elevated p-6 shadow-xl transition-all duration-200 scale-95 opacity-0"
+        className="w-full max-w-sm rounded-2xl bg-elevated p-6 shadow-xl opacity-0"
         onClick={handleDialogClick}
       >
         <h2 className="text-lg font-semibold text-text-primary">

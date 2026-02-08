@@ -1,3 +1,4 @@
+export { useFocusTrap } from './useFocusTrap';
 export { useTimer } from './useTimer';
 export { useWakeLock } from './useWakeLock';
 export { useHaptics } from './useHaptics';

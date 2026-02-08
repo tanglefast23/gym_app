@@ -132,7 +132,7 @@ export default function HistoryPage() {
       <div className="px-5 pt-4">
         {/* Loading State */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-12" role="status" aria-label="Loading">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           </div>
         ) : null}
@@ -148,6 +148,7 @@ export default function HistoryPage() {
                   placeholder="Search workouts..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Search workouts"
                   className="h-10 w-full rounded-xl border border-border bg-surface pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 />
               </div>
@@ -177,8 +178,8 @@ export default function HistoryPage() {
             ) : null}
 
             {/* Grouped log entries */}
-            {groupedLogs.map((group) => (
-              <section key={group.label} className="mb-4">
+            {groupedLogs.map((group, gi) => (
+              <section key={group.label} className={`mb-4 animate-fade-in-up stagger-${Math.min(gi + 1, 8)}`}>
                 <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-[1px] text-text-muted">
                   {group.label}
                 </h3>

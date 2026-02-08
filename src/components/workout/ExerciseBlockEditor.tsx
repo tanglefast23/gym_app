@@ -111,11 +111,11 @@ export const ExerciseBlockEditor = ({
   );
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4">
+    <div className="rounded-2xl border border-border border-l-[3px] border-l-accent/30 bg-surface p-4">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <GripVertical className="h-5 w-5 cursor-grab text-text-muted" />
+          <GripVertical className="h-5 w-5 text-text-muted" aria-hidden="true" />
           <span className="text-sm font-medium text-text-secondary">
             Exercise
           </span>
@@ -150,8 +150,8 @@ export const ExerciseBlockEditor = ({
           step={1}
         />
 
-        <div className="flex flex-col">
-          <label className="mb-1 text-xs font-medium text-text-muted">Reps</label>
+        <fieldset className="flex flex-col border-none p-0 m-0">
+          <legend className="mb-1 text-xs font-medium text-text-muted">Reps</legend>
           <div className="flex items-center gap-1">
             <NumberStepper
               value={block.repsMin}
@@ -175,7 +175,7 @@ export const ExerciseBlockEditor = ({
               ariaLabel="Maximum reps"
             />
           </div>
-        </div>
+        </fieldset>
       </div>
 
       {/* Rest override */}

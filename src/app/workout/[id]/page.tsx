@@ -555,33 +555,37 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
       {/* Main content area based on current step type */}
       <div className="flex flex-1 flex-col">
         {currentStep?.type === 'exercise' ? (
-          <ExerciseDisplay
-            exerciseName={currentExerciseName}
-            exerciseId={currentStep.exerciseId}
-            setIndex={currentStep.setIndex ?? 0}
-            totalSets={currentStep.totalSets ?? 1}
-            repsMin={currentStep.repsMin ?? 1}
-            repsMax={currentStep.repsMax ?? 1}
-            visualKey={currentExerciseVisualKey}
-            isSuperset={currentStep.isSuperset}
-            supersetExerciseIndex={currentStep.supersetExerciseIndex}
-            supersetTotalExercises={currentStep.supersetTotalExercises}
-            onDone={handleExerciseDone}
-          />
+          <div key={`exercise-${currentStepIndex}`} className="flex flex-1 flex-col animate-exercise-enter">
+            <ExerciseDisplay
+              exerciseName={currentExerciseName}
+              exerciseId={currentStep.exerciseId}
+              setIndex={currentStep.setIndex ?? 0}
+              totalSets={currentStep.totalSets ?? 1}
+              repsMin={currentStep.repsMin ?? 1}
+              repsMax={currentStep.repsMax ?? 1}
+              visualKey={currentExerciseVisualKey}
+              isSuperset={currentStep.isSuperset}
+              supersetExerciseIndex={currentStep.supersetExerciseIndex}
+              supersetTotalExercises={currentStep.supersetTotalExercises}
+              onDone={handleExerciseDone}
+            />
+          </div>
         ) : null}
 
         {currentStep?.type === 'rest' ||
         currentStep?.type === 'superset-rest' ? (
-          <RestTimer
-            remainingMs={timer.remainingMs}
-            totalMs={(currentStep.restDurationSec ?? 90) * 1000}
-            isSuperset={currentStep.type === 'superset-rest'}
-            isRunning={timer.isRunning}
-            nextUpLabel={nextUpLabel}
-            onSkip={timer.skip}
-            onAdjust={timer.adjust}
-            onStart={handleManualTimerStart}
-          />
+          <div key={`rest-${currentStepIndex}`} className="flex flex-1 flex-col animate-rest-enter">
+            <RestTimer
+              remainingMs={timer.remainingMs}
+              totalMs={(currentStep.restDurationSec ?? 90) * 1000}
+              isSuperset={currentStep.type === 'superset-rest'}
+              isRunning={timer.isRunning}
+              nextUpLabel={nextUpLabel}
+              onSkip={timer.skip}
+              onAdjust={timer.adjust}
+              onStart={handleManualTimerStart}
+            />
+          </div>
         ) : null}
       </div>
 

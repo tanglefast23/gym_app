@@ -372,7 +372,7 @@ export default function ProgressPage() {
       <div className="px-5 pt-4 pb-8">
         {/* Loading State */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-12" role="status" aria-label="Loading">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           </div>
         ) : null}
@@ -381,21 +381,27 @@ export default function ProgressPage() {
           <>
             {/* Summary Stats */}
             <div className="mb-6 grid grid-cols-3 gap-3">
-              <StatCard
-                icon={Dumbbell}
-                value={totalWorkouts}
-                label="Total"
-              />
-              <StatCard
-                icon={Calendar}
-                value={weekWorkouts}
-                label="This Week"
-              />
-              <StatCard
-                icon={TrendingUp}
-                value={totalExercises}
-                label="Exercises"
-              />
+              <div className="animate-fade-in-up stagger-1">
+                <StatCard
+                  icon={Dumbbell}
+                  value={totalWorkouts}
+                  label="Total"
+                />
+              </div>
+              <div className="animate-fade-in-up stagger-2">
+                <StatCard
+                  icon={Calendar}
+                  value={weekWorkouts}
+                  label="This Week"
+                />
+              </div>
+              <div className="animate-fade-in-up stagger-3">
+                <StatCard
+                  icon={TrendingUp}
+                  value={totalExercises}
+                  label="Exercises"
+                />
+              </div>
             </div>
 
             {/* Duration Stats (Feature 4) */}
@@ -442,28 +448,32 @@ export default function ProgressPage() {
                 description="Complete workouts to see your exercise progress charts here"
               />
             ) : (
-              <section className="mb-6">
+              <section className="mb-6 animate-fade-in-up stagger-4">
                 <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[1px] text-text-muted">
                   EXERCISE PROGRESS
                 </h2>
                 <div className="space-y-4">
-                  {exerciseGroups.map((group) => (
-                    <ExerciseProgressCard
+                  {exerciseGroups.map((group, i) => (
+                    <div
                       key={group.exerciseId}
-                      group={group}
-                      unitSystem={unitSystem}
-                    />
+                      className={`animate-fade-in-up stagger-${Math.min(i + 5, 8)}`}
+                    >
+                      <ExerciseProgressCard
+                        group={group}
+                        unitSystem={unitSystem}
+                      />
+                    </div>
                   ))}
                 </div>
               </section>
             )}
 
             {/* Achievements Section */}
-            <section>
+            <section className="animate-fade-in-up stagger-6">
               <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[1px] text-text-muted">
                 ACHIEVEMENTS
               </h2>
-              <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none">
+              <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none" tabIndex={0} role="region" aria-label="Achievements">
                 {ACHIEVEMENTS.map((def) => {
                   const unlocked = unlockedMap.get(def.id);
                   return (

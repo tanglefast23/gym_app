@@ -53,7 +53,7 @@ export function Header({
         {/* Left: title or left action + title */}
         <div className="flex items-center gap-3">
           {leftAction ?? null}
-          <h1 className="text-[28px] font-bold leading-tight text-white">
+          <h1 className="text-[28px] font-bold leading-tight text-text-primary">
             {title}
           </h1>
         </div>

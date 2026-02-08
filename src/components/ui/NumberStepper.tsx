@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Minus, Plus } from 'lucide-react';
 
 type StepperSize = 'sm' | 'lg';
@@ -53,6 +53,22 @@ export const NumberStepper = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPressRef = useRef(false);
+  const valueDisplayRef = useRef<HTMLSpanElement>(null);
+  const prevValueRef = useRef(value);
+
+  // Trigger pop animation when value changes via stepper buttons
+  useEffect(() => {
+    if (value !== prevValueRef.current && !isEditing) {
+      const el = valueDisplayRef.current;
+      if (el) {
+        el.classList.remove('animate-value-pop');
+        // Force reflow to restart animation
+        void el.offsetWidth;
+        el.classList.add('animate-value-pop');
+      }
+    }
+    prevValueRef.current = value;
+  }, [value, isEditing]);
 
   const atMin = value <= min;
   const atMax = value >= max;
@@ -203,7 +219,7 @@ export const NumberStepper = ({
             className={`flex ${minWidthClass} flex-col items-center justify-center`}
             aria-label={`Edit ${ariaLabel ?? label ?? 'value'}: ${value}`}
           >
-            <span className={valueTextClass}>
+            <span ref={valueDisplayRef} className={valueTextClass}>
               {value}
             </span>
             {suffix ? (

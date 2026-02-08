@@ -29,7 +29,7 @@ export const AchievementCard = ({
   context,
 }: AchievementCardProps) => {
   const containerClasses = isUnlocked
-    ? 'border border-warning/40 bg-surface'
+    ? 'border border-warning/40 bg-surface animate-shimmer'
     : 'border border-border bg-surface/50';
 
   return (
@@ -63,7 +63,7 @@ export const AchievementCard = ({
       {/* Name */}
       <p
         className={`text-center text-sm font-semibold ${
-          isUnlocked ? 'text-white' : 'text-text-muted'
+          isUnlocked ? 'text-text-primary' : 'text-text-muted'
         }`}
       >
         {name}

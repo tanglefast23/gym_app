@@ -92,8 +92,8 @@ export default function ExerciseDetailPage() {
           title="Loading..."
           centered
           leftAction={
-            <button type="button" onClick={() => router.back()} aria-label="Go back">
-              <ArrowLeft className="h-5 w-5 text-text-secondary" />
+            <button type="button" onClick={() => router.back()} aria-label="Go back" className="rounded-lg p-2 text-text-secondary transition-colors hover:bg-surface">
+              <ArrowLeft className="h-5 w-5" />
             </button>
           }
         />
@@ -119,8 +119,8 @@ export default function ExerciseDetailPage() {
           title={exerciseName}
           centered
           leftAction={
-            <button type="button" onClick={() => router.back()} aria-label="Go back">
-              <ArrowLeft className="h-5 w-5 text-text-secondary" />
+            <button type="button" onClick={() => router.back()} aria-label="Go back" className="rounded-lg p-2 text-text-secondary transition-colors hover:bg-surface">
+              <ArrowLeft className="h-5 w-5" />
             </button>
           }
         />

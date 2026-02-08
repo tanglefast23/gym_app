@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { CheckCircle, AlertCircle, Info, X } from 'lucide-react';
-import { type ComponentType } from 'react';
+import { type ComponentType, useCallback } from 'react';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -73,6 +73,26 @@ const ToastItem = ({ toast }: { toast: ToastItemData }) => {
   const removeToast = useToastStore((s) => s.removeToast);
   const { icon: Icon, colorClass } = toastIconMap[toast.type];
 
+  const handleMouseEnter = useCallback(() => {
+    // Pause auto-dismiss: clear the existing timer
+    const timeoutId = timerMap.get(toast.id);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timerMap.delete(toast.id);
+    }
+  }, [toast.id]);
+
+  const handleMouseLeave = useCallback(() => {
+    // Resume auto-dismiss with remaining time (use default 3s)
+    if (!timerMap.has(toast.id)) {
+      const timeoutId = setTimeout(() => {
+        timerMap.delete(toast.id);
+        removeToast(toast.id);
+      }, 3000);
+      timerMap.set(toast.id, timeoutId);
+    }
+  }, [toast.id, removeToast]);
+
   return (
     <div
       className={[
@@ -83,13 +103,18 @@ const ToastItem = ({ toast }: { toast: ToastItemData }) => {
         'animate-slide-in-right',
         'flex items-center gap-3',
       ].join(' ')}
-      role="alert"
+      role="status"
+      aria-live="polite"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleMouseEnter}
+      onBlur={handleMouseLeave}
     >
       <Icon size={20} className={`${colorClass} shrink-0`} />
       <span className="flex-1">{toast.message}</span>
       <button
         onClick={() => removeToast(toast.id)}
-        className="text-text-muted hover:text-text-secondary shrink-0"
+        className="flex h-[44px] w-[44px] items-center justify-center text-text-muted hover:text-text-secondary shrink-0 -mr-2"
         aria-label="Dismiss"
       >
         <X size={16} />

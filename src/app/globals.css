@@ -67,20 +67,27 @@ body.workout-active {
   font-variant-numeric: tabular-nums;
 }
 
+/* ─── Easing Curves ─── */
+:root {
+  --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-quart-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-back-out: cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
 /* ─── Toast Slide-in Animation ─── */
-@keyframes slide-in-right {
+@keyframes slide-in-down {
   from {
-    transform: translateX(100%);
+    transform: translateY(-100%) scale(0.95);
     opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translateY(0) scale(1);
     opacity: 1;
   }
 }
 
 .animate-slide-in-right {
-  animation: slide-in-right 0.3s ease-out;
+  animation: slide-in-down 0.4s var(--ease-expo-out);
 }
 
 /* ─── Timer Ring Pulse Animation ─── */
@@ -130,12 +137,234 @@ body.workout-active {
   animation: check-pop 0.3s ease-out forwards;
 }
 
+/* ─── Fade-in-Up (Staggered page entrances) ─── */
+@keyframes fade-in-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s var(--ease-expo-out) both;
+}
+
+/* Stagger delay utility classes for lists */
+.stagger-1 { animation-delay: 0ms; }
+.stagger-2 { animation-delay: 60ms; }
+.stagger-3 { animation-delay: 120ms; }
+.stagger-4 { animation-delay: 180ms; }
+.stagger-5 { animation-delay: 240ms; }
+.stagger-6 { animation-delay: 300ms; }
+.stagger-7 { animation-delay: 360ms; }
+.stagger-8 { animation-delay: 420ms; }
+
+/* ─── Scale-in (Modals, dialogs) ─── */
+@keyframes scale-in {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.35s var(--ease-back-out) both;
+}
+
+/* ─── Slide-up-spring (Bottom sheet) ─── */
+@keyframes slide-up-spring {
+  0% {
+    transform: translateY(100%);
+  }
+  70% {
+    transform: translateY(-2%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up-spring {
+  animation: slide-up-spring 0.45s var(--ease-expo-out) both;
+}
+
+/* ─── Ambient Pulse Glow (DONE button, CTA) ─── */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px rgba(245, 158, 11, 0.25);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2.5s ease-in-out infinite;
+}
+
+/* ─── Shimmer (Achievement unlock) ─── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.animate-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(245, 158, 11, 0.15) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* ─── Float (Empty state illustrations) ─── */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* ─── Value Pop (Number changes in steppers) ─── */
+@keyframes value-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-value-pop {
+  animation: value-pop 0.25s var(--ease-quart-out);
+}
+
+/* ─── Workout Complete Choreography ─── */
+@keyframes hero-scale-in {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-hero-scale-in {
+  animation: hero-scale-in 0.7s var(--ease-back-out) both;
+}
+
+@keyframes reveal-up {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-reveal-up {
+  animation: reveal-up 0.6s var(--ease-expo-out) both;
+}
+
+/* ─── Tab Bar Active Glow ─── */
+@keyframes tab-glow {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.tab-active-glow::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 8px 2px rgba(245, 158, 11, 0.4);
+  animation: tab-glow 0.3s var(--ease-expo-out) both;
+}
+
+/* ─── Exercise Crossfade (Active workout set transitions) ─── */
+@keyframes exercise-enter {
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-exercise-enter {
+  animation: exercise-enter 0.4s var(--ease-expo-out) both;
+}
+
+/* ─── Rest Timer Scale-in ─── */
+@keyframes rest-enter {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-rest-enter {
+  animation: rest-enter 0.5s var(--ease-expo-out) both;
+}
+
 /* ─── Reduced Motion ─── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto !important;
+  }
+  .tab-active-glow::after {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: scaleX(1) !important;
   }
 }

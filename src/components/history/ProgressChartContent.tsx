@@ -125,18 +125,21 @@ const ProgressChartContent = ({
     );
   }
 
+  const summaryText = `Chart showing ${chartData.length} data points. Range: ${chartData[0].value} to ${chartData[chartData.length - 1].value} ${unitSuffix(unitSystem)}.`;
+
   return (
+    <div role="img" aria-label={summaryText}>
     <ResponsiveContainer width="100%" height={256}>
       <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
         <XAxis
           dataKey="date"
-          stroke="#6B6B70"
+          stroke="var(--text-muted, #6B6B70)"
           fontSize={11}
           tickLine={false}
           axisLine={false}
         />
         <YAxis
-          stroke="#6B6B70"
+          stroke="var(--text-muted, #6B6B70)"
           fontSize={11}
           tickLine={false}
           axisLine={false}
@@ -151,13 +154,14 @@ const ProgressChartContent = ({
         <Line
           type="monotone"
           dataKey="value"
-          stroke="#6366F1"
+          stroke="var(--accent, #F59E0B)"
           strokeWidth={2}
-          dot={{ r: 4, fill: '#6366F1', stroke: '#111113', strokeWidth: 2 }}
-          activeDot={{ r: 6, fill: '#6366F1', stroke: '#FFFFFF', strokeWidth: 2 }}
+          dot={{ r: 4, fill: 'var(--accent, #F59E0B)', stroke: 'var(--surface, #111113)', strokeWidth: 2 }}
+          activeDot={{ r: 6, fill: 'var(--accent, #F59E0B)', stroke: 'var(--text-primary, #FFFFFF)', strokeWidth: 2 }}
         />
       </LineChart>
     </ResponsiveContainer>
+    </div>
   );
 };
 

@@ -9,9 +9,10 @@ interface TimerRingProps {
   size?: number;
 }
 
-const COLOR_GREEN = '#22C55E';
-const COLOR_AMBER = '#F59E0B';
-const COLOR_RED = '#EF4444';
+// Use CSS variable values so these respond to theme changes.
+const COLOR_GREEN = 'var(--success, #22C55E)';
+const COLOR_AMBER = 'var(--warning, #F59E0B)';
+const COLOR_RED = 'var(--danger, #EF4444)';
 
 function getStrokeColor(fraction: number): string {
   if (fraction >= 0.66) return COLOR_GREEN;
@@ -61,7 +62,7 @@ export function TimerRing({
           cy={center}
           r={radius}
           fill="none"
-          stroke="#1A1A1D"
+          stroke="var(--elevated, #1A1A1D)"
           strokeWidth={strokeWidth}
         />
 
@@ -85,14 +86,18 @@ export function TimerRing({
       </svg>
 
       {/* Center time display + REST label */}
-      <div className="relative z-10 flex flex-col items-center">
+      <div
+        className="relative z-10 flex flex-col items-center"
+        role="timer"
+        aria-label={`Rest timer: ${remainingSec} seconds remaining`}
+      >
         <span
-          className="font-timer text-text-primary"
-          style={{ fontSize: 56, lineHeight: 1 }}
+          className="font-timer text-[56px] leading-none text-text-primary"
+          aria-hidden="true"
         >
           {timeDisplay}
         </span>
-        <span className="mt-1 text-sm font-semibold uppercase tracking-[2px] text-text-secondary">
+        <span className="mt-1 text-sm font-semibold uppercase tracking-[2px] text-text-secondary" aria-hidden="true">
           REST
         </span>
       </div>

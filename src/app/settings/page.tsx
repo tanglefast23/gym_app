@@ -57,7 +57,7 @@ function Toggle({ enabled, onToggle, disabled = false }: ToggleProps) {
       aria-disabled={disabled}
       disabled={disabled}
       onClick={disabled ? undefined : onToggle}
-      className={`relative h-6 w-11 rounded-full transition-colors ${
+      className={`relative h-6 w-11 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
         enabled ? 'bg-accent' : 'bg-border'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
@@ -89,7 +89,7 @@ function SegmentedControl<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+          className={`rounded-md px-3 py-1 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface ${
             value === opt.value
               ? 'bg-accent text-white'
               : 'text-text-secondary hover:text-text-primary'
@@ -396,7 +396,7 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex items-center text-accent"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center text-accent"
             aria-label="Go back"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -418,11 +418,13 @@ export default function SettingsPage() {
 
         <SettingRow label="Default Rest" description="Between sets (seconds)">
           <input
+            id="default-rest"
             type="number"
             value={defaultRest}
             onChange={handleRestChange}
             min={VALIDATION.MIN_REST_SEC}
             max={VALIDATION.MAX_REST_SEC}
+            aria-label="Default rest between sets in seconds"
             className="w-20 rounded-lg border border-border bg-surface px-3 py-1.5 text-right text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </SettingRow>
@@ -494,6 +496,7 @@ export default function SettingsPage() {
             type="file"
             accept=".json"
             className="hidden"
+            aria-label="Import data file"
             onChange={handleFileSelect}
           />
         </div>

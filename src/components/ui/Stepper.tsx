@@ -71,7 +71,7 @@ export const Stepper = ({
   const bigBtn = `${btnBase} h-11 w-11 bg-elevated`;
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-col items-center gap-2" role="group" aria-label={label ?? 'Value stepper'}>
       {label ? (
         <span className="text-sm font-medium text-text-secondary">
           {label}
@@ -104,7 +104,7 @@ export const Stepper = ({
         </button>
 
         {/* Value display */}
-        <div className="min-w-[80px] text-center">
+        <div className="min-w-[80px] text-center" aria-live="polite" aria-atomic="true">
           <span className="font-mono text-2xl text-text-primary">
             {displayValue}
           </span>

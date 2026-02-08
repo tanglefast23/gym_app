@@ -11,7 +11,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 const ChartContent = dynamic(() => import('./ProgressChartContent'), {
   loading: () => (
     <div className="flex h-64 items-center justify-center">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" role="status" aria-label="Loading chart" />
     </div>
   ),
   ssr: false,

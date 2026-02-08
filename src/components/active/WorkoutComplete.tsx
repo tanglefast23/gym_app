@@ -41,23 +41,24 @@ export const WorkoutComplete = ({
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-8 px-6 py-8">
+      {/* Hero illustration — dramatic scale-in entrance */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/visuals/celebrate/workout-complete.svg"
         alt=""
-        className="w-[300px] max-w-full select-none"
+        className="w-[300px] max-w-full select-none animate-hero-scale-in"
         draggable={false}
       />
 
-      {/* Title */}
-      <h2 className="text-2xl font-bold text-text-primary">
+      {/* Title — fades up shortly after hero */}
+      <h2 className="text-2xl font-bold text-text-primary animate-reveal-up" style={{ animationDelay: '200ms' }}>
         Workout Complete!
       </h2>
 
-      {/* Stats grid */}
+      {/* Stats grid — staggered entrance */}
       <div className="grid w-full max-w-sm grid-cols-2 gap-4">
         {/* Duration */}
-        <div className="flex flex-col items-center gap-2 rounded-xl bg-surface p-4">
+        <div className="flex flex-col items-center gap-2 rounded-xl bg-surface p-4 animate-reveal-up" style={{ animationDelay: '350ms' }}>
           <Clock className="h-5 w-5 text-text-muted" />
           <span className="text-lg font-semibold text-text-primary">
             {formatDuration(durationSec)}
@@ -66,7 +67,7 @@ export const WorkoutComplete = ({
         </div>
 
         {/* Total Sets */}
-        <div className="flex flex-col items-center gap-2 rounded-xl bg-surface p-4">
+        <div className="flex flex-col items-center gap-2 rounded-xl bg-surface p-4 animate-reveal-up" style={{ animationDelay: '450ms' }}>
           <Layers className="h-5 w-5 text-text-muted" />
           <span className="text-lg font-semibold text-text-primary">
             {totalSets}
@@ -75,7 +76,7 @@ export const WorkoutComplete = ({
         </div>
 
         {/* Total Volume -- spans both columns */}
-        <div className="col-span-2 flex flex-col items-center gap-2 rounded-xl bg-surface p-4">
+        <div className="col-span-2 flex flex-col items-center gap-2 rounded-xl bg-surface p-4 animate-reveal-up" style={{ animationDelay: '550ms' }}>
           <Weight className="h-5 w-5 text-text-muted" />
           <span className="text-lg font-semibold text-text-primary">
             {formatWeight(totalVolumeG, unitSystem)}
@@ -84,12 +85,13 @@ export const WorkoutComplete = ({
         </div>
       </div>
 
-      {/* Done button */}
-      <div className="mt-auto w-full">
+      {/* Done button — last to appear, with glow */}
+      <div className="mt-auto w-full animate-reveal-up" style={{ animationDelay: '700ms' }}>
         <Button
           size="lg"
           fullWidth
           onClick={handleFinish}
+          className="animate-pulse-glow"
         >
           Done
         </Button>

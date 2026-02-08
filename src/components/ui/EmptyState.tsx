@@ -26,7 +26,7 @@ export const EmptyState = ({
         <img
           src={illustrationSrc}
           alt={illustrationAlt ?? ''}
-          className="w-[260px] max-w-full select-none"
+          className="w-[260px] max-w-full select-none animate-float"
           draggable={false}
         />
       ) : null}

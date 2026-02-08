@@ -132,13 +132,11 @@ export const SupersetBlockEditor = ({
   );
 
   return (
-    <div className="rounded-2xl border border-border border-l-indigo-500/20 bg-surface p-4"
-      style={{ borderLeftWidth: '4px' }}
-    >
+    <div className="rounded-2xl border border-border border-l-[4px] border-l-accent/50 bg-surface p-4">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <GripVertical className="h-5 w-5 cursor-grab text-text-muted" />
+          <GripVertical className="h-5 w-5 text-text-muted" aria-hidden="true" />
           <span className="rounded-full bg-accent/20 px-2 py-1 text-xs font-medium text-accent">
             Superset
           </span>
@@ -281,7 +279,7 @@ const SupersetExerciseRow = ({
           <button
             type="button"
             onClick={onRemove}
-            className="rounded-lg p-1 text-text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+            className="flex h-[44px] w-[44px] items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-danger/10 hover:text-danger"
             aria-label={`Remove exercise ${index + 1}`}
           >
             <Trash2 className="h-3.5 w-3.5" />

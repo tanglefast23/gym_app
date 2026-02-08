@@ -320,10 +320,11 @@ export function WorkoutEditor({
       <div className="px-4 pb-32 pt-4">
         {/* Workout name input */}
         <div className="mb-6">
-          <label className="mb-1 block text-sm font-medium text-text-secondary">
+          <label htmlFor="workout-name" className="mb-1 block text-sm font-medium text-text-secondary">
             Workout Name
           </label>
           <input
+            id="workout-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -333,31 +334,43 @@ export function WorkoutEditor({
           />
         </div>
 
-        {/* Block list */}
-        <div className="space-y-4">
-          {blocks.map((block, index) =>
-            block.type === 'exercise' ? (
-              <ExerciseBlockEditor
-                key={block.id}
-                block={block}
-                onChange={(updated) => updateBlock(index, updated)}
-                onRemove={() => removeBlock(index)}
-                exerciseName={nameMap[block.id] ?? ''}
-                onExerciseNameChange={handleExerciseNameChange}
-              />
-            ) : (
-              <SupersetBlockEditor
-                key={block.id}
-                block={block}
-                onChange={(updated) => updateBlock(index, updated)}
-                onRemove={() => removeBlock(index)}
-                exerciseNames={block.exercises.map(
-                  (_, exIdx) => nameMap[`${block.id}:${exIdx}`] ?? '',
+        {/* Block list with timeline rail */}
+        <div>
+          {blocks.map((block, index) => (
+            <div key={block.id} className="flex gap-3">
+              {/* Numbered indicator + connecting line */}
+              <div className="flex flex-col items-center pt-5">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-elevated text-xs font-bold text-text-secondary">
+                  {index + 1}
+                </div>
+                {index < blocks.length - 1 ? (
+                  <div className="mt-1 w-px flex-1 bg-border/50" />
+                ) : null}
+              </div>
+              {/* Block content */}
+              <div className={`min-w-0 flex-1${index < blocks.length - 1 ? ' pb-4' : ''}`}>
+                {block.type === 'exercise' ? (
+                  <ExerciseBlockEditor
+                    block={block}
+                    onChange={(updated) => updateBlock(index, updated)}
+                    onRemove={() => removeBlock(index)}
+                    exerciseName={nameMap[block.id] ?? ''}
+                    onExerciseNameChange={handleExerciseNameChange}
+                  />
+                ) : (
+                  <SupersetBlockEditor
+                    block={block}
+                    onChange={(updated) => updateBlock(index, updated)}
+                    onRemove={() => removeBlock(index)}
+                    exerciseNames={block.exercises.map(
+                      (_, exIdx) => nameMap[`${block.id}:${exIdx}`] ?? '',
+                    )}
+                    onExerciseNameChange={handleSupersetExerciseNameChange}
+                  />
                 )}
-                onExerciseNameChange={handleSupersetExerciseNameChange}
-              />
-            ),
-          )}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Add block buttons */}

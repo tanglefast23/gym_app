@@ -201,7 +201,7 @@ export function RestTimer({
           <span className="text-xs font-semibold uppercase tracking-[1px] text-text-muted">
             NEXT UP
           </span>
-          <span className="text-lg font-semibold text-white">
+          <span className="text-lg font-semibold text-text-primary">
             {nextName}
           </span>
           {nextDetail ? (

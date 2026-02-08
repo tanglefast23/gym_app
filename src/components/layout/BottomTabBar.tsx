@@ -39,7 +39,6 @@ export function BottomTabBar() {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]"
-      role="tablist"
       aria-label="Main navigation"
     >
       <div className="flex items-center justify-around pt-3">
@@ -52,13 +51,14 @@ export function BottomTabBar() {
               key={tab.href}
               href={tab.href}
               data-sfx="tab"
-              role="tab"
-              aria-selected={active}
+              aria-current={active ? 'page' : undefined}
               aria-label={tab.label}
               className={[
-                'flex flex-1 flex-col items-center justify-center gap-1',
-                'transition-colors duration-150',
-                active ? 'text-accent' : 'text-text-muted',
+                'relative flex flex-1 flex-col items-center justify-center gap-1',
+                'min-h-[48px]',
+                'transition-all duration-200',
+                active ? 'text-accent scale-105' : 'text-text-muted active:scale-95',
+                active ? 'tab-active-glow' : '',
               ].join(' ')}
             >
               <Icon className="h-6 w-6" />

@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { lockBodyScroll, unlockBodyScroll } from '@/lib/scrollLock';
+import { useFocusTrap } from '@/hooks';
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -29,13 +30,16 @@ export const BottomSheet = ({
   const backdropRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
+  useFocusTrap(sheetRef, isOpen && isBrowser, onClose);
+
   useEffect(() => {
     if (isOpen) {
       lockBodyScroll();
-      // Delay to trigger CSS transition after mount
+      // Delay to trigger CSS animation after mount
       const raf = requestAnimationFrame(() => {
         backdropRef.current?.classList.replace('bg-black/0', 'bg-black/60');
-        sheetRef.current?.classList.replace('translate-y-full', 'translate-y-0');
+        sheetRef.current?.classList.remove('translate-y-full');
+        sheetRef.current?.classList.add('animate-slide-up-spring');
       });
       return () => {
         cancelAnimationFrame(raf);
@@ -75,7 +79,7 @@ export const BottomSheet = ({
           'fixed bottom-0 left-0 right-0',
           'rounded-t-[24px] bg-elevated',
           'pb-[env(safe-area-inset-bottom)]',
-          'transition-transform duration-300 ease-out',
+          'transition-transform duration-300',
           'max-h-[85vh] overflow-y-auto',
           'translate-y-full',
         ].join(' ')}
@@ -83,7 +87,7 @@ export const BottomSheet = ({
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-4 pb-5">
-          <div className="h-1.5 w-10 rounded-full bg-[#2A2A2E]" />
+          <div className="h-1.5 w-10 rounded-full bg-border" />
         </div>
 
         {/* Title */}

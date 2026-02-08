@@ -67,11 +67,11 @@ function ContinueBanner({
   onDismiss: () => void;
 }) {
   return (
-    <div className="mb-4 space-y-3">
+    <div className="mb-4 space-y-3 animate-fade-in-up">
       <button
         type="button"
         onClick={onResume}
-        className="flex w-full items-center justify-between rounded-2xl bg-gradient-to-b from-[#4F46E5] to-[#6366F1] p-4 transition-transform active:scale-[0.98]"
+        className="flex w-full items-center justify-between rounded-2xl bg-gradient-to-b from-[#4F46E5] to-[#6366F1] p-4 shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         <div>
           <p className="text-base font-semibold text-white">
@@ -86,7 +86,7 @@ function ContinueBanner({
       <button
         type="button"
         onClick={onDismiss}
-        className="text-sm text-text-muted transition-colors hover:text-text-secondary"
+        className="min-h-[44px] px-2 text-sm text-text-muted transition-colors hover:text-text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-lg"
       >
         Dismiss
       </button>
@@ -112,6 +112,7 @@ function SearchBar({
         placeholder="Search workouts..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        aria-label="Search workouts"
         className="h-10 w-full rounded-xl border border-border bg-surface pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
       />
     </div>
@@ -139,7 +140,8 @@ function ActionRow({
       className={[
         'flex w-full items-center gap-3 rounded-xl px-3 py-3',
         'text-left text-sm font-medium',
-        'transition-colors hover:bg-surface active:bg-surface',
+        'transition-all duration-150 hover:bg-surface active:bg-surface active:scale-[0.98] hover:translate-x-1',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-elevated',
         className,
       ].join(' ')}
     >
@@ -328,7 +330,7 @@ export default function HomePage() {
 
         {/* Loading State */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-12" role="status" aria-label="Loading">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           </div>
         ) : null}
@@ -352,14 +354,18 @@ export default function HomePage() {
 
         {/* Workout Cards */}
         {!isLoading && filteredTemplates && filteredTemplates.length > 0 ? (
-          <div>
-            {filteredTemplates.map((template) => (
-              <WorkoutCard
+          <div className="space-y-3">
+            {filteredTemplates.map((template, i) => (
+              <div
                 key={template.id}
-                template={template}
-                lastPerformed={lastPerformedMap.get(template.id) ?? null}
-                onClick={() => handleCardClick(template)}
-              />
+                className={`animate-fade-in-up stagger-${Math.min(i + 1, 8)}`}
+              >
+                <WorkoutCard
+                  template={template}
+                  lastPerformed={lastPerformedMap.get(template.id) ?? null}
+                  onClick={() => handleCardClick(template)}
+                />
+              </div>
             ))}
           </div>
         ) : null}

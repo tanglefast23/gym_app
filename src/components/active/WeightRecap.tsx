@@ -477,13 +477,14 @@ export const WeightRecap = ({
               type="button"
               onClick={applySameWeight}
               disabled={!hasPreviousSetWeight}
+              aria-label="Copy weight from previous set"
               className={[
                 'flex flex-1 items-center justify-center gap-2',
                 'rounded-xl px-3 py-2.5',
                 'text-sm font-medium',
                 'transition-all duration-200',
                 sameWeightFeedback
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/40'
+                  ? 'bg-success/20 text-success border border-success/40'
                   : 'bg-elevated text-text-secondary',
                 hasPreviousSetWeight && !sameWeightFeedback
                   ? 'hover:bg-surface active:scale-[0.97]'
@@ -504,13 +505,14 @@ export const WeightRecap = ({
               type="button"
               onClick={applyToRemaining}
               disabled={applyFeedback}
+              aria-label="Apply current weight to all remaining sets of this exercise"
               className={[
                 'flex flex-1 items-center justify-center gap-2',
                 'rounded-xl px-3 py-2.5',
                 'text-sm font-medium',
                 'transition-all duration-200',
                 applyFeedback
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/40'
+                  ? 'bg-success/20 text-success border border-success/40'
                   : 'bg-elevated text-text-secondary hover:bg-surface active:scale-[0.97]',
               ].join(' ')}
             >
@@ -579,7 +581,7 @@ export const WeightRecap = ({
             'text-sm font-medium',
             'transition-all duration-200',
             savingPartial
-              ? 'border-green-500/40 bg-green-500/20 text-green-400'
+              ? 'border-success/40 bg-success/20 text-success'
               : 'border-border bg-transparent text-text-secondary hover:bg-elevated active:scale-[0.98]',
           ].join(' ')}
         >
@@ -597,9 +599,9 @@ export const WeightRecap = ({
             className={[
               'flex w-full items-center justify-center gap-2',
               'rounded-xl px-4 py-3',
-              'text-sm font-medium text-red-400',
+              'text-sm font-medium text-danger',
               'transition-all duration-150',
-              'hover:bg-red-500/10 active:scale-[0.98]',
+              'hover:bg-danger/10 active:scale-[0.98]',
             ].join(' ')}
           >
             <Trash2 className="h-4 w-4" />

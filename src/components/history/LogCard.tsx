@@ -73,7 +73,7 @@ export const LogCard = ({ log, onClick, onLongPress }: LogCardProps) => {
       onContextMenu={(e) => {
         if (onLongPress) e.preventDefault();
       }}
-      className="mb-3 cursor-pointer rounded-2xl border border-border bg-surface p-4 transition-transform active:scale-[0.98]"
+      className="mb-3 cursor-pointer rounded-2xl border border-border bg-surface p-4 transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       {/* Header: name + status badge */}
       <div className="flex items-center justify-between">

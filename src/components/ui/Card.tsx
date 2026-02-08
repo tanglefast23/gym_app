@@ -26,7 +26,7 @@ export const Card = ({
   const classes = [
     'bg-surface rounded-2xl border border-border',
     paddingClasses[padding],
-    onClick ? 'cursor-pointer active:scale-[0.98] transition-transform' : '',
+    onClick ? 'cursor-pointer active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background' : '',
     className,
   ]
     .filter(Boolean)
