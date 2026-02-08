@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useCallback } from 'react';
 import { Clock, Layers, TrendingUp } from 'lucide-react';
 import { formatDuration, formatWeight } from '@/lib/calculations';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -8,7 +9,10 @@ import type { WorkoutLog } from '@/types/workout';
 interface LogCardProps {
   log: WorkoutLog;
   onClick: () => void;
+  onLongPress?: () => void;
 }
+
+const LONG_PRESS_MS = 500;
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -24,12 +28,34 @@ function formatLogDate(isoString: string): string {
  * A card displaying a workout log entry in the history list.
  * Shows template name, date, duration, set count, and volume.
  */
-export const LogCard = ({ log, onClick }: LogCardProps) => {
+export const LogCard = ({ log, onClick, onLongPress }: LogCardProps) => {
   const unitSystem = useSettingsStore((s) => s.unitSystem);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const startPress = useCallback(() => {
+    didLongPress.current = false;
+    timerRef.current = setTimeout(() => {
+      didLongPress.current = true;
+      onLongPress?.();
+    }, LONG_PRESS_MS);
+  }, [onLongPress]);
+
+  const handleClick = useCallback(() => {
+    if (didLongPress.current) return;
+    onClick();
+  }, [onClick]);
 
   return (
     <div
-      onClick={onClick}
+      onClick={handleClick}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -37,6 +63,15 @@ export const LogCard = ({ log, onClick }: LogCardProps) => {
           e.preventDefault();
           onClick();
         }
+      }}
+      onTouchStart={startPress}
+      onTouchEnd={clearTimer}
+      onTouchCancel={clearTimer}
+      onMouseDown={startPress}
+      onMouseUp={clearTimer}
+      onMouseLeave={clearTimer}
+      onContextMenu={(e) => {
+        if (onLongPress) e.preventDefault();
       }}
       className="mb-3 cursor-pointer rounded-2xl border border-border bg-surface p-4 transition-transform active:scale-[0.98]"
     >

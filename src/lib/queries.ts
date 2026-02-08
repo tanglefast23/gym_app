@@ -152,6 +152,25 @@ export async function getAllExerciseHistoryGrouped(): Promise<
   return grouped;
 }
 
+/**
+ * Delete a single workout log and its related exercise history entries.
+ */
+export async function deleteLog(logId: string): Promise<void> {
+  const historyEntries = await db.exerciseHistory
+    .where('logId')
+    .equals(logId)
+    .toArray();
+
+  const historyIds = historyEntries
+    .filter((h) => h.id !== undefined)
+    .map((h) => h.id as number);
+
+  await Promise.all([
+    db.logs.delete(logId),
+    historyIds.length > 0 ? db.exerciseHistory.bulkDelete(historyIds) : Promise.resolve(),
+  ]);
+}
+
 /** Get data counts for all tables (useful for "Delete All Data" confirmation). */
 export async function getDataCounts(): Promise<{
   exercises: number;
