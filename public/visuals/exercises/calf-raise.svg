@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- platform -->
+  <rect x="22" y="90" width="76" height="10" rx="5" fill="#ADADB0" opacity="0.65"/>
+
+  <!-- legs -->
+  <rect x="44" y="40" width="12" height="52" rx="6" fill="#ADADB0" opacity="0.8"/>
+  <rect x="64" y="40" width="12" height="52" rx="6" fill="#ADADB0" opacity="0.8"/>
+
+  <!-- heels up -->
+  <rect x="40" y="82" width="20" height="10" rx="5" fill="#F59E0B"/>
+  <rect x="60" y="82" width="20" height="10" rx="5" fill="#F59E0B"/>
+
+  <!-- subtle calf highlight -->
+  <rect x="46" y="56" width="8" height="20" rx="4" fill="#FBBF24" opacity="0.55"/>
+  <rect x="66" y="56" width="8" height="20" rx="4" fill="#FBBF24" opacity="0.55"/>
+</svg>
+

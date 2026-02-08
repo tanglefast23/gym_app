@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- barbell -->
+  <rect x="18" y="28" width="84" height="10" rx="5" fill="#F59E0B"/>
+  <rect x="10" y="24" width="10" height="18" rx="5" fill="#ADADB0"/>
+  <rect x="100" y="24" width="10" height="18" rx="5" fill="#ADADB0"/>
+
+  <!-- bench -->
+  <rect x="34" y="66" width="52" height="10" rx="5" fill="#ADADB0" opacity="0.9"/>
+  <rect x="38" y="76" width="10" height="22" rx="5" fill="#ADADB0" opacity="0.75"/>
+  <rect x="72" y="76" width="10" height="22" rx="5" fill="#ADADB0" opacity="0.75"/>
+
+  <!-- lifter -->
+  <circle cx="46" cy="54" r="6" fill="#ADADB0" opacity="0.85"/>
+  <rect x="50" y="50" width="36" height="10" rx="5" fill="#ADADB0" opacity="0.8"/>
+  <rect x="46" y="56" width="38" height="10" rx="5" fill="#ADADB0" opacity="0.7"/>
+</svg>
+

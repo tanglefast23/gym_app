@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- dumbbell -->
+  <rect x="78" y="56" width="26" height="10" rx="5" fill="#F59E0B"/>
+  <rect x="72" y="52" width="10" height="18" rx="5" fill="#ADADB0"/>
+  <rect x="100" y="52" width="10" height="18" rx="5" fill="#ADADB0"/>
+
+  <!-- torso hinge -->
+  <circle cx="46" cy="42" r="7" fill="#ADADB0"/>
+  <path d="M52 48 C68 54 74 64 78 74" stroke="#ADADB0" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- rear leg / front leg -->
+  <rect x="44" y="74" width="12" height="28" rx="6" fill="#ADADB0" opacity="0.75"/>
+  <rect x="60" y="74" width="12" height="28" rx="6" fill="#ADADB0" opacity="0.75"/>
+</svg>
+

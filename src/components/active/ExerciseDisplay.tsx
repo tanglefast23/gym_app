@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState, useEffect } from 'react';
 import { Check, TrendingUp } from 'lucide-react';
 import { Button, AMRAP_SENTINEL } from '@/components/ui';
 import { useHaptics } from '@/hooks';
+import { getVisualKeyForExerciseName } from '@/lib/exerciseVisual';
 import { getLastPerformedSets } from '@/lib/queries';
 import { formatWeight } from '@/lib/calculations';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -60,9 +61,13 @@ export const ExerciseDisplay = ({
   const unitSystem = useSettingsStore((s) => s.unitSystem);
 
   const initialVisualSrc = useMemo(() => {
-    const key = visualKey && visualKey.trim().length > 0 ? visualKey : 'default';
-    return `/visuals/exercises/${key}.svg`;
-  }, [visualKey]);
+    const explicit = visualKey?.trim().toLowerCase();
+    const resolvedKey =
+      explicit && explicit.length > 0 && explicit !== 'default'
+        ? explicit
+        : getVisualKeyForExerciseName(exerciseName);
+    return `/visuals/exercises/${resolvedKey}.svg`;
+  }, [visualKey, exerciseName]);
 
   const [visualSrc, setVisualSrc] = useState(initialVisualSrc);
 

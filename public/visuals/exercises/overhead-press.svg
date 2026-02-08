@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- barbell overhead -->
+  <rect x="22" y="18" width="76" height="10" rx="5" fill="#F59E0B"/>
+  <rect x="14" y="14" width="10" height="18" rx="5" fill="#ADADB0"/>
+  <rect x="96" y="14" width="10" height="18" rx="5" fill="#ADADB0"/>
+
+  <!-- lifter -->
+  <circle cx="60" cy="44" r="7" fill="#ADADB0"/>
+  <rect x="50" y="52" width="20" height="26" rx="10" fill="#ADADB0" opacity="0.9"/>
+
+  <!-- arms up -->
+  <rect x="40" y="34" width="10" height="24" rx="5" fill="#ADADB0" opacity="0.8"/>
+  <rect x="70" y="34" width="10" height="24" rx="5" fill="#ADADB0" opacity="0.8"/>
+
+  <!-- legs -->
+  <rect x="46" y="78" width="12" height="24" rx="6" fill="#ADADB0" opacity="0.75"/>
+  <rect x="62" y="78" width="12" height="24" rx="6" fill="#ADADB0" opacity="0.75"/>
+</svg>
+
