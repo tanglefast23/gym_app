@@ -295,12 +295,20 @@ body.workout-active {
 
 /* ─── Confetti Burst ─── */
 @keyframes confetti-burst {
-  from {
+  0% {
     transform: translate3d(0, 0, 0) rotate(0deg);
     opacity: 1;
   }
-  to {
+  35% {
     transform: translate3d(var(--x), var(--y), 0) rotate(var(--r));
+    opacity: 1;
+  }
+  65% {
+    transform: translate3d(var(--x), calc(var(--y) + 20px), 0) rotate(var(--r));
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(var(--x), calc(var(--y) + 50px), 0) rotate(var(--r));
     opacity: 0;
   }
 }
@@ -314,7 +322,7 @@ body.workout-active {
   border-radius: 3px;
   background: var(--c);
   transform: translate3d(0, 0, 0);
-  animation: confetti-burst 0.9s var(--ease-expo-out) both;
+  animation: confetti-burst 2s ease-out both;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.25));
 }
 

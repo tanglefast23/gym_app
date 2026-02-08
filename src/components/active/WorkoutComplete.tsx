@@ -80,7 +80,7 @@ function ConfettiBurst(): React.JSX.Element {
         x: Math.cos(angle) * radius,
         y: Math.sin(angle) * radius - 40,
         r: ((rand01(i + 11) * 720 - 360) | 0),
-        delayMs: Math.floor(rand01(i + 21) * 120),
+        delayMs: Math.floor(rand01(i + 21) * 250),
         color: colors[i % colors.length]!,
       });
     }
