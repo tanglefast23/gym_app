@@ -503,7 +503,8 @@ export const WeightRecap = ({
         null
       : false;
   const isFinalSet = currentIndex === totalSets - 1;
-  const isFinalReview = allSetsLogged && isFinalSet;
+  // "Done" mode: once all sets are logged, keep the UI decisive and focused on saving.
+  const isFinalReview = allSetsLogged;
   const hasRemainingSetsForExercise = useMemo(() => {
     const exerciseId = currentStep?.exerciseId;
     if (!exerciseId) return false;
@@ -645,7 +646,7 @@ export const WeightRecap = ({
           Previous
         </Button>
 
-        {currentIndex < totalSets - 1 ? (
+        {!allSetsLogged && currentIndex < totalSets - 1 ? (
           <Button
             variant="primary"
             size="lg"
