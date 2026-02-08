@@ -294,6 +294,11 @@ export default function HomePage() {
     if (!selectedTemplate) return;
     try {
       await db.templates.delete(selectedTemplate.id);
+      // Clear crash recovery if it belongs to the deleted template
+      const rec = await db.crashRecovery.get('recovery');
+      if (rec?.templateId === selectedTemplate.id) {
+        await db.crashRecovery.delete('recovery');
+      }
       addToast('Workout deleted', 'success');
     } catch (err: unknown) {
       const message =

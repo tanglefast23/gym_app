@@ -125,7 +125,7 @@ export const WorkoutTimeline = ({
             {/* Node circle with label */}
             <div
               className={[
-                'flex h-[55px] min-w-[55px] items-center justify-center rounded-full px-2 text-[19px] font-bold leading-none',
+                'flex h-[48px] min-w-[48px] items-center justify-center rounded-full px-2 text-[19px] font-bold leading-none',
                 upcoming ? 'border border-border text-text-muted' : '',
               ].join(' ')}
               style={
