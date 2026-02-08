@@ -8,6 +8,7 @@ import type { WorkoutTemplate, TemplateBlock } from '@/types/workout';
 interface WorkoutCardProps {
   template: WorkoutTemplate;
   lastPerformed?: string | null;
+  exerciseNameMap?: Map<string, string>;
   onClick: () => void;
 }
 
@@ -20,12 +21,16 @@ interface WorkoutCardProps {
 export const WorkoutCard = ({
   template,
   lastPerformed,
+  exerciseNameMap,
   onClick,
 }: WorkoutCardProps) => {
   const exerciseCount = countExercises(template.blocks);
   const estimatedDuration = estimateWorkoutDuration(template);
   const lastPerformedLabel = formatLastPerformed(lastPerformed);
   const coverSrc = `/visuals/covers/cover-${pickCoverIndex(template.id)}.svg`;
+  const exercisePreview = exerciseNameMap
+    ? getExercisePreview(template.blocks, exerciseNameMap)
+    : '';
 
   return (
     <Card onClick={onClick} padding="md">
@@ -58,8 +63,15 @@ export const WorkoutCard = ({
         </span>
       </div>
 
+      {/* Exercise preview */}
+      {exercisePreview ? (
+        <p className="mt-2 truncate text-[13px] text-text-secondary">
+          {exercisePreview}
+        </p>
+      ) : null}
+
       {/* Last performed */}
-      <p className="mt-3 text-[13px] text-text-muted">
+      <p className="mt-2 text-[13px] text-text-muted">
         {lastPerformedLabel}
       </p>
     </Card>
@@ -69,6 +81,39 @@ export const WorkoutCard = ({
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Extract the first 2–3 exercise names for a card preview line.
+ * Appends "+N more" when the template has additional exercises.
+ */
+function getExercisePreview(
+  blocks: TemplateBlock[],
+  nameMap: Map<string, string>,
+): string {
+  const names: string[] = [];
+  for (const block of blocks) {
+    if (block.type === 'exercise') {
+      const name = nameMap.get(block.exerciseId);
+      if (name) names.push(name);
+    } else {
+      for (const ex of block.exercises) {
+        const name = nameMap.get(ex.exerciseId);
+        if (name) names.push(name);
+      }
+    }
+    if (names.length >= 3) break;
+  }
+
+  if (names.length === 0) return '';
+
+  const total = countExercises(blocks);
+  const remaining = total - names.length;
+
+  if (remaining > 0) {
+    return `${names.join(', ')} +${remaining} more`;
+  }
+  return names.join(', ');
+}
 
 /**
  * Count the total number of distinct exercises across all template blocks.

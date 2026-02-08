@@ -205,7 +205,17 @@ export default function HomePage() {
     [],
   );
 
+  const allExercises = useLiveQuery(
+    () => db.exercises.toArray(),
+    [],
+  );
+
   // -- Derived data --
+  const exerciseNameMap = useMemo(() => {
+    if (!allExercises) return new Map<string, string>();
+    return new Map(allExercises.map((e) => [e.id, e.name]));
+  }, [allExercises]);
+
   const lastPerformedMap = useMemo(
     () => buildLastPerformedMap(allLogs ?? []),
     [allLogs],
@@ -363,6 +373,7 @@ export default function HomePage() {
                 <WorkoutCard
                   template={template}
                   lastPerformed={lastPerformedMap.get(template.id) ?? null}
+                  exerciseNameMap={exerciseNameMap}
                   onClick={() => handleCardClick(template)}
                 />
               </div>

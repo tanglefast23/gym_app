@@ -17,6 +17,7 @@ import {
   WeightRecap,
   WorkoutComplete,
 } from '@/components/active';
+import type { NewAchievementInfo } from '@/components/active';
 import { Button, ConfirmDialog, ToastContainer, useToastStore } from '@/components/ui';
 import type { WorkoutStep } from '@/types/workout';
 
@@ -102,6 +103,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   const [savedDurationSec, setSavedDurationSec] = useState(0);
   const [savedTotalSets, setSavedTotalSets] = useState(0);
   const [savedTotalVolumeG, setSavedTotalVolumeG] = useState(0);
+  const [savedNewAchievements, setSavedNewAchievements] = useState<NewAchievementInfo[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   /** Map exerciseId -> exerciseName, populated after steps are generated. */
@@ -391,14 +393,21 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
 
         try {
           const newAchievements = await checkAchievements(log);
-          for (const achievement of newAchievements) {
-            const def = ACHIEVEMENTS.find(
-              (a) => a.id === achievement.achievementId,
-            );
-            if (def) {
-              addToast(`\u{1F3C6} ${def.name} unlocked!`, 'success');
-            }
-          }
+          const enriched = newAchievements
+            .map((a) => {
+              const def = ACHIEVEMENTS.find((d) => d.id === a.achievementId);
+              return def
+                ? {
+                    id: def.id,
+                    name: def.name,
+                    icon: def.icon,
+                    iconSrc: `/visuals/badges/${def.id}.svg`,
+                    context: a.context,
+                  }
+                : null;
+            })
+            .filter((a): a is NonNullable<typeof a> => a !== null);
+          setSavedNewAchievements(enriched);
         } catch (achErr: unknown) {
           const achMsg =
             achErr instanceof Error ? achErr.message : 'Unknown error';
@@ -509,6 +518,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
           durationSec={savedDurationSec}
           totalSets={savedTotalSets}
           totalVolumeG={savedTotalVolumeG}
+          newAchievements={savedNewAchievements}
           onFinish={handleFinish}
         />
         <ToastContainer />
