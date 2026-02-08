@@ -6,9 +6,10 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Settings, Search } from 'lucide-react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
+import { deleteLog } from '@/lib/queries';
 import { AppShell } from '@/components/layout';
 import { Header } from '@/components/layout/Header';
-import { EmptyState } from '@/components/ui';
+import { EmptyState, ConfirmDialog, useToastStore } from '@/components/ui';
 import { LogCard } from '@/components/history/LogCard';
 import type { WorkoutLog } from '@/types/workout';
 
@@ -59,6 +60,8 @@ function groupLogsByDate(
 export default function HistoryPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<WorkoutLog | null>(null);
+  const addToast = useToastStore((s) => s.addToast);
 
   // -- Queries --
   const allLogs = useLiveQuery(
@@ -91,6 +94,25 @@ export default function HistoryPage() {
     },
     [router],
   );
+
+  const handleLongPress = useCallback((log: WorkoutLog) => {
+    setDeleteTarget(log);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteLog(deleteTarget.id);
+      addToast('Session deleted', 'success');
+    } catch {
+      addToast('Failed to delete session', 'error');
+    }
+    setDeleteTarget(null);
+  }, [deleteTarget, addToast]);
+
+  const handleDeleteClose = useCallback(() => {
+    setDeleteTarget(null);
+  }, []);
 
   return (
     <AppShell>
@@ -165,6 +187,7 @@ export default function HistoryPage() {
                     key={log.id}
                     log={log}
                     onClick={() => handleLogClick(log.id)}
+                    onLongPress={() => handleLongPress(log)}
                   />
                 ))}
               </section>
@@ -172,6 +195,16 @@ export default function HistoryPage() {
           </>
         ) : null}
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        onClose={handleDeleteClose}
+        onConfirm={handleDeleteConfirm}
+        title="Delete session?"
+        description={`Are you sure you want to delete "${deleteTarget?.templateName ?? ''}"? This cannot be undone.`}
+        confirmText="Yes"
+        variant="danger"
+      />
     </AppShell>
   );
 }
