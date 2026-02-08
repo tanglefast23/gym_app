@@ -13,7 +13,7 @@ import {
   previewDeleteByDateRange,
   deleteDataByDateRange,
 } from '@/lib/queries';
-import type { UnitSystem } from '@/types/workout';
+import type { UnitSystem, ThemeMode } from '@/types/workout';
 import { VALIDATION } from '@/types/workout';
 
 // ---------------------------------------------------------------------------
@@ -132,6 +132,12 @@ const unitOptions: { value: UnitSystem; label: string }[] = [
   { value: 'lb', label: 'lb' },
 ];
 
+const themeOptions: { value: ThemeMode; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'Auto' },
+];
+
 function localDateStartISO(date: string): string {
   return new Date(`${date}T00:00:00`).toISOString();
 }
@@ -164,6 +170,8 @@ export default function SettingsPage() {
   const toggleTimerSound = useSettingsStore((s) => s.toggleRestTimerSound);
   const autoStartRestTimer = useSettingsStore((s) => s.autoStartRestTimer);
   const toggleAutoStartRestTimer = useSettingsStore((s) => s.toggleAutoStartRestTimer);
+  const theme = useSettingsStore((s) => s.theme);
+  const setTheme = useSettingsStore((s) => s.setTheme);
   const resetDefaults = useSettingsStore((s) => s.resetToDefaults);
 
   // Import flow state
@@ -441,6 +449,17 @@ export default function SettingsPage() {
           </span>
         </SettingRow>
 
+        {/* ---- Appearance ---- */}
+        <SectionTitle>Appearance</SectionTitle>
+
+        <SettingRow label="Theme" description="Choose your preferred color scheme">
+          <SegmentedControl
+            options={themeOptions}
+            value={theme}
+            onChange={setTheme}
+          />
+        </SettingRow>
+
         {/* ---- Feedback ---- */}
         <SectionTitle>Feedback</SectionTitle>
 
@@ -571,7 +590,7 @@ export default function SettingsPage() {
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent [color-scheme:dark]"
+                  className="w-full rounded-lg border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
 
@@ -584,7 +603,7 @@ export default function SettingsPage() {
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent [color-scheme:dark]"
+                  className="w-full rounded-lg border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
             </div>

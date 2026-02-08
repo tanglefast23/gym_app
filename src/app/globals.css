@@ -7,6 +7,7 @@
   --surface: #111113;
   --elevated: #1A1A1D;
   --accent: #F59E0B;
+  --accent-light: #FBBF24;
   --success: #22C55E;
   --warning: #F59E0B;
   --danger: #EF4444;
@@ -14,6 +15,34 @@
   --text-secondary: #ADADB0;
   --text-muted: #6B6B70;
   --border-color: #2A2A2E;
+  /* Light mode accent colors (used in animations/gradients) */
+  --light-coral: #FF6B6B;
+  --light-teal: #4ECDC4;
+  --light-purple: #A855F7;
+  --light-pink: #EC4899;
+  --light-orange: #FB923C;
+  --light-lime: #84CC16;
+}
+
+/* ─── Playful Light Mode ─── */
+.light {
+  --background: #FFF9F5;
+  --foreground: #1F1F23;
+  --surface: #FFFFFF;
+  --elevated: #FFFFFF;
+  --accent: #F97316;
+  --accent-light: #FB923C;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --text-primary: #1F1F23;
+  --text-secondary: #52525B;
+  --text-muted: #A1A1AA;
+  --border-color: #E5E5E5;
+  /* Playful gradient colors for light mode */
+  --gradient-start: #FFF1EB;
+  --gradient-end: #FCE7F3;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 4px 24px rgba(249, 115, 22, 0.08);
 }
 
 @theme inline {
@@ -22,6 +51,7 @@
   --color-surface: var(--surface);
   --color-elevated: var(--elevated);
   --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
@@ -29,6 +59,13 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
   --color-border: var(--border-color);
+  /* Playful colors */
+  --color-coral: var(--light-coral);
+  --color-teal: var(--light-teal);
+  --color-purple: var(--light-purple);
+  --color-pink: var(--light-pink);
+  --color-orange: var(--light-orange);
+  --color-lime: var(--light-lime);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-dm-mono);
   --font-timer: 'DM Mono', monospace;
@@ -43,6 +80,17 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Light mode playful gradient background */
+.light body {
+  background: linear-gradient(180deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+  background-attachment: fixed;
+}
+
+/* Light mode card shadows for depth */
+.light .card-shadow {
+  box-shadow: var(--card-shadow);
 }
 
 /* ─── Touch Optimization ─── */
@@ -206,8 +254,21 @@ body.workout-active {
   }
 }
 
+@keyframes pulse-glow-light {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15), 0 0 0 0 rgba(249, 115, 22, 0);
+  }
+  50% {
+    box-shadow: 0 8px 24px rgba(249, 115, 22, 0.25), 0 0 24px 6px rgba(249, 115, 22, 0.2);
+  }
+}
+
 .animate-pulse-glow {
   animation: pulse-glow 2.5s ease-in-out infinite;
+}
+
+.light .animate-pulse-glow {
+  animation: pulse-glow-light 2.5s ease-in-out infinite;
 }
 
 /* ─── Shimmer (Achievement unlock) ─── */
@@ -229,6 +290,17 @@ body.workout-active {
   );
   background-size: 200% 100%;
   animation: shimmer 3s ease-in-out infinite;
+}
+
+.light .animate-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(249, 115, 22, 0.2) 25%,
+    rgba(168, 85, 247, 0.15) 50%,
+    rgba(236, 72, 153, 0.2) 75%,
+    transparent 100%
+  );
 }
 
 /* ─── Float (Empty state illustrations) ─── */
@@ -351,6 +423,11 @@ body.workout-active {
   animation: tab-glow 0.3s var(--ease-expo-out) both;
 }
 
+.light .tab-active-glow::after {
+  background: linear-gradient(90deg, var(--accent) 0%, #EC4899 100%);
+  box-shadow: 0 0 12px 3px rgba(249, 115, 22, 0.3);
+}
+
 /* ─── Exercise Crossfade (Active workout set transitions) ─── */
 @keyframes exercise-enter {
   from {
@@ -381,6 +458,63 @@ body.workout-active {
 
 .animate-rest-enter {
   animation: rest-enter 0.5s var(--ease-expo-out) both;
+}
+
+/* ─── Light Mode Playful Accents ─── */
+
+/* Cards and surfaces get subtle shadows in light mode */
+.light .bg-surface {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.light .bg-elevated {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* Theme-aware input styling */
+.dark input[type="date"] {
+  color-scheme: dark;
+}
+
+.light input[type="date"] {
+  color-scheme: light;
+}
+
+/* Confetti in light mode uses more vibrant colors */
+.light .confetti-piece {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Light mode workout complete celebration gradient */
+.light .bg-accent\/5 {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(236, 72, 153, 0.06) 50%, rgba(168, 85, 247, 0.05) 100%);
+}
+
+/* Light mode border accent colors */
+.light .border-accent\/20 {
+  border-color: rgba(249, 115, 22, 0.2);
+}
+
+/* Light mode gradient banner for continue workout */
+.light .from-\[\#4F46E5\] {
+  --tw-gradient-from: #F97316;
+}
+
+.light .to-\[\#6366F1\] {
+  --tw-gradient-to: #EC4899;
+}
+
+/* Rainbow gradient for special elements in light mode */
+@keyframes rainbow-border {
+  0% { border-color: #F97316; }
+  25% { border-color: #EC4899; }
+  50% { border-color: #A855F7; }
+  75% { border-color: #4ECDC4; }
+  100% { border-color: #F97316; }
+}
+
+.light .animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite, rainbow-border 6s linear infinite;
 }
 
 /* ─── Reduced Motion ─── */

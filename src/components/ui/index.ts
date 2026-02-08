@@ -8,3 +8,4 @@ export { AchievementUnlockOverlay } from './AchievementUnlockOverlay';
 export { Stepper } from './Stepper';
 export { NumberStepper, AMRAP_SENTINEL } from './NumberStepper';
 export { ClickSoundProvider } from './ClickSoundProvider';
+export { ThemeProvider } from './ThemeProvider';

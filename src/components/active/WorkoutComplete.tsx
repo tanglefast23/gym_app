@@ -63,8 +63,14 @@ type ConfettiPiece = {
 };
 
 function ConfettiBurst(): React.JSX.Element {
+  // Check if we're in light mode for playful colors
+  const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light');
+
   const pieces = useMemo<ConfettiPiece[]>(() => {
-    const colors = ['#F59E0B', '#FFD08A', '#ADADB0', '#FFFFFF'];
+    // Dark mode: amber/gold/neutral, Light mode: rainbow playful
+    const darkColors = ['#F59E0B', '#FFD08A', '#ADADB0', '#FFFFFF'];
+    const lightColors = ['#F97316', '#EC4899', '#A855F7', '#4ECDC4', '#84CC16', '#FBBF24'];
+    const colors = isLight ? lightColors : darkColors;
     const count = 28;
     const out: ConfettiPiece[] = [];
     const rand01 = (n: number): number => {
@@ -85,7 +91,7 @@ function ConfettiBurst(): React.JSX.Element {
       });
     }
     return out;
-  }, []);
+  }, [isLight]);
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
