@@ -13,6 +13,7 @@ import {
   gramsToLb,
 } from '@/lib/calculations';
 import type { WorkoutStep, PerformedSet } from '@/types/workout';
+import { WorkoutTimeline } from './WorkoutTimeline';
 
 interface WeightRecapProps {
   steps: WorkoutStep[];
@@ -727,6 +728,9 @@ export const WeightRecap = ({
         ) : null}
         </div>
       ) : null}
+
+      {/* Workout progress timeline */}
+      <WorkoutTimeline steps={exerciseSteps} currentStepIndex={currentIndex} />
 
       {/* Discard confirmation */}
       <ConfirmDialog
