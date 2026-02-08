@@ -16,12 +16,12 @@ import {
   WeightRecap,
   WorkoutComplete,
 } from '@/components/active';
-import { ConfirmDialog, ToastContainer, useToastStore } from '@/components/ui';
+import { Button, ConfirmDialog, ToastContainer, useToastStore } from '@/components/ui';
 import type { WorkoutStep } from '@/types/workout';
 
 const TIMER_DONE_SFX_URL = '/sfx/level-up-2-199574.webm';
 const COUNTDOWN_SFX_URL = '/sfx/negative_sound.webm';
-const COUNTDOWN_THRESHOLD_MS = 3000;
+const COUNTDOWN_THRESHOLD_MS = 5000;
 const COUNTDOWN_BEEP_INTERVAL_MS = 500; // 2x per second
 
 // -----------------------------------------------------------------------------
@@ -63,6 +63,26 @@ function LoadingSpinner(): React.JSX.Element {
   );
 }
 
+function NotFoundScreen({ onBack }: { onBack: () => void }): React.JSX.Element {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-background px-6 text-center">
+      <div>
+        <h1 className="text-xl font-semibold text-text-primary">
+          Workout not found
+        </h1>
+        <p className="mt-2 text-sm text-text-secondary">
+          This workout template may have been deleted.
+        </p>
+        <div className="mt-6 flex justify-center">
+          <Button variant="primary" onClick={onBack}>
+            Back to Home
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // -----------------------------------------------------------------------------
 // Page component
 // -----------------------------------------------------------------------------
@@ -94,7 +114,10 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   // Template loading from Dexie
   // ---------------------------------------------------------------------------
 
-  const template = useLiveQuery(() => db.templates.get(id), [id]);
+  const template = useLiveQuery(
+    () => db.templates.get(id).then((t) => t ?? null),
+    [id],
+  );
 
   // ---------------------------------------------------------------------------
   // Store selectors (Zustand v5 -- always use selectors)
@@ -129,19 +152,60 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   const haptics = useHaptics();
 
   // ---------------------------------------------------------------------------
-  // Timer
+  // Timer + Sound Effects
   // ---------------------------------------------------------------------------
 
+  // Create Audio elements eagerly so they're ready when needed
   const timerSfxRef = useRef<HTMLAudioElement | null>(null);
+  const countdownSfxRef = useRef<HTMLAudioElement | null>(null);
+  const audioUnlockedRef = useRef(false);
+
+  // Preload and "unlock" audio on first user gesture (required for iOS Safari).
+  // iOS blocks programmatic .play() unless the Audio element has been played
+  // at least once from a user-initiated event (click/touch).
+  useEffect(() => {
+    function unlockAudio(): void {
+      if (audioUnlockedRef.current) return;
+      audioUnlockedRef.current = true;
+
+      // Create elements if not yet created
+      if (!timerSfxRef.current) {
+        timerSfxRef.current = new Audio(TIMER_DONE_SFX_URL);
+      }
+      if (!countdownSfxRef.current) {
+        countdownSfxRef.current = new Audio(COUNTDOWN_SFX_URL);
+      }
+
+      // Silent play→pause to unlock each element for later programmatic use
+      for (const audio of [timerSfxRef.current, countdownSfxRef.current]) {
+        audio.volume = 0;
+        audio.play().then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = 1;
+        }).catch(() => {
+          // Unlock failed — audio may still not work on this device
+        });
+      }
+
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+    }
+
+    document.addEventListener('click', unlockAudio, { passive: true });
+    document.addEventListener('touchstart', unlockAudio, { passive: true });
+
+    return () => {
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
 
   const handleTimerComplete = useCallback(() => {
     haptics.timerComplete();
     const { soundEnabled, restTimerSound } = useSettingsStore.getState();
-    if (soundEnabled && restTimerSound) {
+    if (soundEnabled && restTimerSound && timerSfxRef.current) {
       try {
-        if (!timerSfxRef.current) {
-          timerSfxRef.current = new Audio(TIMER_DONE_SFX_URL);
-        }
         timerSfxRef.current.currentTime = 0;
         timerSfxRef.current.play().catch(() => {});
       } catch {
@@ -151,28 +215,32 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     advanceStep();
   }, [haptics, advanceStep]);
 
-  // Countdown beep: plays 2x/sec in the last 3 seconds of the timer
-  const countdownSfxRef = useRef<HTMLAudioElement | null>(null);
+  // Countdown: plays beep 2x/sec + haptic pulse in the last 5 seconds
   const lastBeepTimeRef = useRef(0);
 
   const handleTimerTick = useCallback((remainingMs: number) => {
     if (remainingMs <= 0 || remainingMs > COUNTDOWN_THRESHOLD_MS) return;
 
-    const { soundEnabled, restTimerSound } = useSettingsStore.getState();
-    if (!soundEnabled || !restTimerSound) return;
-
     const now = Date.now();
     if (now - lastBeepTimeRef.current < COUNTDOWN_BEEP_INTERVAL_MS) return;
     lastBeepTimeRef.current = now;
 
-    try {
-      if (!countdownSfxRef.current) {
-        countdownSfxRef.current = new Audio(COUNTDOWN_SFX_URL);
+    // Haptic pulse — gets stronger as we approach 0
+    const { hapticFeedback, soundEnabled, restTimerSound } =
+      useSettingsStore.getState();
+    if (hapticFeedback && 'vibrate' in navigator) {
+      const intensity = remainingMs < 2000 ? 80 : remainingMs < 3500 ? 50 : 30;
+      navigator.vibrate(intensity);
+    }
+
+    // Countdown beep
+    if (soundEnabled && restTimerSound && countdownSfxRef.current) {
+      try {
+        countdownSfxRef.current.currentTime = 0;
+        countdownSfxRef.current.play().catch(() => {});
+      } catch {
+        // Audio playback is best-effort
       }
-      countdownSfxRef.current.currentTime = 0;
-      countdownSfxRef.current.play().catch(() => {});
-    } catch {
-      // Audio playback is best-effort
     }
   }, []);
 
@@ -449,9 +517,12 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   // Render
   // ---------------------------------------------------------------------------
 
-  // Loading state
-  if (!template) {
+  // Loading/not-found state: only block if we don't already have an active session.
+  if (!isActive && template === undefined) {
     return <LoadingSpinner />;
+  }
+  if (!isActive && template === null) {
+    return <NotFoundScreen onBack={() => router.push('/')} />;
   }
 
   // Complete screen
