@@ -75,7 +75,7 @@ export const BottomSheet = ({
         ref={sheetRef}
         className={[
           'fixed bottom-0 left-0 right-0',
-          'rounded-t-3xl bg-elevated',
+          'rounded-t-[24px] bg-elevated',
           'pb-[env(safe-area-inset-bottom)]',
           'transition-transform duration-300 ease-out',
           'max-h-[85vh] overflow-y-auto',
@@ -84,19 +84,19 @@ export const BottomSheet = ({
         onClick={handleSheetClick}
       >
         {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="h-1.5 w-10 rounded-full bg-border" />
+        <div className="flex justify-center pt-4 pb-5">
+          <div className="h-1.5 w-10 rounded-full bg-[#2A2A2E]" />
         </div>
 
         {/* Title */}
         {title ? (
-          <h2 className="px-6 pb-4 text-lg font-semibold text-text-primary">
+          <h2 className="px-5 pb-4 text-lg font-semibold text-text-primary">
             {title}
           </h2>
         ) : null}
 
         {/* Content */}
-        <div className="px-6 pb-6">{children}</div>
+        <div className="px-5 pb-5">{children}</div>
       </div>
     </div>,
     document.body,

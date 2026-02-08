@@ -1,10 +1,12 @@
 'use client';
 
 import { create } from 'zustand';
+import { CheckCircle, AlertCircle, Info, X } from 'lucide-react';
+import { type ComponentType } from 'react';
 
 type ToastType = 'success' | 'error' | 'info';
 
-interface ToastItem {
+interface ToastItemData {
   id: string;
   message: string;
   type: ToastType;
@@ -12,7 +14,7 @@ interface ToastItem {
 }
 
 interface ToastState {
-  toasts: ToastItem[];
+  toasts: ToastItemData[];
   addToast: (
     message: string,
     type: ToastType,
@@ -21,7 +23,7 @@ interface ToastState {
   removeToast: (id: string) => void;
 }
 
-/** Map of toast id → timeout handle, kept outside Zustand to avoid non-serializable state. */
+/** Map of toast id -> timeout handle, kept outside Zustand to avoid non-serializable state. */
 const timerMap = new Map<string, ReturnType<typeof setTimeout>>();
 
 export const useToastStore = create<ToastState>((set) => ({
@@ -29,7 +31,7 @@ export const useToastStore = create<ToastState>((set) => ({
 
   addToast: (message, type, duration = 3000) => {
     const id = crypto.randomUUID();
-    const toast: ToastItem = { id, message, type, duration };
+    const toast: ToastItemData = { id, message, type, duration };
 
     set((state) => ({
       toasts: [...state.toasts, toast],
@@ -56,50 +58,41 @@ export const useToastStore = create<ToastState>((set) => ({
   },
 }));
 
-const borderColorMap: Record<ToastType, string> = {
-  success: 'border-l-success',
-  error: 'border-l-danger',
-  info: 'border-l-accent',
+interface ToastIconConfig {
+  icon: ComponentType<{ size?: number; className?: string }>;
+  colorClass: string;
+}
+
+const toastIconMap: Record<ToastType, ToastIconConfig> = {
+  success: { icon: CheckCircle, colorClass: 'text-success' },
+  error: { icon: AlertCircle, colorClass: 'text-danger' },
+  info: { icon: Info, colorClass: 'text-accent' },
 };
 
-const ToastItem = ({ toast }: { toast: ToastItem }) => {
-  const { removeToast } = useToastStore((s) => ({
-    removeToast: s.removeToast,
-  }));
+const ToastItem = ({ toast }: { toast: ToastItemData }) => {
+  const removeToast = useToastStore((s) => s.removeToast);
+  const { icon: Icon, colorClass } = toastIconMap[toast.type];
 
   return (
     <div
       className={[
         'rounded-xl px-4 py-3',
-        'bg-elevated border border-border border-l-4',
-        borderColorMap[toast.type],
+        'bg-elevated border border-border',
         'text-text-primary text-sm',
         'shadow-lg',
         'animate-slide-in-right',
-        'flex items-center justify-between gap-3',
+        'flex items-center gap-3',
       ].join(' ')}
       role="alert"
     >
-      <span>{toast.message}</span>
+      <Icon size={20} className={`${colorClass} shrink-0`} />
+      <span className="flex-1">{toast.message}</span>
       <button
         onClick={() => removeToast(toast.id)}
         className="text-text-muted hover:text-text-secondary shrink-0"
         aria-label="Dismiss"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
+        <X size={16} />
       </button>
     </div>
   );

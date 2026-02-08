@@ -6,7 +6,7 @@
   --foreground: #FFFFFF;
   --surface: #111113;
   --elevated: #1A1A1D;
-  --accent: #6366F1;
+  --accent: #F59E0B;
   --success: #22C55E;
   --warning: #F59E0B;
   --danger: #EF4444;
@@ -29,22 +29,9 @@
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
   --color-border: var(--border-color);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-/* ─── Light Theme Override ─── */
-@media (prefers-color-scheme: light) {
-  :root {
-    --background: #FFFFFF;
-    --foreground: #0A0A0B;
-    --surface: #F4F4F5;
-    --elevated: #E4E4E7;
-    --text-primary: #0A0A0B;
-    --text-secondary: #52525B;
-    --text-muted: #A1A1AA;
-    --border-color: #D4D4D8;
-  }
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-dm-mono);
+  --font-timer: 'DM Mono', monospace;
 }
 
 /* ─── Base Styles ─── */
@@ -55,7 +42,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
 }
 
 /* ─── Touch Optimization ─── */
@@ -94,6 +81,20 @@ body.workout-active {
 
 .animate-slide-in-right {
   animation: slide-in-right 0.3s ease-out;
+}
+
+/* ─── Timer Ring Pulse Animation ─── */
+@keyframes timer-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.animate-timer-pulse {
+  animation: timer-pulse 0.6s ease-in-out infinite;
 }
 
 /* ─── Reduced Motion ─── */

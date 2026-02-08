@@ -57,7 +57,7 @@ self.addEventListener('message', (event: MessageEvent<IncomingMessage>) => {
       stop();
       endTime = msg.endTime;
       tick(); // immediate first tick
-      intervalId = setInterval(tick, 100); // 100ms granularity
+      intervalId = setInterval(tick, 250);
       break;
 
     case 'STOP':

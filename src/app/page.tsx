@@ -3,11 +3,11 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Dumbbell, Search, Play, Pencil, Copy, Trash2 } from 'lucide-react';
+import { Dumbbell, Search, Play, Pencil, Copy, Trash2, ArrowRight, Settings } from 'lucide-react';
 import { db } from '@/lib/db';
 import { VALIDATION } from '@/types/workout';
-import type { WorkoutTemplate, CrashRecoveryData, WorkoutLog } from '@/types/workout';
-import { AppShell } from '@/components/layout';
+import type { WorkoutTemplate, CrashRecoveryData } from '@/types/workout';
+import { AppShell, Header } from '@/components/layout';
 import {
   Button,
   BottomSheet,
@@ -22,11 +22,13 @@ import Link from 'next/link';
 /** Minimum number of templates before the search bar is shown. */
 const SEARCH_THRESHOLD = 5;
 
-/**
- * Builds a map of templateId -> latest startedAt from an array of logs.
- */
+interface LogSummary {
+  templateId: string | null;
+  startedAt: string;
+}
+
 function buildLastPerformedMap(
-  logs: WorkoutLog[],
+  logs: LogSummary[],
 ): Map<string, string> {
   const map = new Map<string, string>();
 
@@ -65,21 +67,29 @@ function ContinueBanner({
   onDismiss: () => void;
 }) {
   return (
-    <div className="mb-4 rounded-2xl border border-accent/30 bg-accent/10 p-4">
-      <p className="mb-3 text-sm font-medium text-text-primary">
-        Continue workout?
-      </p>
-      <p className="mb-3 text-sm text-text-secondary">
-        {recovery.templateName}
-      </p>
-      <div className="flex gap-2">
-        <Button variant="primary" size="sm" onClick={onResume}>
-          Resume
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onDismiss}>
-          Dismiss
-        </Button>
-      </div>
+    <div className="mb-4 space-y-3">
+      <button
+        type="button"
+        onClick={onResume}
+        className="flex w-full items-center justify-between rounded-2xl bg-gradient-to-b from-[#4F46E5] to-[#6366F1] p-4 transition-transform active:scale-[0.98]"
+      >
+        <div>
+          <p className="text-base font-semibold text-white">
+            Continue workout
+          </p>
+          <p className="text-[13px] text-white/70">
+            {recovery.templateName}
+          </p>
+        </div>
+        <ArrowRight className="h-5 w-5 flex-shrink-0 text-white" />
+      </button>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="text-sm text-text-muted transition-colors hover:text-text-secondary"
+      >
+        Dismiss
+      </button>
     </div>
   );
 }
@@ -181,7 +191,17 @@ export default function HomePage() {
     [],
   );
 
-  const allLogs = useLiveQuery(() => db.logs.toArray(), []);
+  const allLogs = useLiveQuery(
+    () =>
+      db.logs
+        .orderBy('startedAt')
+        .reverse()
+        .limit(50)
+        .toArray((logs) =>
+          logs.map((l) => ({ templateId: l.templateId, startedAt: l.startedAt })),
+        ),
+    [],
+  );
 
   // -- Derived data --
   const lastPerformedMap = useMemo(
@@ -279,11 +299,19 @@ export default function HomePage() {
   return (
     <AppShell>
       <ToastContainer />
-      <div className="px-4 pt-6">
-        <h1 className="mb-6 text-2xl font-bold text-text-primary">
-          Workouts
-        </h1>
-
+      <Header
+        title="Workouts"
+        rightAction={
+          <Link
+            href="/settings"
+            aria-label="Settings"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-elevated"
+          >
+            <Settings className="h-5 w-5 text-text-secondary" />
+          </Link>
+        }
+      />
+      <div className="px-5 pt-4">
         {/* Continue Session Banner */}
         {validRecovery ? (
           <ContinueBanner

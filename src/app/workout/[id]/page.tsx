@@ -102,8 +102,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   const startWorkout = useActiveWorkoutStore((s) => s.startWorkout);
   const advanceStep = useActiveWorkoutStore((s) => s.advanceStep);
   const setTimerEndTime = useActiveWorkoutStore((s) => s.setTimerEndTime);
-  const logSet = useActiveWorkoutStore((s) => s.logSet);
-  const updateSet = useActiveWorkoutStore((s) => s.updateSet);
+  const upsertSet = useActiveWorkoutStore((s) => s.upsertSet);
   const endWorkoutEarly = useActiveWorkoutStore((s) => s.endWorkoutEarly);
   const completeWorkout = useActiveWorkoutStore((s) => s.completeWorkout);
   const resetStore = useActiveWorkoutStore((s) => s.reset);
@@ -235,7 +234,10 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
-    if (!isActive) return;
+    // Only persist crash recovery while actively running through steps.
+    // Once we transition to recap/complete, keeping a recovery record around
+    // would surface a bogus "Continue workout?" banner on the home screen.
+    if (!isActive || phase !== 'workout') return;
 
     const interval = setInterval(() => {
       void writeCrashRecovery();
@@ -253,7 +255,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [isActive, writeCrashRecovery]);
+  }, [isActive, phase, writeCrashRecovery]);
 
   // ---------------------------------------------------------------------------
   // Wake lock: acquire on mount, release on unmount
@@ -430,8 +432,8 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
         <WeightRecap
           steps={exerciseSteps}
           performedSets={performedSets}
-          onLogSet={logSet}
-          onUpdateSet={updateSet}
+          exerciseNameMap={exerciseNameMap}
+          onUpsertSet={upsertSet}
           onComplete={handleSaveWorkout}
           onSavePartial={handleSaveWorkout}
         />

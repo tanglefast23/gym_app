@@ -34,8 +34,11 @@ interface ActiveWorkoutState {
   timerEndTime: number | null;
   /** ISO timestamp when the workout session started */
   startedAt: string | null;
-  /** Sets logged by the user during the workout */
-  performedSets: PerformedSet[];
+  /**
+   * Sets logged by the user, indexed by exercise-step index.
+   * `null` means the set hasn't been logged yet.
+   */
+  performedSets: Array<PerformedSet | null>;
   /** Whether a workout is currently in progress */
   isActive: boolean;
 }
@@ -59,11 +62,8 @@ interface ActiveWorkoutActions {
   /** Set timer end time (called when entering a rest step) */
   setTimerEndTime: (endTime: number | null) => void;
 
-  /** Log a performed set during recap */
-  logSet: (set: PerformedSet) => void;
-
-  /** Update a performed set during recap */
-  updateSet: (index: number, set: PerformedSet) => void;
+  /** Upsert a performed set during recap at a specific exercise-step index. */
+  upsertSet: (index: number, set: PerformedSet) => void;
 
   /** End workout early (partial) -- goes to recap */
   endWorkoutEarly: () => void;
@@ -151,16 +151,16 @@ export const useActiveWorkoutStore = create<
         set({ timerEndTime: endTime });
       },
 
-      logSet: (performedSet) => {
-        set((state) => ({
-          performedSets: [...state.performedSets, performedSet],
-        }));
-      },
-
-      updateSet: (index, updatedSet) => {
+      upsertSet: (index, performedSet) => {
         set((state) => {
-          const next = [...state.performedSets];
-          next[index] = updatedSet;
+          const next = state.performedSets.slice();
+
+          // Fill gaps with nulls so we never create sparse arrays (holes).
+          for (let i = next.length; i <= index; i++) {
+            next[i] ??= null;
+          }
+
+          next[index] = performedSet;
           return { performedSets: next };
         });
       },
@@ -189,23 +189,26 @@ export const useActiveWorkoutStore = create<
 
         try {
           const totalExerciseSteps = countExerciseSteps(steps);
+          const loggedSets = performedSets.filter(
+            (s): s is PerformedSet => s != null,
+          );
           const now = Date.now();
           const startMs = new Date(startedAt).getTime();
 
           const log: WorkoutLog = {
             id: crypto.randomUUID(),
             status:
-              performedSets.length === totalExerciseSteps
+              loggedSets.length === totalExerciseSteps
                 ? 'completed'
                 : 'partial',
             templateId,
             templateName,
             templateSnapshot,
-            performedSets,
+            performedSets: loggedSets,
             startedAt,
             endedAt: new Date().toISOString(),
             durationSec: Math.floor((now - startMs) / 1000),
-            totalVolumeG: performedSets.reduce(
+            totalVolumeG: loggedSets.reduce(
               (sum, s) => sum + s.weightG * s.repsDone,
               0,
             ),

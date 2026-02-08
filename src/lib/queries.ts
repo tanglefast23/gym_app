@@ -106,15 +106,15 @@ export async function getAllExerciseNames(): Promise<string[]> {
  * Useful for weight/rep prefill when starting a new workout.
  */
 export async function getLastPerformedSets(exerciseId: string): Promise<PerformedSet[]> {
-  const entries = await db.exerciseHistory
-    .where('exerciseId')
-    .equals(exerciseId)
+  const latestEntry = await db.exerciseHistory
+    .where('[exerciseId+performedAt]')
+    .between([exerciseId, ''], [exerciseId, '\uffff'])
     .reverse()
-    .sortBy('performedAt');
+    .first();
 
-  if (entries.length === 0) return [];
+  if (!latestEntry) return [];
 
-  const latestLogId = entries[0].logId;
+  const latestLogId = latestEntry.logId;
   const log = await db.logs.get(latestLogId);
   if (!log) return [];
 

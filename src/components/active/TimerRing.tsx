@@ -19,11 +19,11 @@ function getStrokeColor(fraction: number): string {
   return COLOR_RED;
 }
 
-export const TimerRing = ({
+export function TimerRing({
   remainingMs,
   totalMs,
   size = 200,
-}: TimerRingProps) => {
+}: TimerRingProps) {
   const strokeWidth = 4;
   const radius = (size - strokeWidth) / 2;
   const center = size / 2;
@@ -43,14 +43,17 @@ export const TimerRing = ({
 
   return (
     <div
-      className={isPulsing ? 'animate-timer-pulse' : ''}
+      className={[
+        'relative flex items-center justify-center',
+        isPulsing ? 'animate-timer-pulse' : '',
+      ].join(' ')}
       style={{ width: size, height: size }}
     >
       <svg
         viewBox={`0 0 ${size} ${size}`}
         width={size}
         height={size}
-        className="block"
+        className="absolute inset-0 block"
       >
         {/* Background ring */}
         <circle
@@ -58,8 +61,8 @@ export const TimerRing = ({
           cy={center}
           r={radius}
           fill="none"
+          stroke="#1A1A1D"
           strokeWidth={strokeWidth}
-          className="stroke-text-muted"
         />
 
         {/* Progress ring */}
@@ -79,34 +82,20 @@ export const TimerRing = ({
             transformOrigin: 'center',
           }}
         />
-
-        {/* Center time display */}
-        <text
-          x={center}
-          y={center}
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="fill-text-primary font-mono text-4xl font-bold"
-          style={{ fontSize: size * 0.2 }}
-        >
-          {timeDisplay}
-        </text>
       </svg>
 
-      {/* Inline styles for the pulse animation */}
-      <style jsx>{`
-        @keyframes timer-pulse {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.05);
-          }
-        }
-        .animate-timer-pulse {
-          animation: timer-pulse 0.6s ease-in-out infinite;
-        }
-      `}</style>
+      {/* Center time display + REST label */}
+      <div className="relative z-10 flex flex-col items-center">
+        <span
+          className="font-timer text-text-primary"
+          style={{ fontSize: 72, lineHeight: 1 }}
+        >
+          {timeDisplay}
+        </span>
+        <span className="mt-1 text-sm font-semibold uppercase tracking-[2px] text-text-secondary">
+          REST
+        </span>
+      </div>
     </div>
   );
-};
+}

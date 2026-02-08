@@ -1,7 +1,11 @@
 import { db } from '@/lib/db';
 import { validateImportData } from '@/lib/validation';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { DEFAULT_SETTINGS } from '@/types/workout';
 import type { ExportData, UserSettings } from '@/types/workout';
+
+/** Maximum allowed import file size in bytes (10 MB). */
+const MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024;
 
 /**
  * Export all app data as a JSON object.
@@ -68,6 +72,15 @@ export async function importData(
   file: File,
 ): Promise<{ success: boolean; errors: string[] }> {
   try {
+    // Reject oversized files before parsing to avoid freezing the browser
+    if (file.size > MAX_IMPORT_FILE_SIZE) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      return {
+        success: false,
+        errors: [`File is too large (${sizeMB} MB). Maximum allowed size is 10 MB.`],
+      };
+    }
+
     const text = await file.text();
     const data: unknown = JSON.parse(text);
 
@@ -125,6 +138,10 @@ export async function importData(
       },
     );
 
+    // Sync the Zustand settings store so in-memory state matches the imported data
+    const importedSettings: UserSettings = parsed.settings ?? DEFAULT_SETTINGS;
+    useSettingsStore.getState().rehydrateFromImport(importedSettings);
+
     return { success: true, errors: [] };
   } catch (err: unknown) {
     const message =
@@ -154,6 +171,15 @@ export async function previewImport(file: File): Promise<{
   };
 }> {
   try {
+    // Reject oversized files before parsing to avoid freezing the browser
+    if (file.size > MAX_IMPORT_FILE_SIZE) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      return {
+        valid: false,
+        errors: [`File is too large (${sizeMB} MB). Maximum allowed size is 10 MB.`],
+      };
+    }
+
     const text = await file.text();
     const data: unknown = JSON.parse(text);
 

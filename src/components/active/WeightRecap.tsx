@@ -14,9 +14,10 @@ import type { WorkoutStep, PerformedSet } from '@/types/workout';
 
 interface WeightRecapProps {
   steps: WorkoutStep[];
-  performedSets: PerformedSet[];
-  onLogSet: (set: PerformedSet) => void;
-  onUpdateSet: (index: number, set: PerformedSet) => void;
+  performedSets: Array<PerformedSet | null>;
+  /** Optional map of exerciseId -> exerciseName for better display/snapshots. */
+  exerciseNameMap?: Map<string, string>;
+  onUpsertSet: (index: number, set: PerformedSet) => void;
   onComplete: () => void;
   onSavePartial: () => void;
 }
@@ -26,11 +27,23 @@ function getExerciseSteps(steps: WorkoutStep[]): WorkoutStep[] {
   return steps.filter((s) => s.type === 'exercise');
 }
 
+function findPreviousSetWeight(
+  performedSets: Array<PerformedSet | null>,
+  exerciseId: string,
+  beforeIndex: number,
+): number | null {
+  for (let i = Math.min(beforeIndex - 1, performedSets.length - 1); i >= 0; i--) {
+    const s = performedSets[i];
+    if (s && s.exerciseId === exerciseId) return s.weightG;
+  }
+  return null;
+}
+
 export const WeightRecap = ({
   steps,
   performedSets,
-  onLogSet,
-  onUpdateSet,
+  exerciseNameMap,
+  onUpsertSet,
   onComplete,
   onSavePartial,
 }: WeightRecapProps) => {
@@ -42,10 +55,32 @@ export const WeightRecap = ({
   const totalSets = exerciseSteps.length;
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [draftWeightG, setDraftWeightG] = useState<number>(0);
-  const [draftReps, setDraftReps] = useState<number>(0);
+  const [draftWeightG, setDraftWeightG] = useState<number>(() => {
+    const step = exerciseSteps[0];
+    const existing = performedSets[0];
+    if (existing) return existing.weightG;
+    const prevWeight = step?.exerciseId
+      ? findPreviousSetWeight(performedSets, step.exerciseId, 0)
+      : null;
+    return prevWeight ?? 0;
+  });
+  const [draftReps, setDraftReps] = useState<number>(() => {
+    const step = exerciseSteps[0];
+    const existing = performedSets[0];
+    if (existing) return existing.repsDone;
+    return step?.repsMax ?? step?.repsMin ?? 0;
+  });
 
   const currentStep = exerciseSteps[currentIndex];
+  const currentExerciseName = useMemo(() => {
+    if (!currentStep) return '';
+    const exerciseId = currentStep.exerciseId ?? '';
+    return (
+      (exerciseId ? exerciseNameMap?.get(exerciseId) : undefined) ??
+      currentStep.exerciseName ??
+      'Exercise'
+    );
+  }, [currentStep, exerciseNameMap]);
 
   /** Weight step in grams (uses the first weight step from settings). */
   const weightStepValues =
@@ -54,19 +89,6 @@ export const WeightRecap = ({
   /** Convert grams to display value for the stepper. */
   const weightDisplay =
     unitSystem === 'kg' ? gramsToKg(draftWeightG) : gramsToLb(draftWeightG);
-
-  /** Get prefill weight from the previous set of the same exercise in this session. */
-  const findPreviousSetWeight = useCallback(
-    (exerciseId: string): number | null => {
-      for (let i = performedSets.length - 1; i >= 0; i--) {
-        if (performedSets[i].exerciseId === exerciseId) {
-          return performedSets[i].weightG;
-        }
-      }
-      return null;
-    },
-    [performedSets],
-  );
 
   /** Initialize draft values when navigating to a new set. */
   const initializeDraft = useCallback(
@@ -86,10 +108,12 @@ export const WeightRecap = ({
       setDraftReps(step.repsMax ?? step.repsMin ?? 0);
 
       // Prefill weight from previous set of same exercise
-      const prevWeight = findPreviousSetWeight(step.exerciseId ?? '');
+      const prevWeight = step.exerciseId
+        ? findPreviousSetWeight(performedSets, step.exerciseId, index)
+        : null;
       setDraftWeightG(prevWeight ?? 0);
     },
-    [exerciseSteps, performedSets, findPreviousSetWeight],
+    [exerciseSteps, performedSets],
   );
 
   /** Save the current draft as a performed set. */
@@ -98,7 +122,7 @@ export const WeightRecap = ({
 
     const performedSet: PerformedSet = {
       exerciseId: currentStep.exerciseId ?? '',
-      exerciseNameSnapshot: currentStep.exerciseName ?? '',
+      exerciseNameSnapshot: currentExerciseName,
       blockPath: `block-${currentStep.blockIndex}`,
       setIndex: currentStep.setIndex ?? 0,
       repsTargetMin: currentStep.repsMin ?? 0,
@@ -107,19 +131,14 @@ export const WeightRecap = ({
       weightG: draftWeightG,
     };
 
-    if (performedSets[currentIndex]) {
-      onUpdateSet(currentIndex, performedSet);
-    } else {
-      onLogSet(performedSet);
-    }
+    onUpsertSet(currentIndex, performedSet);
   }, [
     currentStep,
+    currentExerciseName,
     currentIndex,
     draftReps,
     draftWeightG,
-    performedSets,
-    onLogSet,
-    onUpdateSet,
+    onUpsertSet,
   ]);
 
   /** Apply current weight to all remaining sets of the same exercise. */
@@ -133,7 +152,8 @@ export const WeightRecap = ({
       const step = exerciseSteps[i];
       const set: PerformedSet = {
         exerciseId,
-        exerciseNameSnapshot: step.exerciseName ?? '',
+        exerciseNameSnapshot:
+          exerciseNameMap?.get(exerciseId) ?? step.exerciseName ?? 'Exercise',
         blockPath: `block-${step.blockIndex}`,
         setIndex: step.setIndex ?? 0,
         repsTargetMin: step.repsMin ?? 0,
@@ -142,11 +162,7 @@ export const WeightRecap = ({
         weightG: draftWeightG,
       };
 
-      if (performedSets[i]) {
-        onUpdateSet(i, set);
-      } else {
-        onLogSet(set);
-      }
+      onUpsertSet(i, set);
     }
   }, [
     currentStep,
@@ -154,19 +170,22 @@ export const WeightRecap = ({
     exerciseSteps,
     draftReps,
     draftWeightG,
-    performedSets,
-    onLogSet,
-    onUpdateSet,
+    exerciseNameMap,
+    onUpsertSet,
   ]);
 
   /** Copy weight from the previous set of this exercise. */
   const applySameWeight = useCallback(() => {
     if (!currentStep?.exerciseId) return;
-    const prevWeight = findPreviousSetWeight(currentStep.exerciseId);
+    const prevWeight = findPreviousSetWeight(
+      performedSets,
+      currentStep.exerciseId,
+      currentIndex,
+    );
     if (prevWeight !== null) {
       setDraftWeightG(prevWeight);
     }
-  }, [currentStep, findPreviousSetWeight]);
+  }, [currentStep, performedSets, currentIndex]);
 
   /** Handle weight change from stepper (value in display units). */
   const handleWeightChange = useCallback(
@@ -202,13 +221,10 @@ export const WeightRecap = ({
     onComplete();
   }, [saveDraft, onComplete]);
 
-  // Initialize draft on first render
-  useMemo(() => {
-    initializeDraft(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loggedCount = performedSets.length;
+  const loggedCount = useMemo(
+    () => performedSets.filter((s) => s != null).length,
+    [performedSets],
+  );
 
   /** Count sets for current exercise. */
   const currentExerciseSets = useMemo(() => {
@@ -227,7 +243,8 @@ export const WeightRecap = ({
   const allSetsLogged = loggedCount >= totalSets;
   const hasPreviousSetWeight =
     currentStep?.exerciseId
-      ? findPreviousSetWeight(currentStep.exerciseId) !== null
+      ? findPreviousSetWeight(performedSets, currentStep.exerciseId, currentIndex) !==
+        null
       : false;
 
   if (!currentStep) return null;
@@ -249,7 +266,7 @@ export const WeightRecap = ({
         <div className="rounded-2xl bg-surface p-6">
           {/* Exercise name */}
           <h3 className="text-center text-lg font-semibold text-text-primary">
-            {currentStep.exerciseName}
+            {currentExerciseName}
           </h3>
 
           {/* Set indicator */}
@@ -369,7 +386,10 @@ export const WeightRecap = ({
           variant="ghost"
           size="md"
           fullWidth
-          onClick={onSavePartial}
+          onClick={() => {
+            saveDraft();
+            onSavePartial();
+          }}
         >
           Save Partial
         </Button>

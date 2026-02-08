@@ -47,25 +47,37 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     description: 'New highest estimated 1RM on any exercise',
     icon: '\u{1F3C6}',
     check: async (log) => {
+      // Compute best estimated 1RM in THIS log per exerciseId, then compare
+      // to the previous best in history. This avoids N full-table scans for logs
+      // with repeated sets of the same exercise.
+      const bestByExercise = new Map<string, { best1RM: number; name: string }>();
+
       for (const set of log.performedSets) {
         if (set.repsDone > 12 || set.repsDone <= 0 || set.weightG <= 0) continue;
 
         const current1RM = set.weightG * (1 + set.repsDone / 30);
+        const prev = bestByExercise.get(set.exerciseId);
 
+        if (!prev || current1RM > prev.best1RM) {
+          bestByExercise.set(set.exerciseId, {
+            best1RM: current1RM,
+            name: set.exerciseNameSnapshot,
+          });
+        }
+      }
+
+      for (const [exerciseId, { best1RM, name }] of bestByExercise) {
         const history = await db.exerciseHistory
-          .where('exerciseId')
-          .equals(set.exerciseId)
+          .where('[exerciseId+performedAt]')
+          .between([exerciseId, ''], [exerciseId, '\uffff'])
           .toArray();
 
         const previousBest = history
           .filter((h) => h.logId !== log.id && h.estimated1RM_G !== null)
           .reduce((max, h) => Math.max(max, h.estimated1RM_G ?? 0), 0);
 
-        if (current1RM > previousBest && previousBest > 0) {
-          return {
-            earned: true,
-            context: `${set.exerciseNameSnapshot} - new 1RM PR!`,
-          };
+        if (best1RM > previousBest && previousBest > 0) {
+          return { earned: true, context: `${name} - new 1RM PR!` };
         }
       }
       return { earned: false, context: null };
@@ -90,8 +102,8 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
 
       for (const [exerciseId, { volume, name }] of exerciseVolumes) {
         const history = await db.exerciseHistory
-          .where('exerciseId')
-          .equals(exerciseId)
+          .where('[exerciseId+performedAt]')
+          .between([exerciseId, ''], [exerciseId, '\uffff'])
           .toArray();
 
         const previousBest = history

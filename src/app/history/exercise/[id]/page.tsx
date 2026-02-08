@@ -12,15 +12,14 @@ import { Card } from '@/components/ui/Card';
 import { ProgressChart } from '@/components/history/ProgressChart';
 import type { ExerciseHistoryEntry } from '@/types/workout';
 
-/**
- * Formats a date for the recent sessions list.
- */
+const sessionDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
 function formatSessionDate(isoString: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date(isoString));
+  return sessionDateFormatter.format(new Date(isoString));
 }
 
 /**
@@ -71,9 +70,9 @@ export default function ExerciseDetailPage() {
   const exerciseHistory = useLiveQuery(
     () =>
       db.exerciseHistory
-        .where('exerciseId')
-        .equals(params.id)
-        .sortBy('performedAt'),
+        .where('[exerciseId+performedAt]')
+        .between([params.id, ''], [params.id, '\uffff'])
+        .toArray(),
     [params.id],
   );
 
@@ -91,6 +90,7 @@ export default function ExerciseDetailPage() {
       <div className="flex min-h-dvh flex-col bg-background">
         <Header
           title="Loading..."
+          centered
           leftAction={
             <button type="button" onClick={() => router.back()} aria-label="Go back">
               <ArrowLeft className="h-5 w-5 text-text-secondary" />
@@ -117,6 +117,7 @@ export default function ExerciseDetailPage() {
       <div className="flex min-h-dvh flex-col bg-background">
         <Header
           title={exerciseName}
+          centered
           leftAction={
             <button type="button" onClick={() => router.back()} aria-label="Go back">
               <ArrowLeft className="h-5 w-5 text-text-secondary" />
@@ -148,6 +149,7 @@ export default function ExerciseDetailPage() {
     <div className="flex min-h-dvh flex-col bg-background">
       <Header
         title={exerciseName}
+        centered
         leftAction={
           <button type="button" onClick={() => router.back()} aria-label="Go back">
             <ArrowLeft className="h-5 w-5 text-text-secondary" />
@@ -210,8 +212,8 @@ export default function ExerciseDetailPage() {
 
         {/* Recent Sessions */}
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-text-muted">
-            Recent Sessions
+          <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-[1px] text-text-muted">
+            RECENT SESSIONS
           </h3>
           <Card padding="sm">
             {recentSessions.map((entry) => (

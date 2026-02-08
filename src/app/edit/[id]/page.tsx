@@ -1,183 +1,28 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronLeft, Dumbbell, Layers, Save, AlertCircle, Loader2 } from 'lucide-react';
+import { ChevronLeft, Save, AlertCircle, Loader2 } from 'lucide-react';
 import { AppShell, Header } from '@/components/layout';
-import { Button, ToastContainer, useToastStore, EmptyState } from '@/components/ui';
-import { ExerciseBlockEditor, SupersetBlockEditor } from '@/components/workout';
+import { Button, useToastStore, EmptyState } from '@/components/ui';
+import { WorkoutEditor, buildNameMapFromBlocks } from '@/components/workout';
 import { db } from '@/lib/db';
-import { validateTemplate, sanitizeText } from '@/lib/validation';
-import { VALIDATION } from '@/types/workout';
-import type { TemplateBlock, ExerciseBlock, SupersetBlock } from '@/types/workout';
+import type { TemplateBlock } from '@/types/workout';
+import type { ExerciseNameMap } from '@/components/workout';
 
-/**
- * Map that tracks display names for exercises by a composite key.
- * For exercise blocks: key = blockId
- * For superset exercises: key = blockId:exerciseIndex
- */
-type ExerciseNameMap = Record<string, string>;
-
-/** Creates a fresh exercise block with sensible defaults. */
-function createExerciseBlock(): ExerciseBlock {
-  return {
-    id: crypto.randomUUID(),
-    type: 'exercise',
-    exerciseId: '',
-    sets: 3,
-    repsMin: 8,
-    repsMax: 12,
-    restBetweenSetsSec: null,
-  };
-}
-
-/** Creates a fresh superset block with two empty exercises. */
-function createSupersetBlock(): SupersetBlock {
-  return {
-    id: crypto.randomUUID(),
-    type: 'superset',
-    sets: 3,
-    exercises: [
-      { exerciseId: '', repsMin: 8, repsMax: 12 },
-      { exerciseId: '', repsMin: 8, repsMax: 12 },
-    ],
-    restBetweenExercisesSec: 30,
-    restBetweenSupersetsSec: 90,
-  };
+/** Data resolved from the template, ready to pass into WorkoutEditor. */
+interface ResolvedData {
+  name: string;
+  blocks: TemplateBlock[];
+  nameMap: ExerciseNameMap;
 }
 
 /**
- * Resolves exercise names to IDs, creating new exercises in the DB
- * when an exerciseId is not a valid UUID (i.e. name-only / new exercise).
+ * Thin wrapper page for editing an existing workout template.
+ * Loads the template from IndexedDB, resolves exercise names,
+ * then delegates all editing logic to WorkoutEditor.
  */
-async function resolveExerciseIds(
-  blocks: TemplateBlock[],
-  nameMap: ExerciseNameMap,
-): Promise<TemplateBlock[]> {
-  const resolvedBlocks: TemplateBlock[] = [];
-  const createdCache = new Map<string, string>();
-
-  for (const block of blocks) {
-    if (block.type === 'exercise') {
-      const resolvedId = await resolveOneExercise(
-        block.exerciseId,
-        nameMap[block.id] ?? '',
-        createdCache,
-      );
-      resolvedBlocks.push({ ...block, exerciseId: resolvedId });
-    } else {
-      const resolvedExercises = await Promise.all(
-        block.exercises.map(async (ex, idx) => {
-          const nameKey = `${block.id}:${idx}`;
-          const resolvedId = await resolveOneExercise(
-            ex.exerciseId,
-            nameMap[nameKey] ?? '',
-            createdCache,
-          );
-          return { ...ex, exerciseId: resolvedId };
-        }),
-      );
-      resolvedBlocks.push({ ...block, exercises: resolvedExercises });
-    }
-  }
-
-  return resolvedBlocks;
-}
-
-/**
- * Resolves a single exercise name/id. If the exerciseId is already a valid
- * DB entry, returns it. Otherwise creates a new exercise and returns the new id.
- */
-async function resolveOneExercise(
-  exerciseId: string,
-  displayName: string,
-  cache: Map<string, string>,
-): Promise<string> {
-  if (!exerciseId && !displayName) return '';
-
-  // If exerciseId looks like a UUID, check if it exists in DB
-  if (exerciseId) {
-    const existing = await db.exercises.get(exerciseId);
-    if (existing) return exerciseId;
-  }
-
-  // Try to find by name (case-insensitive)
-  const nameToResolve = sanitizeText(displayName || exerciseId);
-  if (!nameToResolve) return '';
-
-  // Check cache first (avoid creating duplicates in the same save)
-  const cached = cache.get(nameToResolve.toLowerCase());
-  if (cached) return cached;
-
-  // Check DB by name
-  const byName = await db.exercises
-    .where('name')
-    .equalsIgnoreCase(nameToResolve)
-    .first();
-  if (byName) {
-    cache.set(nameToResolve.toLowerCase(), byName.id);
-    return byName.id;
-  }
-
-  // Create new exercise
-  const newId = crypto.randomUUID();
-  const now = new Date().toISOString();
-  await db.exercises.add({
-    id: newId,
-    name: nameToResolve,
-    visualKey: 'default',
-    createdAt: now,
-    updatedAt: now,
-  });
-  cache.set(nameToResolve.toLowerCase(), newId);
-  return newId;
-}
-
-/**
- * Builds the initial nameMap by looking up exercise IDs in the DB.
- * This lets the autocomplete inputs display the correct names on load.
- */
-async function buildNameMapFromBlocks(
-  blocks: TemplateBlock[],
-): Promise<ExerciseNameMap> {
-  const nameMap: ExerciseNameMap = {};
-  const exerciseIds = new Set<string>();
-
-  // Collect all exerciseIds
-  for (const block of blocks) {
-    if (block.type === 'exercise') {
-      if (block.exerciseId) exerciseIds.add(block.exerciseId);
-    } else {
-      for (const ex of block.exercises) {
-        if (ex.exerciseId) exerciseIds.add(ex.exerciseId);
-      }
-    }
-  }
-
-  // Bulk-fetch exercises from DB
-  const exercises = await db.exercises
-    .where('id')
-    .anyOf([...exerciseIds])
-    .toArray();
-  const idToName = new Map(exercises.map((e) => [e.id, e.name]));
-
-  // Build the map
-  for (const block of blocks) {
-    if (block.type === 'exercise') {
-      const name = idToName.get(block.exerciseId);
-      if (name) nameMap[block.id] = name;
-    } else {
-      for (let idx = 0; idx < block.exercises.length; idx++) {
-        const name = idToName.get(block.exercises[idx].exerciseId);
-        if (name) nameMap[`${block.id}:${idx}`] = name;
-      }
-    }
-  }
-
-  return nameMap;
-}
-
 export default function EditPage() {
   const router = useRouter();
   const params = useParams();
@@ -189,146 +34,78 @@ export default function EditPage() {
     [templateId],
   );
 
-  const [name, setName] = useState('');
-  const [blocks, setBlocks] = useState<TemplateBlock[]>([]);
-  const [errors, setErrors] = useState<string[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [nameMap, setNameMap] = useState<ExerciseNameMap>({});
-  const [initialized, setInitialized] = useState(false);
+  // Track initialization without synchronous setState in effects.
+  // The ref prevents re-running the async resolution; the state
+  // holds the resolved initial data once ready.
+  const initStartedRef = useRef(false);
+  const [resolvedData, setResolvedData] = useState<ResolvedData | null>(null);
 
-  // Initialize form state when template loads from DB
   useEffect(() => {
-    if (template && !initialized) {
-      setName(template.name);
-      setBlocks(template.blocks);
-      setInitialized(true);
+    if (!template || initStartedRef.current) return;
+    initStartedRef.current = true;
 
-      // Resolve exercise names from DB
-      buildNameMapFromBlocks(template.blocks)
-        .then((map) => setNameMap(map))
-        .catch((err: unknown) => {
-          const message =
-            err instanceof Error ? err.message : 'Failed to load exercise names';
-          addToast(message, 'error');
+    buildNameMapFromBlocks(template.blocks)
+      .then((map) => {
+        setResolvedData({
+          name: template.name,
+          blocks: template.blocks,
+          nameMap: map,
         });
-    }
-  }, [template, initialized, addToast]);
+      })
+      .catch((err: unknown) => {
+        const message =
+          err instanceof Error ? err.message : 'Failed to load exercise names';
+        addToast(message, 'error');
+        // Still show editor with empty name map so it is usable
+        setResolvedData({
+          name: template.name,
+          blocks: template.blocks,
+          nameMap: {},
+        });
+      });
+  }, [template, addToast]);
 
-  // --- Block manipulation ---
-
-  const addExerciseBlock = useCallback(() => {
-    setBlocks((prev) => [...prev, createExerciseBlock()]);
-  }, []);
-
-  const addSupersetBlock = useCallback(() => {
-    setBlocks((prev) => [...prev, createSupersetBlock()]);
-  }, []);
-
-  const updateBlock = useCallback((index: number, updated: TemplateBlock) => {
-    setBlocks((prev) => {
-      const next = [...prev];
-      next[index] = updated;
-      return next;
-    });
-  }, []);
-
-  const removeBlock = useCallback((index: number) => {
-    setBlocks((prev) => prev.filter((_, i) => i !== index));
-  }, []);
-
-  // --- Exercise name tracking ---
-
-  const handleExerciseNameChange = useCallback(
-    (...args: [string, string, string | null]) => {
-      const [blockId, displayName] = args;
-      setNameMap((prev) => ({ ...prev, [blockId]: displayName }));
-    },
-    [],
-  );
-
-  const handleSupersetExerciseNameChange = useCallback(
-    (...args: [string, number, string, string | null]) => {
-      const [blockId, exerciseIndex, displayName] = args;
-      const key = `${blockId}:${exerciseIndex}`;
-      setNameMap((prev) => ({ ...prev, [key]: displayName }));
-    },
-    [],
-  );
-
-  // --- Save ---
-
-  const handleSave = useCallback(async () => {
-    setErrors([]);
-    const validationErrors = validateTemplate(name, blocks, nameMap);
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const resolvedBlocks = await resolveExerciseIds(blocks, nameMap);
-
+  const handleSave = useCallback(
+    async (data: {
+      name: string;
+      blocks: TemplateBlock[];
+      nameMap: ExerciseNameMap;
+      resolvedBlocks: TemplateBlock[];
+    }) => {
       await db.templates.update(templateId, {
-        name: sanitizeText(name),
-        blocks: resolvedBlocks,
+        name: data.name,
+        blocks: data.resolvedBlocks,
         updatedAt: new Date().toISOString(),
       });
 
       addToast('Workout updated!', 'success');
       router.push('/');
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to update workout';
-      addToast(message, 'error');
-    } finally {
-      setSaving(false);
-    }
-  }, [name, blocks, nameMap, templateId, addToast, router]);
+    },
+    [templateId, addToast, router],
+  );
 
-  // --- Loading state ---
-  // useLiveQuery returns undefined while loading, then the result (or undefined if not found)
-  if (template === undefined && !initialized) {
+  // --- Loading / not-found / ready branching ---
+
+  if (resolvedData) {
     return (
-      <AppShell>
-        <Header
-          title="Edit Workout"
-          leftAction={
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="rounded-lg p-2 text-text-secondary transition-colors hover:bg-surface"
-              aria-label="Go back"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-          }
-        />
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-accent" />
-        </div>
-      </AppShell>
+      <WorkoutEditor
+        mode="edit"
+        title="Edit Workout"
+        initialName={resolvedData.name}
+        initialBlocks={resolvedData.blocks}
+        initialNameMap={resolvedData.nameMap}
+        onSave={handleSave}
+        saveButtonLabel="Update Workout"
+        saveButtonIcon={<Save className="h-5 w-5" />}
+      />
     );
   }
 
-  // --- Not found state ---
-  // After loading, if template is still undefined/null and we never initialized
-  if (!template && !initialized) {
+  // template is null/undefined after useLiveQuery finished and we never resolved
+  // (i.e. template was not found in DB)
+  if (template === null) {
     return (
-      <AppShell>
-        <Header
-          title="Edit Workout"
-          leftAction={
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="rounded-lg p-2 text-text-secondary transition-colors hover:bg-surface"
-              aria-label="Go back"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-          }
-        />
+      <EditPageShell router={router}>
         <EmptyState
           icon={<AlertCircle className="h-12 w-12" />}
           title="Workout not found"
@@ -339,14 +116,33 @@ export default function EditPage() {
             </Button>
           }
         />
-      </AppShell>
+      </EditPageShell>
     );
   }
 
+  // Still loading
+  return (
+    <EditPageShell router={router}>
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      </div>
+    </EditPageShell>
+  );
+}
+
+/** Shared shell with header for loading/error states. */
+function EditPageShell({
+  router,
+  children,
+}: {
+  router: ReturnType<typeof useRouter>;
+  children: React.ReactNode;
+}) {
   return (
     <AppShell>
       <Header
         title="Edit Workout"
+        centered
         leftAction={
           <button
             type="button"
@@ -358,102 +154,7 @@ export default function EditPage() {
           </button>
         }
       />
-
-      <div className="px-4 pb-32 pt-4">
-        {/* Workout name input */}
-        <div className="mb-6">
-          <label className="mb-1 block text-sm font-medium text-text-secondary">
-            Workout Name
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Workout name"
-            maxLength={VALIDATION.WORKOUT_NAME_MAX}
-            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent"
-          />
-        </div>
-
-        {/* Block list */}
-        <div className="space-y-4">
-          {blocks.map((block, index) =>
-            block.type === 'exercise' ? (
-              <ExerciseBlockEditor
-                key={block.id}
-                block={block}
-                onChange={(updated) => updateBlock(index, updated)}
-                onRemove={() => removeBlock(index)}
-                exerciseName={nameMap[block.id] ?? ''}
-                onExerciseNameChange={handleExerciseNameChange}
-              />
-            ) : (
-              <SupersetBlockEditor
-                key={block.id}
-                block={block}
-                onChange={(updated) => updateBlock(index, updated)}
-                onRemove={() => removeBlock(index)}
-                exerciseNames={block.exercises.map(
-                  (_, exIdx) => nameMap[`${block.id}:${exIdx}`] ?? '',
-                )}
-                onExerciseNameChange={handleSupersetExerciseNameChange}
-              />
-            ),
-          )}
-        </div>
-
-        {/* Add block buttons */}
-        <div className="mt-6 flex gap-3">
-          <Button
-            variant="secondary"
-            onClick={addExerciseBlock}
-            className="flex-1"
-          >
-            <Dumbbell className="h-4 w-4" />
-            Add Exercise
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={addSupersetBlock}
-            className="flex-1"
-          >
-            <Layers className="h-4 w-4" />
-            Add Superset
-          </Button>
-        </div>
-
-        {/* Validation errors */}
-        {errors.length > 0 && (
-          <div className="mt-6 rounded-xl border border-danger/30 bg-danger/10 p-4">
-            <p className="mb-2 text-sm font-medium text-danger">
-              Please fix the following:
-            </p>
-            <ul className="list-inside list-disc space-y-1">
-              {errors.map((error, i) => (
-                <li key={i} className="text-sm text-danger/80">
-                  {error}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      {/* Sticky save button */}
-      <div className="fixed bottom-20 left-0 right-0 z-20 border-t border-border bg-background/80 px-4 py-3 backdrop-blur-lg">
-        <Button
-          fullWidth
-          size="lg"
-          onClick={handleSave}
-          loading={saving}
-          disabled={saving}
-        >
-          <Save className="h-5 w-5" />
-          Update Workout
-        </Button>
-      </div>
-
-      <ToastContainer />
+      {children}
     </AppShell>
   );
 }

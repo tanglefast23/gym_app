@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import type { UnitSystem, ThemeMode } from '@/types/workout';
+import type { UnitSystem, ThemeMode, UserSettings } from '@/types/workout';
 import { DEFAULT_SETTINGS } from '@/types/workout';
 
 /**
@@ -31,6 +31,8 @@ interface SettingsActions {
   toggleRestTimerSound: () => void;
   setTheme: (theme: ThemeMode) => void;
   resetToDefaults: () => void;
+  /** Refresh Zustand state from imported UserSettings (e.g. after a backup restore). */
+  rehydrateFromImport: (settings: UserSettings) => void;
 }
 
 export const useSettingsStore = create<SettingsState & SettingsActions>()(
@@ -64,6 +66,16 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
           hapticFeedback: DEFAULT_SETTINGS.hapticFeedback,
           restTimerSound: DEFAULT_SETTINGS.restTimerSound,
           theme: DEFAULT_SETTINGS.theme,
+        }),
+      rehydrateFromImport: (settings: UserSettings) =>
+        set({
+          unitSystem: settings.unitSystem,
+          defaultRestBetweenSetsSec: settings.defaultRestBetweenSetsSec,
+          weightStepsKg: settings.weightStepsKg,
+          weightStepsLb: settings.weightStepsLb,
+          hapticFeedback: settings.hapticFeedback,
+          restTimerSound: settings.restTimerSound,
+          theme: settings.theme,
         }),
     }),
     {

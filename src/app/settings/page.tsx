@@ -96,7 +96,7 @@ function SegmentedControl<T extends string>({
 /** Bold section title with top spacing. */
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-1 mt-6 text-xs font-semibold uppercase tracking-wider text-text-muted first:mt-0">
+    <h2 className="mb-1 mt-6 text-[13px] font-semibold uppercase tracking-[1px] text-text-muted first:mt-0">
       {children}
     </h2>
   );
@@ -255,6 +255,7 @@ export default function SettingsPage() {
     <div className="min-h-dvh bg-background">
       <Header
         title="Settings"
+        centered
         leftAction={
           <button
             type="button"

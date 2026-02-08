@@ -81,22 +81,22 @@ export const NumberStepper = ({
 
   const btnBase = [
     'flex items-center justify-center',
-    'h-11 w-11 min-h-[44px] min-w-[44px]',
-    'rounded-xl border border-border bg-elevated',
+    'h-14 w-14',
+    'rounded-full border border-border bg-elevated',
     'transition-all duration-100',
     'active:scale-90 active:bg-accent/20',
     'select-none',
   ].join(' ');
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col items-center">
       {label ? (
         <label className="mb-1 text-xs font-medium text-text-muted">
           {label}
         </label>
       ) : null}
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-4">
         {/* Minus button */}
         <button
           type="button"
@@ -105,7 +105,7 @@ export const NumberStepper = ({
           className={`${btnBase} ${atMin ? 'opacity-30 cursor-not-allowed' : ''}`}
           aria-label={`Decrease ${ariaLabel ?? label ?? 'value'}`}
         >
-          <Minus className="h-4 w-4 text-text-primary" />
+          <Minus className="h-6 w-6 text-white" />
         </button>
 
         {/* Value display / direct input */}
@@ -119,21 +119,21 @@ export const NumberStepper = ({
             onChange={(e) => setDraft(e.target.value)}
             onBlur={commitDraft}
             onKeyDown={handleKeyDown}
-            className="h-11 w-14 rounded-lg border border-accent bg-elevated text-center font-mono text-lg text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+            className="h-14 w-20 rounded-lg border border-accent bg-elevated text-center font-timer text-5xl text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
             aria-label={ariaLabel ?? label}
           />
         ) : (
           <button
             type="button"
             onClick={handleValueClick}
-            className="flex h-11 min-w-[3rem] items-center justify-center rounded-lg px-2"
+            className="flex min-w-[4rem] flex-col items-center justify-center"
             aria-label={`Edit ${ariaLabel ?? label ?? 'value'}: ${value}`}
           >
-            <span className="font-mono text-lg text-text-primary">
+            <span className="font-timer text-5xl text-text-primary">
               {value}
             </span>
             {suffix ? (
-              <span className="ml-0.5 text-xs text-text-muted">{suffix}</span>
+              <span className="text-sm text-text-secondary">{suffix}</span>
             ) : null}
           </button>
         )}
@@ -146,7 +146,7 @@ export const NumberStepper = ({
           className={`${btnBase} ${atMax ? 'opacity-30 cursor-not-allowed' : ''}`}
           aria-label={`Increase ${ariaLabel ?? label ?? 'value'}`}
         >
-          <Plus className="h-4 w-4 text-text-primary" />
+          <Plus className="h-6 w-6 text-white" />
         </button>
       </div>
     </div>

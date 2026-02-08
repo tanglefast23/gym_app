@@ -170,8 +170,129 @@ export function validateTemplate(
   return errors;
 }
 
+// ---------------------------------------------------------------------------
+// Per-record import validation helpers
+// ---------------------------------------------------------------------------
+
+/** Check whether a string is a valid ISO 8601 date that JS can parse. */
+function isValidISODate(value: unknown): boolean {
+  if (typeof value !== 'string') return false;
+  const ts = Date.parse(value);
+  return !Number.isNaN(ts);
+}
+
 /**
- * Validate import data schema (basic structure check).
+ * Validate a single exercise record from an import payload.
+ * @param record - Unknown record to validate
+ * @param index - Position in the array (used in error messages)
+ * @returns Array of error strings; empty means valid
+ */
+export function validateImportExercise(record: unknown, index: number): string[] {
+  const errors: string[] = [];
+  const prefix = `exercises[${index}]`;
+
+  if (typeof record !== 'object' || record === null) {
+    return [`${prefix}: must be an object`];
+  }
+  const r = record as Record<string, unknown>;
+
+  if (typeof r.id !== 'string' || r.id.length === 0) {
+    errors.push(`${prefix}: "id" must be a non-empty string`);
+  }
+  if (typeof r.name !== 'string' || r.name.length === 0 || r.name.length > VALIDATION.EXERCISE_NAME_MAX) {
+    errors.push(`${prefix}: "name" must be a string between 1 and ${VALIDATION.EXERCISE_NAME_MAX} characters`);
+  }
+  return errors;
+}
+
+/**
+ * Validate a single template record from an import payload.
+ * Checks top-level fields only (id, name, blocks array existence).
+ * @param record - Unknown record to validate
+ * @param index - Position in the array (used in error messages)
+ * @returns Array of error strings; empty means valid
+ */
+export function validateImportTemplate(record: unknown, index: number): string[] {
+  const errors: string[] = [];
+  const prefix = `templates[${index}]`;
+
+  if (typeof record !== 'object' || record === null) {
+    return [`${prefix}: must be an object`];
+  }
+  const r = record as Record<string, unknown>;
+
+  if (typeof r.id !== 'string' || r.id.length === 0) {
+    errors.push(`${prefix}: "id" must be a non-empty string`);
+  }
+  if (typeof r.name !== 'string' || r.name.length === 0 || r.name.length > VALIDATION.WORKOUT_NAME_MAX) {
+    errors.push(`${prefix}: "name" must be a string between 1 and ${VALIDATION.WORKOUT_NAME_MAX} characters`);
+  }
+  if (!Array.isArray(r.blocks)) {
+    errors.push(`${prefix}: "blocks" must be an array`);
+  }
+  return errors;
+}
+
+/**
+ * Validate a single workout log record from an import payload.
+ * @param record - Unknown record to validate
+ * @param index - Position in the array (used in error messages)
+ * @returns Array of error strings; empty means valid
+ */
+export function validateImportLog(record: unknown, index: number): string[] {
+  const errors: string[] = [];
+  const prefix = `logs[${index}]`;
+
+  if (typeof record !== 'object' || record === null) {
+    return [`${prefix}: must be an object`];
+  }
+  const r = record as Record<string, unknown>;
+
+  if (typeof r.id !== 'string' || r.id.length === 0) {
+    errors.push(`${prefix}: "id" must be a non-empty string`);
+  }
+  if (!isValidISODate(r.startedAt)) {
+    errors.push(`${prefix}: "startedAt" must be a valid ISO date string`);
+  }
+  if (r.status !== 'completed' && r.status !== 'partial') {
+    errors.push(`${prefix}: "status" must be "completed" or "partial"`);
+  }
+  return errors;
+}
+
+/**
+ * Validate settings from an import payload.
+ * Checks the key fields that drive app behaviour.
+ * @param settings - Unknown settings value to validate
+ * @returns Array of error strings; empty means valid
+ */
+export function validateImportSettings(settings: unknown): string[] {
+  const errors: string[] = [];
+  const prefix = 'settings';
+
+  if (typeof settings !== 'object' || settings === null) {
+    return [`${prefix}: must be an object`];
+  }
+  const s = settings as Record<string, unknown>;
+
+  if (s.unitSystem !== 'kg' && s.unitSystem !== 'lb') {
+    errors.push(`${prefix}: "unitSystem" must be "kg" or "lb"`);
+  }
+  if (
+    typeof s.defaultRestBetweenSetsSec !== 'number' ||
+    s.defaultRestBetweenSetsSec <= 0
+  ) {
+    errors.push(`${prefix}: "defaultRestBetweenSetsSec" must be a positive number`);
+  }
+  return errors;
+}
+
+// ---------------------------------------------------------------------------
+// Top-level import validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Validate import data schema (structure + per-record checks).
  * Ensures the unknown data matches the expected ExportData shape
  * before further processing.
  * @param data - Unknown parsed JSON data to validate
@@ -206,6 +327,32 @@ export function validateImportData(data: unknown): { valid: boolean; errors: str
   }
   if (!Array.isArray(d.achievements)) {
     errors.push('Missing achievements array');
+  }
+
+  // If top-level structure is broken, bail out before per-record checks
+  if (errors.length > 0) {
+    return { valid: false, errors };
+  }
+
+  // Per-record validation
+  const exercises = d.exercises as unknown[];
+  for (let i = 0; i < exercises.length; i++) {
+    errors.push(...validateImportExercise(exercises[i], i));
+  }
+
+  const templates = d.templates as unknown[];
+  for (let i = 0; i < templates.length; i++) {
+    errors.push(...validateImportTemplate(templates[i], i));
+  }
+
+  const logs = d.logs as unknown[];
+  for (let i = 0; i < logs.length; i++) {
+    errors.push(...validateImportLog(logs[i], i));
+  }
+
+  // Settings is optional in the schema but if present must be valid
+  if (d.settings !== undefined && d.settings !== null) {
+    errors.push(...validateImportSettings(d.settings));
   }
 
   return { valid: errors.length === 0, errors };

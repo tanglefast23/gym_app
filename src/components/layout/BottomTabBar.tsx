@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Dumbbell, PlusCircle, History } from 'lucide-react';
+import { Dumbbell, PlusCircle, BarChart2 } from 'lucide-react';
 import { type ComponentType } from 'react';
 
 interface Tab {
@@ -14,7 +14,7 @@ interface Tab {
 const tabs: readonly Tab[] = [
   { href: '/', label: 'Workouts', icon: Dumbbell },
   { href: '/create', label: 'Create', icon: PlusCircle },
-  { href: '/history', label: 'History', icon: History },
+  { href: '/history', label: 'History', icon: BarChart2 },
 ] as const;
 
 /**
@@ -37,11 +37,11 @@ export function BottomTabBar() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-elevated pb-[env(safe-area-inset-bottom)]"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]"
       role="tablist"
       aria-label="Main navigation"
     >
-      <div className="flex items-center justify-around">
+      <div className="flex items-center justify-around pt-3">
         {tabs.map((tab) => {
           const active = isTabActive(tab.href, pathname);
           const Icon = tab.icon;
@@ -54,13 +54,20 @@ export function BottomTabBar() {
               aria-selected={active}
               aria-label={tab.label}
               className={[
-                'flex min-h-[56px] flex-1 flex-col items-center justify-center gap-1',
+                'flex flex-1 flex-col items-center justify-center gap-1',
                 'transition-colors duration-150',
                 active ? 'text-accent' : 'text-text-muted',
               ].join(' ')}
             >
-              <Icon className="h-5 w-5" />
-              <span className="text-xs font-medium">{tab.label}</span>
+              <Icon className="h-6 w-6" />
+              <span
+                className={[
+                  'text-[11px]',
+                  active ? 'font-semibold' : 'font-medium',
+                ].join(' ')}
+              >
+                {tab.label}
+              </span>
             </Link>
           );
         })}

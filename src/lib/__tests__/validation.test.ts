@@ -11,6 +11,10 @@ import {
   validateBlock,
   validateTemplate,
   validateImportData,
+  validateImportExercise,
+  validateImportTemplate,
+  validateImportLog,
+  validateImportSettings,
 } from '../validation';
 import { VALIDATION } from '@/types/workout';
 import type { ExerciseBlock, SupersetBlock } from '@/types/workout';
@@ -454,5 +458,241 @@ describe('validateImportData', () => {
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('Missing exercises array');
     expect(result.errors).toContain('Missing templates array');
+  });
+
+  it('rejects import with an invalid exercise record', () => {
+    const result = validateImportData({
+      schemaVersion: 1,
+      exportedAt: '2025-01-01T00:00:00Z',
+      exercises: [{ id: '', name: 'Bench Press' }],
+      templates: [],
+      logs: [],
+      exerciseHistory: [],
+      achievements: [],
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes('exercises[0]'))).toBe(true);
+  });
+
+  it('rejects import with an invalid log record', () => {
+    const result = validateImportData({
+      schemaVersion: 1,
+      exportedAt: '2025-01-01T00:00:00Z',
+      exercises: [],
+      templates: [],
+      logs: [{ id: 'log-1', startedAt: 'not-a-date', status: 'completed' }],
+      exerciseHistory: [],
+      achievements: [],
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes('logs[0]'))).toBe(true);
+  });
+
+  it('rejects import with invalid settings', () => {
+    const result = validateImportData({
+      schemaVersion: 1,
+      exportedAt: '2025-01-01T00:00:00Z',
+      exercises: [],
+      templates: [],
+      logs: [],
+      exerciseHistory: [],
+      achievements: [],
+      settings: { unitSystem: 'stone', defaultRestBetweenSetsSec: -5 },
+    });
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e) => e.includes('unitSystem'))).toBe(true);
+    expect(result.errors.some((e) => e.includes('defaultRestBetweenSetsSec'))).toBe(true);
+  });
+
+  it('passes with valid per-record data', () => {
+    const result = validateImportData({
+      schemaVersion: 1,
+      exportedAt: '2025-01-01T00:00:00Z',
+      exercises: [
+        { id: 'ex-1', name: 'Bench Press', visualKey: 'bench', createdAt: '2025-01-01', updatedAt: '2025-01-01' },
+      ],
+      templates: [
+        { id: 't-1', name: 'Push Day', blocks: [], defaultRestBetweenSetsSec: null, createdAt: '2025-01-01', updatedAt: '2025-01-01', isArchived: false },
+      ],
+      logs: [
+        { id: 'l-1', startedAt: '2025-01-01T10:00:00Z', status: 'completed', templateId: 't-1', templateName: 'Push Day', templateSnapshot: [], performedSets: [], endedAt: '2025-01-01T11:00:00Z', durationSec: 3600, totalVolumeG: 0 },
+      ],
+      exerciseHistory: [],
+      achievements: [],
+      settings: { id: 'settings', unitSystem: 'kg', defaultRestBetweenSetsSec: 90, weightStepsKg: [1, 2.5, 5], weightStepsLb: [2.5, 5, 10], hapticFeedback: true, restTimerSound: true, theme: 'dark' },
+    });
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateImportExercise
+// ---------------------------------------------------------------------------
+
+describe('validateImportExercise', () => {
+  it('returns empty errors for a valid exercise', () => {
+    const errors = validateImportExercise(
+      { id: 'ex-1', name: 'Bench Press' },
+      0,
+    );
+    expect(errors).toEqual([]);
+  });
+
+  it('returns error for non-object', () => {
+    const errors = validateImportExercise('not-an-object', 0);
+    expect(errors).toEqual(['exercises[0]: must be an object']);
+  });
+
+  it('returns error for null', () => {
+    const errors = validateImportExercise(null, 3);
+    expect(errors).toEqual(['exercises[3]: must be an object']);
+  });
+
+  it('returns error for empty id', () => {
+    const errors = validateImportExercise({ id: '', name: 'Valid' }, 0);
+    expect(errors.some((e) => e.includes('"id"'))).toBe(true);
+  });
+
+  it('returns error for missing name', () => {
+    const errors = validateImportExercise({ id: 'ex-1' }, 0);
+    expect(errors.some((e) => e.includes('"name"'))).toBe(true);
+  });
+
+  it('returns error for name exceeding max length', () => {
+    const errors = validateImportExercise(
+      { id: 'ex-1', name: 'X'.repeat(VALIDATION.EXERCISE_NAME_MAX + 1) },
+      0,
+    );
+    expect(errors.some((e) => e.includes('"name"'))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateImportTemplate
+// ---------------------------------------------------------------------------
+
+describe('validateImportTemplate', () => {
+  it('returns empty errors for a valid template', () => {
+    const errors = validateImportTemplate(
+      { id: 't-1', name: 'Push Day', blocks: [] },
+      0,
+    );
+    expect(errors).toEqual([]);
+  });
+
+  it('returns error for non-object', () => {
+    const errors = validateImportTemplate(42, 1);
+    expect(errors).toEqual(['templates[1]: must be an object']);
+  });
+
+  it('returns error for missing blocks array', () => {
+    const errors = validateImportTemplate(
+      { id: 't-1', name: 'Push Day' },
+      0,
+    );
+    expect(errors.some((e) => e.includes('"blocks"'))).toBe(true);
+  });
+
+  it('returns error for name exceeding max length', () => {
+    const errors = validateImportTemplate(
+      { id: 't-1', name: 'A'.repeat(VALIDATION.WORKOUT_NAME_MAX + 1), blocks: [] },
+      0,
+    );
+    expect(errors.some((e) => e.includes('"name"'))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateImportLog
+// ---------------------------------------------------------------------------
+
+describe('validateImportLog', () => {
+  it('returns empty errors for a valid log', () => {
+    const errors = validateImportLog(
+      { id: 'l-1', startedAt: '2025-01-01T10:00:00Z', status: 'completed' },
+      0,
+    );
+    expect(errors).toEqual([]);
+  });
+
+  it('returns error for non-object', () => {
+    const errors = validateImportLog(null, 0);
+    expect(errors).toEqual(['logs[0]: must be an object']);
+  });
+
+  it('returns error for invalid startedAt date', () => {
+    const errors = validateImportLog(
+      { id: 'l-1', startedAt: 'not-a-date', status: 'completed' },
+      0,
+    );
+    expect(errors.some((e) => e.includes('"startedAt"'))).toBe(true);
+  });
+
+  it('returns error for invalid status', () => {
+    const errors = validateImportLog(
+      { id: 'l-1', startedAt: '2025-01-01T10:00:00Z', status: 'unknown' },
+      0,
+    );
+    expect(errors.some((e) => e.includes('"status"'))).toBe(true);
+  });
+
+  it('accepts "partial" as valid status', () => {
+    const errors = validateImportLog(
+      { id: 'l-1', startedAt: '2025-01-01T10:00:00Z', status: 'partial' },
+      0,
+    );
+    expect(errors).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateImportSettings
+// ---------------------------------------------------------------------------
+
+describe('validateImportSettings', () => {
+  it('returns empty errors for valid settings', () => {
+    const errors = validateImportSettings({
+      unitSystem: 'kg',
+      defaultRestBetweenSetsSec: 90,
+    });
+    expect(errors).toEqual([]);
+  });
+
+  it('returns error for non-object', () => {
+    const errors = validateImportSettings('invalid');
+    expect(errors).toEqual(['settings: must be an object']);
+  });
+
+  it('returns error for invalid unitSystem', () => {
+    const errors = validateImportSettings({
+      unitSystem: 'stone',
+      defaultRestBetweenSetsSec: 90,
+    });
+    expect(errors.some((e) => e.includes('"unitSystem"'))).toBe(true);
+  });
+
+  it('returns error for non-positive defaultRestBetweenSetsSec', () => {
+    const errors = validateImportSettings({
+      unitSystem: 'lb',
+      defaultRestBetweenSetsSec: 0,
+    });
+    expect(errors.some((e) => e.includes('"defaultRestBetweenSetsSec"'))).toBe(true);
+  });
+
+  it('returns error for non-number defaultRestBetweenSetsSec', () => {
+    const errors = validateImportSettings({
+      unitSystem: 'lb',
+      defaultRestBetweenSetsSec: 'ninety',
+    });
+    expect(errors.some((e) => e.includes('"defaultRestBetweenSetsSec"'))).toBe(true);
+  });
+
+  it('accepts lb as valid unitSystem', () => {
+    const errors = validateImportSettings({
+      unitSystem: 'lb',
+      defaultRestBetweenSetsSec: 60,
+    });
+    expect(errors).toEqual([]);
   });
 });

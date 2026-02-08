@@ -13,17 +13,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-accent text-white hover:opacity-90',
-  secondary: 'bg-surface border border-border text-text-primary hover:opacity-90',
-  danger: 'bg-danger text-white hover:opacity-90',
-  ghost: 'bg-transparent text-text-secondary hover:bg-surface',
+  primary: 'bg-accent text-white font-semibold hover:opacity-90',
+  secondary: 'bg-surface border border-border text-white font-semibold hover:opacity-90',
+  danger: 'bg-danger text-white font-semibold hover:opacity-90',
+  ghost: 'bg-transparent text-text-secondary hover:bg-surface rounded-lg',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-sm',
-  md: 'h-10 px-4',
-  lg: 'h-12 px-6 text-lg',
-  xl: 'h-16 px-8 text-xl',
+  sm: 'h-10 px-4 text-sm rounded-lg',
+  md: 'h-11 px-4 rounded-xl',
+  lg: 'h-14 px-6 text-base font-semibold rounded-xl',
+  xl: 'h-16 px-8 text-lg font-bold tracking-wide rounded-2xl',
 };
 
 const Spinner = () => (
@@ -38,7 +38,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
       variant = 'primary',
-      size = 'md',
+      size = 'lg',
       fullWidth = false,
       loading = false,
       disabled,
@@ -52,7 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const classes = [
       'inline-flex items-center justify-center gap-2',
-      'min-h-[44px] rounded-xl',
+      'min-h-[44px]',
       'font-medium transition-all duration-150',
       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       'active:scale-[0.97]',

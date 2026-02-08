@@ -31,6 +31,19 @@ export class WorkoutDB extends Dexie {
       settings: 'id',
       crashRecovery: 'id',
     });
+
+    // v2: add an index for efficient "latest history entry by exerciseId"
+    // and to avoid sorting/scanning the full table for that lookup.
+    this.version(2).stores({
+      exercises: 'id, name',
+      templates: 'id, name, isArchived, createdAt',
+      logs: 'id, templateId, startedAt, status, [templateId+startedAt]',
+      exerciseHistory:
+        '++id, exerciseId, exerciseName, logId, performedAt, [exerciseId+performedAt], [exerciseName+performedAt]',
+      achievements: 'achievementId, unlockedAt',
+      settings: 'id',
+      crashRecovery: 'id',
+    });
   }
 }
 

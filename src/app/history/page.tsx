@@ -14,9 +14,12 @@ import { LogCard } from '@/components/history/LogCard';
 import { AchievementCard } from '@/components/history/AchievementCard';
 import type { WorkoutLog, UnlockedAchievement } from '@/types/workout';
 
-/**
- * Groups logs by date category: "Today", "Yesterday", or a formatted date.
- */
+const groupDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
 function groupLogsByDate(
   logs: WorkoutLog[],
 ): Array<{ label: string; logs: WorkoutLog[] }> {
@@ -38,11 +41,7 @@ function groupLogsByDate(
     } else if (dateKey === yesterdayKey) {
       label = 'Yesterday';
     } else {
-      label = new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }).format(logDate);
+      label = groupDateFormatter.format(logDate);
     }
 
     const existing = groups.get(label);
@@ -124,13 +123,17 @@ export default function HistoryPage() {
       <Header
         title="History"
         rightAction={
-          <Link href="/settings" aria-label="Settings">
+          <Link
+            href="/settings"
+            aria-label="Settings"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-elevated"
+          >
             <Settings className="h-5 w-5 text-text-secondary" />
           </Link>
         }
       />
 
-      <div className="px-4 pt-4">
+      <div className="px-5 pt-4">
         {/* Loading State */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -142,8 +145,8 @@ export default function HistoryPage() {
           <>
             {/* Achievements Section */}
             <section className="mb-6">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-text-muted">
-                Achievements
+              <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[1px] text-text-muted">
+                ACHIEVEMENTS
               </h2>
               <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none">
                 {ACHIEVEMENTS.map((def) => {
@@ -201,7 +204,7 @@ export default function HistoryPage() {
             {/* Grouped log entries */}
             {groupedLogs.map((group) => (
               <section key={group.label} className="mb-4">
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
+                <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-[1px] text-text-muted">
                   {group.label}
                 </h3>
                 {group.logs.map((log) => (

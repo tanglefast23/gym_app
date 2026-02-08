@@ -16,20 +16,22 @@ export const EmptyState = ({
   action,
 }: EmptyStateProps) => {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-text-muted">
+    <div className="flex flex-col items-center justify-center p-6 max-w-[280px] mx-auto gap-4">
       {icon ? (
-        <div className="mb-4 text-text-muted">{icon}</div>
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-elevated text-text-muted">
+          {icon}
+        </div>
       ) : null}
 
-      <h3 className="text-lg font-medium text-text-secondary">{title}</h3>
+      <h3 className="text-lg font-semibold text-text-secondary">{title}</h3>
 
       {description ? (
-        <p className="mt-2 max-w-xs text-center text-sm text-text-muted">
+        <p className="max-w-[240px] text-center text-sm text-text-muted">
           {description}
         </p>
       ) : null}
 
-      {action ? <div className="mt-6">{action}</div> : null}
+      {action ? <div className="mt-2">{action}</div> : null}
     </div>
   );
 };

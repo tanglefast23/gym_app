@@ -2,7 +2,7 @@
 
 import { Clock, Dumbbell, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { formatDuration } from '@/lib/calculations';
+
 import type { WorkoutTemplate, TemplateBlock } from '@/types/workout';
 
 interface WorkoutCardProps {
@@ -27,35 +27,31 @@ export const WorkoutCard = ({
   const lastPerformedLabel = formatLastPerformed(lastPerformed);
 
   return (
-    <Card onClick={onClick}>
+    <Card onClick={onClick} padding="md">
+      {/* Header row */}
       <div className="flex items-center justify-between">
-        <div className="min-w-0 flex-1">
-          {/* Workout name */}
-          <h3 className="truncate text-lg font-semibold text-text-primary">
-            {template.name}
-          </h3>
-
-          {/* Stats row */}
-          <div className="mt-1 flex items-center gap-4 text-sm text-text-secondary">
-            <span className="flex items-center gap-1">
-              <Dumbbell className="h-4 w-4" />
-              {exerciseCount} {exerciseCount === 1 ? 'exercise' : 'exercises'}
-            </span>
-            <span className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              {formatDuration(estimatedDuration)}
-            </span>
-          </div>
-
-          {/* Last performed */}
-          <p className="mt-1 text-sm text-text-muted">
-            {lastPerformedLabel}
-          </p>
-        </div>
-
-        {/* Chevron hint */}
+        <h3 className="truncate text-lg font-semibold text-text-primary">
+          {template.name}
+        </h3>
         <ChevronRight className="h-5 w-5 flex-shrink-0 text-text-muted" />
       </div>
+
+      {/* Meta row */}
+      <div className="mt-3 flex items-center gap-4">
+        <span className="flex items-center gap-1.5 text-sm text-text-secondary">
+          <Dumbbell className="h-4 w-4 text-text-muted" />
+          {exerciseCount} {exerciseCount === 1 ? 'exercise' : 'exercises'}
+        </span>
+        <span className="flex items-center gap-1.5 text-sm text-text-secondary">
+          <Clock className="h-4 w-4 text-text-muted" />
+          ~{Math.round(estimatedDuration / 60)} min
+        </span>
+      </div>
+
+      {/* Last performed */}
+      <p className="mt-3 text-[13px] text-text-muted">
+        {lastPerformedLabel}
+      </p>
     </Card>
   );
 };

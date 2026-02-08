@@ -42,16 +42,15 @@ function groupSetsByExercise(sets: PerformedSet[]): ExerciseGroup[] {
   return orderedKeys.map((key) => groupMap.get(key)!);
 }
 
-/**
- * Formats a date string for the page header.
- */
+const detailDateFormatter = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
 function formatDetailDate(isoString: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date(isoString));
+  return detailDateFormatter.format(new Date(isoString));
 }
 
 export default function LogDetailPage() {
@@ -75,6 +74,7 @@ export default function LogDetailPage() {
       <div className="flex min-h-dvh flex-col bg-background">
         <Header
           title="Loading..."
+          centered
           leftAction={
             <button type="button" onClick={() => router.back()} aria-label="Go back">
               <ArrowLeft className="h-5 w-5 text-text-secondary" />
@@ -94,6 +94,7 @@ export default function LogDetailPage() {
       <div className="flex min-h-dvh flex-col bg-background">
         <Header
           title="Not Found"
+          centered
           leftAction={
             <button type="button" onClick={() => router.back()} aria-label="Go back">
               <ArrowLeft className="h-5 w-5 text-text-secondary" />
@@ -112,6 +113,7 @@ export default function LogDetailPage() {
     <div className="flex min-h-dvh flex-col bg-background">
       <Header
         title={formatDetailDate(log.startedAt)}
+        centered
         leftAction={
           <button type="button" onClick={() => router.back()} aria-label="Go back">
             <ArrowLeft className="h-5 w-5 text-text-secondary" />
