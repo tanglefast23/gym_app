@@ -21,7 +21,7 @@ import { Button, ConfirmDialog, ToastContainer, useToastStore } from '@/componen
 import type { WorkoutStep } from '@/types/workout';
 
 const COUNTDOWN_THRESHOLD_MS = 5000;
-const COUNTDOWN_BEEP_INTERVAL_MS = 500; // 2x per second
+const COUNTDOWN_BEEP_INTERVAL_MS = 900; // ~1x per second (with margin for tick jitter)
 
 // -----------------------------------------------------------------------------
 // Helper: build a "next up" label from the rest of the step list
@@ -164,7 +164,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     advanceStep();
   }, [haptics, advanceStep]);
 
-  // Countdown: plays beep 2x/sec + haptic pulse in the last 5 seconds
+  // Countdown: plays beep 1x/sec + haptic pulse in the last 5 seconds
   const lastBeepTimeRef = useRef(0);
 
   const handleTimerTick = useCallback((remainingMs: number) => {

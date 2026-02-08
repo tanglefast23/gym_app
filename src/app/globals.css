@@ -97,6 +97,20 @@ body.workout-active {
   animation: timer-pulse 0.6s ease-in-out infinite;
 }
 
+/* ─── Countdown Flash Animation ─── */
+@keyframes flash {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-flash {
+  animation: flash 0.15s ease-out forwards;
+}
+
 /* ─── Checkmark Pop Animation ─── */
 @keyframes check-pop {
   0% {

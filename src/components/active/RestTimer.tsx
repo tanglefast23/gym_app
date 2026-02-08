@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Minus, Plus, SkipForward } from 'lucide-react';
 import { TimerRing } from './TimerRing';
 import { useHaptics } from '@/hooks';
@@ -59,6 +59,28 @@ export function RestTimer({
     [haptics, onAdjust],
   );
 
+  // Screen flash during countdown (last 5 seconds, once per second).
+  // Uses a ref + direct DOM to avoid setState-in-effect lint issues.
+  const flashRef = useRef<HTMLDivElement>(null);
+  const remainingSec = Math.ceil(remainingMs / 1000);
+  const prevSecRef = useRef(remainingSec);
+
+  useEffect(() => {
+    if (remainingSec === prevSecRef.current) return;
+    prevSecRef.current = remainingSec;
+    if (remainingSec < 1 || remainingSec > 5) return;
+
+    const el = flashRef.current;
+    if (!el) return;
+    el.style.opacity = '1';
+    const id = requestAnimationFrame(() => {
+      // Trigger reflow then animate out
+      el.style.transition = 'opacity 0.15s ease-out';
+      el.style.opacity = '0';
+    });
+    return () => cancelAnimationFrame(id);
+  }, [remainingSec]);
+
   const parsed = nextUpLabel ? parseNextUpLabel(nextUpLabel) : null;
   const nextName = nextUpInfo?.exerciseName ?? parsed?.name ?? null;
   const nextDetail = nextUpInfo
@@ -66,7 +88,14 @@ export function RestTimer({
     : parsed?.detail ?? null;
 
   return (
-    <div className="flex h-full flex-col items-center justify-center px-6 py-8">
+    <div className="relative flex h-full flex-col items-center justify-center px-6 py-8">
+      {/* Countdown flash overlay */}
+      <div
+        ref={flashRef}
+        className="pointer-events-none absolute inset-0 z-50 bg-white/10"
+        style={{ opacity: 0 }}
+      />
+
       {/* Superset label (only shown for superset rest) */}
       {isSuperset ? (
         <span className="mb-4 text-lg font-semibold tracking-wider text-accent">
