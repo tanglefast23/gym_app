@@ -4,6 +4,7 @@ export { BottomSheet } from './BottomSheet';
 export { ToastContainer, useToastStore } from './Toast';
 export { EmptyState } from './EmptyState';
 export { ConfirmDialog } from './ConfirmDialog';
+export { AchievementUnlockOverlay } from './AchievementUnlockOverlay';
 export { Stepper } from './Stepper';
 export { NumberStepper, AMRAP_SENTINEL } from './NumberStepper';
 export { ClickSoundProvider } from './ClickSoundProvider';

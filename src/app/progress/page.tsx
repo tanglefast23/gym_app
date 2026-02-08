@@ -444,8 +444,8 @@ export default function ProgressPage() {
               <EmptyState
                 illustrationSrc="/visuals/empty/empty-progress.svg"
                 illustrationAlt=""
-                title="No progress data yet"
-                description="Complete workouts to see your exercise progress charts here"
+                title="Progress starts on day one"
+                description="Complete two sessions of the same exercise to unlock your first chart."
               />
             ) : (
               <section className="mb-6 animate-fade-in-up stagger-4">

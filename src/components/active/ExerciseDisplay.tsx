@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
+import { Check, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { useHaptics } from '@/hooks';
 import { getLastPerformedSets } from '@/lib/queries';
@@ -83,10 +84,18 @@ export const ExerciseDisplay = ({
     return () => { cancelled = true; };
   }, [exerciseId, unitSystem]);
 
+  const [doneFeedback, setDoneFeedback] = useState(false);
+
   const handleDone = useCallback(() => {
+    if (doneFeedback) return;
     haptics.press();
-    onDone();
-  }, [onDone, haptics]);
+    setDoneFeedback(true);
+    // Tiny "registered" beat before advancing to the next step.
+    window.setTimeout(() => {
+      setDoneFeedback(false);
+      onDone();
+    }, 110);
+  }, [onDone, haptics, doneFeedback]);
 
   const repLabel =
     repsMin === repsMax
@@ -141,14 +150,22 @@ export const ExerciseDisplay = ({
 
       {/* Previous avg + suggested weight */}
       {weightHint ? (
-        <p className="text-sm text-text-muted">
-          Last avg {formatWeight(weightHint.avgG, unitSystem)}
-          {' · '}
-          Try{' '}
-          <span className="font-semibold text-accent">
-            [{formatWeight(weightHint.suggestedG, unitSystem)}]
-          </span>
-        </p>
+        <div className="flex items-center justify-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-text-muted">
+            <span>
+              Last avg <span className="font-semibold text-text-secondary">{formatWeight(weightHint.avgG, unitSystem)}</span>
+            </span>
+            <span className="text-border">·</span>
+            <span className="inline-flex items-center gap-1">
+              <TrendingUp className="h-4 w-4 text-accent" />
+              <span className="text-text-secondary">Try</span>
+              <span className="relative font-semibold text-accent">
+                {formatWeight(weightHint.suggestedG, unitSystem)}
+                <span className="absolute left-0 right-0 -bottom-[2px] h-[2px] rounded-full bg-accent/60" />
+              </span>
+            </span>
+          </div>
+        </div>
       ) : null}
 
       {/* Done button */}
@@ -157,9 +174,17 @@ export const ExerciseDisplay = ({
           size="xl"
           fullWidth
           onClick={handleDone}
-          className="rounded-2xl font-bold animate-pulse-glow"
+          disabled={doneFeedback}
+          className="relative rounded-2xl font-bold animate-pulse-glow"
         >
-          DONE
+          <span className={doneFeedback ? 'opacity-0' : 'opacity-100'}>
+            DONE
+          </span>
+          {doneFeedback ? (
+            <span className="absolute inset-0 flex items-center justify-center animate-check-pop">
+              <Check className="h-7 w-7 text-white" />
+            </span>
+          ) : null}
         </Button>
       </div>
     </div>

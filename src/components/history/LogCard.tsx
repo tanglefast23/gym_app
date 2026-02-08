@@ -73,7 +73,7 @@ export const LogCard = ({ log, onClick, onLongPress }: LogCardProps) => {
       onContextMenu={(e) => {
         if (onLongPress) e.preventDefault();
       }}
-      className="mb-3 cursor-pointer rounded-2xl border border-border bg-surface p-4 transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="mb-3 cursor-pointer rounded-2xl border border-border bg-surface p-4 transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       {/* Header: name + status badge */}
       <div className="flex items-center justify-between">
@@ -95,15 +95,15 @@ export const LogCard = ({ log, onClick, onLongPress }: LogCardProps) => {
       {/* Stats row */}
       <div className="mt-3 flex items-center gap-4">
         <span className="flex items-center gap-1 text-[13px] text-text-secondary">
-          <Clock className="h-3.5 w-3.5 text-text-muted" />
+          <Clock className="h-4 w-4 text-text-muted" />
           {formatDuration(log.durationSec)}
         </span>
         <span className="flex items-center gap-1 text-[13px] text-text-secondary">
-          <Layers className="h-3.5 w-3.5 text-text-muted" />
+          <Layers className="h-4 w-4 text-text-muted" />
           {log.performedSets.length} sets
         </span>
         <span className="flex items-center gap-1 text-[13px] text-text-secondary">
-          <TrendingUp className="h-3.5 w-3.5 text-accent" />
+          <TrendingUp className="h-4 w-4 text-accent" />
           {formatWeight(log.totalVolumeG, unitSystem)}
         </span>
       </div>

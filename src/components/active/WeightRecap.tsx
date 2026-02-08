@@ -582,7 +582,7 @@ export const WeightRecap = ({
             'transition-all duration-200',
             savingPartial
               ? 'border-success/40 bg-success/20 text-success'
-              : 'border-border bg-transparent text-text-secondary hover:bg-elevated active:scale-[0.98]',
+              : 'border-border bg-transparent text-text-secondary hover:bg-elevated active:scale-[0.97]',
           ].join(' ')}
         >
           {savingPartial ? (
@@ -601,7 +601,7 @@ export const WeightRecap = ({
               'rounded-xl px-4 py-3',
               'text-sm font-medium text-danger',
               'transition-all duration-150',
-              'hover:bg-danger/10 active:scale-[0.98]',
+              'hover:bg-danger/10 active:scale-[0.97]',
             ].join(' ')}
           >
             <Trash2 className="h-4 w-4" />

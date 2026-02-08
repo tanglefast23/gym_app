@@ -124,7 +124,7 @@ export default function ExerciseDetailPage() {
             </button>
           }
         />
-        <div className="flex flex-1 flex-col items-center justify-center px-4 text-text-muted">
+        <div className="flex flex-1 flex-col items-center justify-center px-5 text-text-muted">
           <TrendingUp className="mb-3 h-12 w-12" />
           <p className="text-lg font-medium">No history yet</p>
           <p className="mt-1 text-sm">
@@ -157,7 +157,7 @@ export default function ExerciseDetailPage() {
         }
       />
 
-      <div className="flex-1 px-4 pb-8 pt-4">
+      <div className="flex-1 px-5 pb-8 pt-4">
         {/* Quick stats */}
         <div className="mb-6 grid grid-cols-3 gap-3">
           <Card padding="sm" className="text-center">

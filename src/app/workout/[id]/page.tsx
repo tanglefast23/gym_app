@@ -8,6 +8,7 @@ import { db } from '@/lib/db';
 import { writeExerciseHistory } from '@/lib/queries';
 import { checkAchievements, ACHIEVEMENTS } from '@/lib/achievements';
 import { playSfx } from '@/lib/sfx';
+import { calculateEpley1RM } from '@/lib/calculations';
 import { useActiveWorkoutStore } from '@/stores/activeWorkoutStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useTimer, useWakeLock, useHaptics } from '@/hooks';
@@ -18,8 +19,14 @@ import {
   WorkoutComplete,
 } from '@/components/active';
 import type { NewAchievementInfo } from '@/components/active';
-import { Button, ConfirmDialog, ToastContainer, useToastStore } from '@/components/ui';
-import type { WorkoutStep } from '@/types/workout';
+import {
+  Button,
+  ConfirmDialog,
+  ToastContainer,
+  useToastStore,
+  AchievementUnlockOverlay,
+} from '@/components/ui';
+import type { WorkoutLog, WorkoutStep } from '@/types/workout';
 
 const COUNTDOWN_THRESHOLD_MS = 5000;
 const COUNTDOWN_BEEP_INTERVAL_MS = 900; // ~1x per second (with margin for tick jitter)
@@ -49,6 +56,75 @@ function buildNextUpLabel(
     }
   }
   return 'Workout complete!';
+}
+
+type PersonalRecordSummary = {
+  oneRm: Array<{ exerciseId: string; name: string }>;
+  volume: Array<{ exerciseId: string; name: string }>;
+};
+
+async function detectPersonalRecords(log: WorkoutLog): Promise<PersonalRecordSummary> {
+  const byExercise = new Map<
+    string,
+    { name: string; volumeG: number; best1rmG: number | null }
+  >();
+
+  for (const set of log.performedSets) {
+    const prev = byExercise.get(set.exerciseId) ?? {
+      name: set.exerciseNameSnapshot,
+      volumeG: 0,
+      best1rmG: null as number | null,
+    };
+
+    prev.volumeG += set.weightG * set.repsDone;
+
+    const e1rm = calculateEpley1RM(set.weightG, set.repsDone);
+    if (e1rm !== null) {
+      prev.best1rmG = prev.best1rmG === null ? e1rm : Math.max(prev.best1rmG, e1rm);
+    }
+
+    byExercise.set(set.exerciseId, prev);
+  }
+
+  const exerciseIds = [...byExercise.keys()];
+  if (exerciseIds.length === 0) return { oneRm: [], volume: [] };
+
+  const history = await db.exerciseHistory
+    .where('exerciseId')
+    .anyOf(exerciseIds)
+    .toArray();
+
+  const prevBest1rmByExercise = new Map<string, number>();
+  const prevBestVolumeByExercise = new Map<string, number>();
+
+  for (const h of history) {
+    if (h.logId === log.id) continue;
+
+    if (h.estimated1RM_G !== null) {
+      const prev = prevBest1rmByExercise.get(h.exerciseId) ?? 0;
+      if (h.estimated1RM_G > prev) prevBest1rmByExercise.set(h.exerciseId, h.estimated1RM_G);
+    }
+
+    const prevVol = prevBestVolumeByExercise.get(h.exerciseId) ?? 0;
+    if (h.totalVolumeG > prevVol) prevBestVolumeByExercise.set(h.exerciseId, h.totalVolumeG);
+  }
+
+  const oneRm: PersonalRecordSummary['oneRm'] = [];
+  const volume: PersonalRecordSummary['volume'] = [];
+
+  for (const [exerciseId, info] of byExercise) {
+    const prevBest1rm = prevBest1rmByExercise.get(exerciseId) ?? 0;
+    if (info.best1rmG !== null && info.best1rmG > prevBest1rm && prevBest1rm > 0) {
+      oneRm.push({ exerciseId, name: info.name });
+    }
+
+    const prevBestVol = prevBestVolumeByExercise.get(exerciseId) ?? 0;
+    if (info.volumeG > prevBestVol && prevBestVol > 0) {
+      volume.push({ exerciseId, name: info.name });
+    }
+  }
+
+  return { oneRm, volume };
 }
 
 // -----------------------------------------------------------------------------
@@ -104,6 +180,8 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   const [savedTotalSets, setSavedTotalSets] = useState(0);
   const [savedTotalVolumeG, setSavedTotalVolumeG] = useState(0);
   const [savedNewAchievements, setSavedNewAchievements] = useState<NewAchievementInfo[]>([]);
+  const [achievementOverlayQueue, setAchievementOverlayQueue] = useState<NewAchievementInfo[]>([]);
+  const [savedPRs, setSavedPRs] = useState<PersonalRecordSummary>({ oneRm: [], volume: [] });
   const [isSaving, setIsSaving] = useState(false);
 
   /** Map exerciseId -> exerciseName, populated after steps are generated. */
@@ -163,10 +241,20 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   // Timer + Sound Effects
   // ---------------------------------------------------------------------------
 
+  const [timerFinishFlash, setTimerFinishFlash] = useState(false);
+  const timerAdvanceRef = useRef<number | null>(null);
+
   const handleTimerComplete = useCallback(() => {
+    // Give a tiny "finished" beat before advancing (visual + haptic + audio).
+    if (timerAdvanceRef.current !== null) return;
+    setTimerFinishFlash(true);
     haptics.timerComplete();
     playSfx('timerDone');
-    advanceStep();
+    timerAdvanceRef.current = window.setTimeout(() => {
+      timerAdvanceRef.current = null;
+      setTimerFinishFlash(false);
+      advanceStep();
+    }, 200);
   }, [haptics, advanceStep]);
 
   // Countdown: plays beep 1x/sec + haptic pulse in the last 5 seconds
@@ -191,6 +279,15 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   }, []);
 
   const timer = useTimer({ onComplete: handleTimerComplete, onTick: handleTimerTick });
+
+  useEffect(() => {
+    return () => {
+      if (timerAdvanceRef.current !== null) {
+        clearTimeout(timerAdvanceRef.current);
+        timerAdvanceRef.current = null;
+      }
+    };
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Current step
@@ -381,6 +478,15 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     try {
       const log = await completeWorkout();
       if (log) {
+        try {
+          const prs = await detectPersonalRecords(log);
+          setSavedPRs(prs);
+        } catch (prErr: unknown) {
+          const prMsg = prErr instanceof Error ? prErr.message : 'Unknown error';
+          console.error('Failed to detect PRs:', prMsg);
+          setSavedPRs({ oneRm: [], volume: [] });
+        }
+
         // Write denormalized exercise history for charts
         // and check achievements -- non-critical, so wrapped in try/catch
         try {
@@ -408,6 +514,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
             })
             .filter((a): a is NonNullable<typeof a> => a !== null);
           setSavedNewAchievements(enriched);
+          setAchievementOverlayQueue(enriched);
         } catch (achErr: unknown) {
           const achMsg =
             achErr instanceof Error ? achErr.message : 'Unknown error';
@@ -502,6 +609,8 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   // Render
   // ---------------------------------------------------------------------------
 
+  const activeAchievementOverlay = achievementOverlayQueue[0] ?? null;
+
   // Loading/not-found state: only block if we don't already have an active session.
   if (!isActive) {
     if (template === null) {
@@ -518,9 +627,16 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
           durationSec={savedDurationSec}
           totalSets={savedTotalSets}
           totalVolumeG={savedTotalVolumeG}
+          personalRecords={savedPRs}
           newAchievements={savedNewAchievements}
           onFinish={handleFinish}
         />
+        {activeAchievementOverlay ? (
+          <AchievementUnlockOverlay
+            achievement={activeAchievementOverlay}
+            onDismiss={() => setAchievementOverlayQueue((q) => q.slice(1))}
+          />
+        ) : null}
         <ToastContainer />
       </div>
     );
@@ -591,6 +707,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
               isSuperset={currentStep.type === 'superset-rest'}
               isRunning={timer.isRunning}
               nextUpLabel={nextUpLabel}
+              finishFlash={timerFinishFlash}
               onSkip={timer.skip}
               onAdjust={timer.adjust}
               onStart={handleManualTimerStart}

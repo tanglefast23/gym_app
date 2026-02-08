@@ -101,7 +101,7 @@ export default function LogDetailPage() {
             </button>
           }
         />
-        <div className="flex flex-1 flex-col items-center justify-center px-4 text-text-muted">
+        <div className="flex flex-1 flex-col items-center justify-center px-5 text-text-muted">
           <p className="text-lg font-medium">Workout not found</p>
           <p className="mt-1 text-sm">This log may have been deleted.</p>
         </div>
@@ -121,7 +121,7 @@ export default function LogDetailPage() {
         }
       />
 
-      <div className="flex-1 px-4 pb-8 pt-4">
+      <div className="flex-1 px-5 pb-8 pt-4">
         {/* Template name + status */}
         <div className="mb-4 flex items-center gap-2">
           <h2 className="text-xl font-bold text-text-primary">

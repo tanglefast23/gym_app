@@ -159,8 +159,8 @@ export default function HistoryPage() {
               <EmptyState
                 illustrationSrc="/visuals/empty/empty-history.svg"
                 illustrationAlt=""
-                title="No workouts yet"
-                description="Complete your first workout to see your history here"
+                title="No history yet"
+                description="Your first workout is waiting. Finish one and it will show up here."
               />
             ) : null}
 

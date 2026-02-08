@@ -89,7 +89,7 @@ function SegmentedControl<T extends string>({
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`rounded-md px-3 py-1 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-surface ${
+          className={`rounded-md px-3 py-1 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
             value === opt.value
               ? 'bg-accent text-white'
               : 'text-text-secondary hover:text-text-primary'
@@ -404,7 +404,7 @@ export default function SettingsPage() {
         }
       />
 
-      <div className="px-4 pt-4 pb-8">
+      <div className="px-5 pt-4 pb-8">
         {/* ---- Units & Preferences ---- */}
         <SectionTitle>Units &amp; Preferences</SectionTitle>
 

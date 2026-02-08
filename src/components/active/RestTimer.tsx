@@ -20,6 +20,8 @@ interface RestTimerProps {
   isRunning?: boolean;
   nextUpLabel?: string;
   nextUpInfo?: NextUpInfo;
+  /** Brief "finished" flash when the timer hits 0 (before auto-advance). */
+  finishFlash?: boolean;
   onSkip: () => void;
   onAdjust: (seconds: number) => void;
   onStart?: () => void;
@@ -44,6 +46,7 @@ export function RestTimer({
   isRunning = true,
   nextUpLabel,
   nextUpInfo,
+  finishFlash = false,
   onSkip,
   onAdjust,
   onStart,
@@ -99,6 +102,11 @@ export function RestTimer({
         className="pointer-events-none absolute inset-0 z-50 bg-white/10"
         style={{ opacity: 0 }}
       />
+
+      {/* Finished flash overlay (green beat) */}
+      {finishFlash ? (
+        <div className="pointer-events-none absolute inset-0 z-50 bg-success/15 animate-flash" />
+      ) : null}
 
       {/* Superset label (only shown for superset rest) */}
       {isSuperset ? (

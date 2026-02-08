@@ -71,7 +71,7 @@ function ContinueBanner({
       <button
         type="button"
         onClick={onResume}
-        className="flex w-full items-center justify-between rounded-2xl bg-gradient-to-b from-[#4F46E5] to-[#6366F1] p-4 shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="flex w-full items-center justify-between rounded-2xl bg-gradient-to-b from-[#4F46E5] to-[#6366F1] p-4 shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         <div>
           <p className="text-base font-semibold text-white">
@@ -140,7 +140,7 @@ function ActionRow({
       className={[
         'flex w-full items-center gap-3 rounded-xl px-3 py-3',
         'text-left text-sm font-medium',
-        'transition-all duration-150 hover:bg-surface active:bg-surface active:scale-[0.98] hover:translate-x-1',
+        'transition-all duration-150 hover:bg-surface active:bg-surface active:scale-[0.97] hover:translate-x-1',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-elevated',
         className,
       ].join(' ')}
@@ -350,8 +350,8 @@ export default function HomePage() {
           <EmptyState
             illustrationSrc="/visuals/empty/empty-workouts.svg"
             illustrationAlt=""
-            title="No workouts yet"
-            description="Create your first workout template to get started"
+            title="Your first workout is waiting"
+            description="Create a template, then hit Start. You'll be logging sets in minutes."
             action={
               <Link href="/create">
                 <Button variant="primary" size="lg">
