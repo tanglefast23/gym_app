@@ -61,7 +61,7 @@ export function BottomTabBar() {
                 active ? 'tab-active-glow' : '',
               ].join(' ')}
             >
-              <Icon className="h-6 w-6" />
+              <Icon className="h-5 w-5" />
               <span
                 className={[
                   'text-[11px]',
