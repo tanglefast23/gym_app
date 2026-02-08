@@ -490,6 +490,16 @@ export const WeightRecap = ({
       ? findPreviousSetWeight(performedSets, currentStep.exerciseId, currentIndex) !==
         null
       : false;
+  const isFinalSet = currentIndex === totalSets - 1;
+  const hasRemainingSetsForExercise = useMemo(() => {
+    const exerciseId = currentStep?.exerciseId;
+    if (!exerciseId) return false;
+    for (let i = currentIndex + 1; i < exerciseSteps.length; i++) {
+      if (exerciseSteps[i].exerciseId !== exerciseId) continue;
+      if (!performedSets[i]) return true;
+    }
+    return false;
+  }, [currentStep, currentIndex, exerciseSteps, performedSets]);
 
   if (!currentStep) return null;
 
@@ -579,28 +589,30 @@ export const WeightRecap = ({
             </button>
 
             {/* Apply to remaining button */}
-            <button
-              type="button"
-              onClick={applyToRemaining}
-              disabled={applyFeedback}
-              aria-label="Apply current weight to all remaining sets of this exercise"
-              className={[
-                'flex flex-1 items-center justify-center gap-2',
-                'rounded-xl px-3 py-2.5',
-                'text-sm font-medium',
-                'transition-all duration-200',
-                applyFeedback
-                  ? 'bg-success/20 text-success border border-success/40'
-                  : 'bg-elevated text-text-secondary hover:bg-surface active:scale-[0.97]',
-              ].join(' ')}
-            >
-              {applyFeedback ? (
-                <Check className="h-4 w-4 animate-check-pop" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-              {applyFeedback ? 'Applied!' : 'Apply to remaining'}
-            </button>
+            {hasRemainingSetsForExercise && !isFinalSet ? (
+              <button
+                type="button"
+                onClick={applyToRemaining}
+                disabled={applyFeedback}
+                aria-label="Apply current weight to all remaining sets of this exercise"
+                className={[
+                  'flex flex-1 items-center justify-center gap-2',
+                  'rounded-xl px-3 py-2.5',
+                  'text-sm font-medium',
+                  'transition-all duration-200',
+                  applyFeedback
+                    ? 'bg-success/20 text-success border border-success/40'
+                    : 'bg-elevated text-text-secondary hover:bg-surface active:scale-[0.97]',
+                ].join(' ')}
+              >
+                {applyFeedback ? (
+                  <Check className="h-4 w-4 animate-check-pop" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {applyFeedback ? 'Applied!' : 'Apply to remaining'}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -628,12 +640,21 @@ export const WeightRecap = ({
             Next
             <ChevronRight className="h-5 w-5" />
           </Button>
-        ) : null}
+        ) : (
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={handleComplete}
+            className={['flex-1', saveNudge ? 'animate-pulse-glow' : ''].join(' ')}
+          >
+            Save Workout
+          </Button>
+        )}
       </div>
 
       {/* Save buttons */}
       <div className="mt-4 flex flex-col gap-2">
-        {allSetsLogged ? (
+        {allSetsLogged && !isFinalSet ? (
           <Button
             variant="primary"
             size="lg"
