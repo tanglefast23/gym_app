@@ -9,6 +9,11 @@ interface WorkoutCardProps {
   template: WorkoutTemplate;
   lastPerformed?: string | null;
   exerciseNameMap?: Map<string, string>;
+  /**
+   * Optional stable-ish index from the list render to vary visuals across cards.
+   * Falls back to a template-id hash when omitted.
+   */
+  colorIndex?: number;
   onClick: () => void;
 }
 
@@ -22,12 +27,13 @@ export const WorkoutCard = ({
   template,
   lastPerformed,
   exerciseNameMap,
+  colorIndex,
   onClick,
 }: WorkoutCardProps) => {
   const exerciseCount = countExercises(template.blocks);
   const estimatedDuration = estimateWorkoutDuration(template);
   const lastPerformedLabel = formatLastPerformed(lastPerformed);
-  const coverSrc = `/visuals/covers/cover-${pickCoverIndex(template.id)}.svg`;
+  const coverSrc = `/visuals/covers/cover-${pickCoverIndex(template.id, colorIndex)}.svg`;
   const exercisePreview = exerciseNameMap
     ? getExercisePreview(template.blocks, exerciseNameMap)
     : '';
@@ -126,13 +132,24 @@ function countExercises(blocks: TemplateBlock[]): number {
   }, 0);
 }
 
-function pickCoverIndex(templateId: string): string {
-  // Stable pseudo-random cover selection with no new schema fields.
-  let hash = 0;
-  for (let i = 0; i < templateId.length; i++) {
-    hash = (hash * 31 + templateId.charCodeAt(i)) >>> 0;
-  }
-  const idx = (hash % 4) + 1;
+function pickCoverIndex(
+  templateId: string,
+  colorIndex?: number,
+): string {
+  // Prefer a list index when provided (nice visual variety when browsing),
+  // otherwise fall back to a stable template-id hash.
+  const base =
+    typeof colorIndex === 'number' && Number.isFinite(colorIndex)
+      ? colorIndex
+      : (() => {
+          let hash = 0;
+          for (let i = 0; i < templateId.length; i++) {
+            hash = (hash * 31 + templateId.charCodeAt(i)) >>> 0;
+          }
+          return hash;
+        })();
+
+  const idx = (Math.abs(base) % 4) + 1;
   return String(idx).padStart(2, '0');
 }
 

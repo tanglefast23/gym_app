@@ -429,6 +429,39 @@ body.workout-active {
   box-shadow: 0 0 12px 3px rgba(249, 115, 22, 0.3);
 }
 
+/* ─── Small Component Utility Classes ─── */
+.btn-gradient {
+  /* Keep a solid color fallback via Tailwind's `bg-*` classes. */
+  background-image: linear-gradient(135deg, var(--accent) 0%, #EC4899 100%);
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.18);
+}
+
+.continue-banner {
+  position: relative;
+  overflow: hidden;
+}
+
+.continue-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120px 60px at 20% 20%, rgba(255, 255, 255, 0.22), transparent 60%);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.stat-card-orange {
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.16);
+}
+
+.stat-card-purple {
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.14);
+}
+
+.stat-card-teal {
+  box-shadow: 0 0 18px rgba(78, 205, 196, 0.14);
+}
+
 /* ─── Exercise Crossfade (Active workout set transitions) ─── */
 @keyframes exercise-enter {
   from {

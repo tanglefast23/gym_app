@@ -2,7 +2,7 @@
 
 import { type ButtonHTMLAttributes, forwardRef } from 'react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'gradient';
 type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -14,6 +14,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'bg-accent text-white font-semibold hover:brightness-110 hover:shadow-[0_0_16px_rgba(245,158,11,0.3)]',
+  gradient:
+    'btn-gradient bg-accent text-white font-semibold hover:brightness-110 hover:shadow-[0_0_16px_rgba(245,158,11,0.3)]',
   secondary: 'bg-surface border border-border text-text-primary font-semibold hover:brightness-110',
   danger: 'bg-danger text-white font-semibold hover:brightness-110 hover:shadow-[0_0_16px_rgba(239,68,68,0.3)]',
   ghost: 'bg-transparent text-text-secondary hover:bg-surface rounded-lg',

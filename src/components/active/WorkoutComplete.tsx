@@ -194,17 +194,17 @@ export const WorkoutComplete = ({
           Workout Complete!
         </h2>
         {prLabel ? (
-          <p className="mt-2 flex items-center justify-center gap-1.5 text-sm font-semibold text-accent">
-            <Trophy className="h-4 w-4" />
+          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full btn-gradient bg-accent px-3.5 py-1.5 text-xs font-semibold text-white">
+            <Trophy className="h-3.5 w-3.5" />
             NEW PR {prLabel}
-          </p>
+          </span>
         ) : null}
       </div>
 
       {/* Stats grid — staggered entrance */}
       <div className="grid w-full max-w-sm grid-cols-2 gap-4">
-        {/* Duration */}
-        <div className="flex flex-col items-center gap-2 rounded-xl border border-accent/20 bg-surface p-4 animate-reveal-up" style={{ animationDelay: '350ms' }}>
+        {/* Duration — orange accent */}
+        <div className="stat-card-orange flex flex-col items-center gap-2 rounded-xl border border-accent/20 bg-surface p-4 animate-reveal-up" style={{ animationDelay: '350ms' }}>
           <Clock className="h-5 w-5 text-accent" />
           <span className="text-lg font-semibold text-text-primary">
             {formatDuration(durationAnimSec)}
@@ -212,18 +212,18 @@ export const WorkoutComplete = ({
           <span className="text-xs text-text-secondary">Duration</span>
         </div>
 
-        {/* Total Sets */}
-        <div className="flex flex-col items-center gap-2 rounded-xl border border-accent/20 bg-surface p-4 animate-reveal-up" style={{ animationDelay: '450ms' }}>
-          <Layers className="h-5 w-5 text-accent" />
+        {/* Total Sets — purple accent */}
+        <div className="stat-card-purple flex flex-col items-center gap-2 rounded-xl border border-accent/20 bg-surface p-4 animate-reveal-up" style={{ animationDelay: '450ms' }}>
+          <Layers className="h-5 w-5 text-purple" />
           <span className="text-lg font-semibold text-text-primary">
             {setsAnim}
           </span>
           <span className="text-xs text-text-secondary">Total Sets</span>
         </div>
 
-        {/* Total Volume -- spans both columns */}
+        {/* Total Volume — teal accent, spans both columns */}
         <div
-          className="col-span-2 flex flex-col items-center gap-2 rounded-xl border border-accent/20 bg-accent/5 p-4 animate-reveal-up"
+          className="stat-card-teal col-span-2 flex flex-col items-center gap-2 rounded-xl border border-accent/20 bg-accent/5 p-4 animate-reveal-up"
           style={{ animationDelay: '550ms' }}
           onPointerDown={() => {
             if (!funVolumeText) return;
@@ -248,7 +248,7 @@ export const WorkoutComplete = ({
           }}
           onContextMenu={(e) => e.preventDefault()}
         >
-          <Weight className="h-5 w-5 text-accent" />
+          <Weight className="h-5 w-5 text-teal" />
           <span className="text-lg font-semibold text-text-primary">
             {funVolume && funVolumeText
               ? funVolumeText

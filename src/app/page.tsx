@@ -71,7 +71,7 @@ function ContinueBanner({
       <button
         type="button"
         onClick={onResume}
-        className="flex w-full items-center justify-between rounded-2xl bg-gradient-to-b from-[#4F46E5] to-[#6366F1] p-4 shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="continue-banner flex w-full items-center justify-between rounded-2xl bg-gradient-to-b from-[#4F46E5] to-[#6366F1] p-4 shadow-[0_0_20px_rgba(99,102,241,0.3)] transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         <div>
           <p className="text-base font-semibold text-white">
