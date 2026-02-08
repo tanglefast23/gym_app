@@ -93,16 +93,6 @@ export const ExerciseBlockEditor = ({
     }
   }, [block, isAmrap, onChange]);
 
-  const handleRestToggle = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      onChange({
-        ...block,
-        restBetweenSetsSec: e.target.checked ? 90 : null,
-      });
-    },
-    [block, onChange],
-  );
-
   const handleRestChange = useCallback(
     (rest: number) => {
       onChange({ ...block, restBetweenSetsSec: rest });
@@ -182,29 +172,18 @@ export const ExerciseBlockEditor = ({
         </fieldset>
       </div>
 
-      {/* Rest override */}
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-text-secondary">
-          <input
-            type="checkbox"
-            checked={block.restBetweenSetsSec !== null}
-            onChange={handleRestToggle}
-            className="h-5 w-5 rounded border-border accent-accent"
-          />
-          Rest override
-        </label>
-
-        {block.restBetweenSetsSec !== null && (
-          <NumberStepper
-            value={block.restBetweenSetsSec}
-            onChange={handleRestChange}
-            min={VALIDATION.MIN_REST_SEC}
-            max={VALIDATION.MAX_REST_SEC}
-            step={5}
-            suffix="s"
-            ariaLabel="Rest between sets in seconds"
-          />
-        )}
+      {/* Rest between sets */}
+      <div className="mt-4 flex flex-col items-center border-t border-border pt-4">
+        <NumberStepper
+          label="Rest between sets"
+          value={block.restBetweenSetsSec ?? 90}
+          onChange={handleRestChange}
+          min={VALIDATION.MIN_REST_SEC}
+          max={VALIDATION.MAX_REST_SEC}
+          step={5}
+          suffix="s"
+          ariaLabel="Rest between sets in seconds"
+        />
       </div>
     </div>
   );
