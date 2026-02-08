@@ -70,8 +70,8 @@ export function useSwipeNavigation(): {
         nextIndex = currentIndex - 1;
       }
 
-      // Clamp to valid range
-      if (nextIndex < 0 || nextIndex >= tabs.length) return;
+      // Wrap around for circular navigation
+      nextIndex = ((nextIndex % tabs.length) + tabs.length) % tabs.length;
 
       router.push(tabs[nextIndex].href);
     },
