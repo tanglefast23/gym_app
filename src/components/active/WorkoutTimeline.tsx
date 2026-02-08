@@ -115,7 +115,7 @@ export const WorkoutTimeline = ({
             {/* Connecting line between nodes */}
             {idx > 0 ? (
               <div
-                className="h-[2px] w-6"
+                className="h-[2px] w-7"
                 style={{
                   backgroundColor: upcoming ? 'var(--border-color)' : lineColor,
                 }}
@@ -125,7 +125,7 @@ export const WorkoutTimeline = ({
             {/* Node circle with label */}
             <div
               className={[
-                'flex h-11 min-w-11 items-center justify-center rounded-full px-2 text-sm font-bold leading-none',
+                'flex h-[60px] min-w-[60px] items-center justify-center rounded-full px-2 text-lg font-bold leading-none',
                 upcoming ? 'border border-border text-text-muted' : '',
               ].join(' ')}
               style={
