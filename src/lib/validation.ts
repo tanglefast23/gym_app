@@ -102,7 +102,10 @@ export function validateWeightG(weightG: number): string | null {
  * @param block - The template block to validate
  * @returns Array of error message strings
  */
-export function validateBlock(block: TemplateBlock): string[] {
+export function validateBlock(
+  block: TemplateBlock,
+  nameMap?: Record<string, string>,
+): string[] {
   const errors: string[] = [];
 
   const setsErr = validateSets(block.sets);
@@ -111,15 +114,19 @@ export function validateBlock(block: TemplateBlock): string[] {
   if (block.type === 'exercise') {
     const repErr = validateRepRange(block.repsMin, block.repsMax);
     if (repErr) errors.push(repErr);
-    if (!block.exerciseId) errors.push('Exercise is required');
+    const hasExercise = block.exerciseId || (nameMap && nameMap[block.id]?.trim());
+    if (!hasExercise) errors.push('Exercise is required');
     if (block.restBetweenSetsSec !== null) {
       const restErr = validateRestTime(block.restBetweenSetsSec);
       if (restErr) errors.push(restErr);
     }
   } else if (block.type === 'superset') {
     if (block.exercises.length < 2) errors.push('Superset must have at least 2 exercises');
-    for (const ex of block.exercises) {
-      if (!ex.exerciseId) errors.push('All superset exercises require a name');
+    for (let i = 0; i < block.exercises.length; i++) {
+      const ex = block.exercises[i];
+      const nameKey = `${block.id}:${i}`;
+      const hasExercise = ex.exerciseId || (nameMap && nameMap[nameKey]?.trim());
+      if (!hasExercise) errors.push('All superset exercises require a name');
       const repErr = validateRepRange(ex.repsMin, ex.repsMax);
       if (repErr) errors.push(`Superset exercise: ${repErr}`);
     }
@@ -139,7 +146,11 @@ export function validateBlock(block: TemplateBlock): string[] {
  * @param blocks - Array of template blocks
  * @returns Array of error message strings
  */
-export function validateTemplate(name: string, blocks: TemplateBlock[]): string[] {
+export function validateTemplate(
+  name: string,
+  blocks: TemplateBlock[],
+  nameMap?: Record<string, string>,
+): string[] {
   const errors: string[] = [];
 
   const nameErr = validateWorkoutName(name);
@@ -150,7 +161,7 @@ export function validateTemplate(name: string, blocks: TemplateBlock[]): string[
   }
 
   for (let i = 0; i < blocks.length; i++) {
-    const blockErrors = validateBlock(blocks[i]);
+    const blockErrors = validateBlock(blocks[i], nameMap);
     for (const err of blockErrors) {
       errors.push(`Block ${i + 1}: ${err}`);
     }

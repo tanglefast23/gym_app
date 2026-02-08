@@ -259,7 +259,7 @@ export default function EditPage() {
 
   const handleSave = useCallback(async () => {
     setErrors([]);
-    const validationErrors = validateTemplate(name, blocks);
+    const validationErrors = validateTemplate(name, blocks, nameMap);
     if (validationErrors.length > 0) {
       setErrors(validationErrors);
       return;

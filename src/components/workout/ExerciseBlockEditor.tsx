@@ -3,6 +3,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { ExerciseAutocomplete } from './ExerciseAutocomplete';
+import { NumberStepper } from '@/components/ui';
 import { VALIDATION } from '@/types/workout';
 import type { ExerciseBlock } from '@/types/workout';
 
@@ -19,8 +20,8 @@ interface ExerciseBlockEditorProps {
 /**
  * Editor for a single exercise block within the workout creator.
  *
- * Renders the exercise name autocomplete, sets count, rep range inputs,
- * and an optional rest-time override.
+ * Uses mobile-friendly NumberStepper components for sets and reps
+ * instead of native number inputs.
  */
 export const ExerciseBlockEditor = ({
   block,
@@ -49,16 +50,14 @@ export const ExerciseBlockEditor = ({
   );
 
   const handleSetsChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const sets = clampInt(e.target.value, 1, VALIDATION.MAX_SETS);
+    (sets: number) => {
       onChange({ ...block, sets });
     },
     [block, onChange],
   );
 
   const handleRepsMinChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const repsMin = clampInt(e.target.value, 1, VALIDATION.MAX_REPS);
+    (repsMin: number) => {
       onChange({
         ...block,
         repsMin,
@@ -69,8 +68,7 @@ export const ExerciseBlockEditor = ({
   );
 
   const handleRepsMaxChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const repsMax = clampInt(e.target.value, 1, VALIDATION.MAX_REPS);
+    (repsMax: number) => {
       onChange({
         ...block,
         repsMax,
@@ -91,12 +89,7 @@ export const ExerciseBlockEditor = ({
   );
 
   const handleRestChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const rest = clampInt(
-        e.target.value,
-        VALIDATION.MIN_REST_SEC,
-        VALIDATION.MAX_REST_SEC,
-      );
+    (rest: number) => {
       onChange({ ...block, restBetweenSetsSec: rest });
     },
     [block, onChange],
@@ -131,90 +124,65 @@ export const ExerciseBlockEditor = ({
         />
       </div>
 
-      {/* Sets & Reps */}
-      <div className="flex items-end gap-3">
-        {/* Sets */}
-        <div className="flex flex-col">
-          <label className="mb-1 text-xs text-text-muted">Sets</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={VALIDATION.MAX_SETS}
-            value={block.sets}
-            onChange={handleSetsChange}
-            className="w-16 rounded-lg border border-border bg-elevated px-3 py-2 text-center text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-          />
-        </div>
+      {/* Sets & Reps — mobile-friendly steppers */}
+      <div className="flex flex-wrap items-end gap-4">
+        <NumberStepper
+          label="Sets"
+          value={block.sets}
+          onChange={handleSetsChange}
+          min={1}
+          max={VALIDATION.MAX_SETS}
+          step={1}
+        />
 
-        {/* Reps range */}
         <div className="flex flex-col">
-          <label className="mb-1 text-xs text-text-muted">Reps</label>
+          <label className="mb-1 text-xs font-medium text-text-muted">Reps</label>
           <div className="flex items-center gap-1">
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              max={VALIDATION.MAX_REPS}
+            <NumberStepper
               value={block.repsMin}
               onChange={handleRepsMinChange}
-              className="w-16 rounded-lg border border-border bg-elevated px-3 py-2 text-center text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-              aria-label="Minimum reps"
-            />
-            <span className="text-text-muted">&ndash;</span>
-            <input
-              type="number"
-              inputMode="numeric"
               min={1}
               max={VALIDATION.MAX_REPS}
+              step={1}
+              ariaLabel="Minimum reps"
+            />
+            <span className="px-1 text-text-muted">&ndash;</span>
+            <NumberStepper
               value={block.repsMax}
               onChange={handleRepsMaxChange}
-              className="w-16 rounded-lg border border-border bg-elevated px-3 py-2 text-center text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-              aria-label="Maximum reps"
+              min={1}
+              max={VALIDATION.MAX_REPS}
+              step={1}
+              ariaLabel="Maximum reps"
             />
           </div>
         </div>
       </div>
 
       {/* Rest override */}
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-4 flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-sm text-text-secondary">
           <input
             type="checkbox"
             checked={block.restBetweenSetsSec !== null}
             onChange={handleRestToggle}
-            className="h-4 w-4 rounded border-border accent-accent"
+            className="h-5 w-5 rounded border-border accent-accent"
           />
           Rest override
         </label>
 
         {block.restBetweenSetsSec !== null && (
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              inputMode="numeric"
-              min={VALIDATION.MIN_REST_SEC}
-              max={VALIDATION.MAX_REST_SEC}
-              value={block.restBetweenSetsSec}
-              onChange={handleRestChange}
-              className="w-20 rounded-lg border border-border bg-elevated px-3 py-2 text-center text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-              aria-label="Rest between sets in seconds"
-            />
-            <span className="text-xs text-text-muted">sec</span>
-          </div>
+          <NumberStepper
+            value={block.restBetweenSetsSec}
+            onChange={handleRestChange}
+            min={VALIDATION.MIN_REST_SEC}
+            max={VALIDATION.MAX_REST_SEC}
+            step={5}
+            suffix="s"
+            ariaLabel="Rest between sets in seconds"
+          />
         )}
       </div>
     </div>
   );
 };
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Parse a string as an integer clamped to [min, max]. */
-function clampInt(raw: string, min: number, max: number): number {
-  const parsed = parseInt(raw, 10);
-  if (Number.isNaN(parsed)) return min;
-  return Math.min(max, Math.max(min, parsed));
-}

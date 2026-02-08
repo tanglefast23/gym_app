@@ -3,7 +3,7 @@
 import { useCallback } from 'react';
 import { GripVertical, Trash2, Plus } from 'lucide-react';
 import { ExerciseAutocomplete } from './ExerciseAutocomplete';
-import { Button } from '@/components/ui/Button';
+import { Button, NumberStepper } from '@/components/ui';
 import { VALIDATION } from '@/types/workout';
 import type { SupersetBlock, ExerciseBlockExercise } from '@/types/workout';
 
@@ -22,14 +22,10 @@ interface SupersetBlockEditorProps {
   ) => void;
 }
 
-const DEFAULT_REST_BETWEEN_EXERCISES = 30;
-const DEFAULT_REST_BETWEEN_SUPERSETS = 90;
-
 /**
  * Editor for a superset block within the workout creator.
  *
- * A superset groups two or more exercises that are performed back-to-back
- * with configurable rest between individual exercises and between rounds.
+ * Uses mobile-friendly NumberStepper components for all numeric inputs.
  */
 export const SupersetBlockEditor = ({
   block,
@@ -41,8 +37,7 @@ export const SupersetBlockEditor = ({
   // --- Shared sets --------------------------------------------------------
 
   const handleSetsChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const sets = clampInt(e.target.value, 1, VALIDATION.MAX_SETS);
+    (sets: number) => {
       onChange({ ...block, sets });
     },
     [block, onChange],
@@ -64,8 +59,7 @@ export const SupersetBlockEditor = ({
   );
 
   const handleRepsMinChange = useCallback(
-    (index: number, raw: string) => {
-      const repsMin = clampInt(raw, 1, VALIDATION.MAX_REPS);
+    (index: number, repsMin: number) => {
       const updated = [...block.exercises];
       updated[index] = {
         ...updated[index],
@@ -78,8 +72,7 @@ export const SupersetBlockEditor = ({
   );
 
   const handleRepsMaxChange = useCallback(
-    (index: number, raw: string) => {
-      const repsMax = clampInt(raw, 1, VALIDATION.MAX_REPS);
+    (index: number, repsMax: number) => {
       const updated = [...block.exercises];
       updated[index] = {
         ...updated[index],
@@ -112,24 +105,14 @@ export const SupersetBlockEditor = ({
   // --- Rest handlers ------------------------------------------------------
 
   const handleRestBetweenExercisesChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const rest = clampInt(
-        e.target.value,
-        VALIDATION.MIN_REST_SEC,
-        VALIDATION.MAX_REST_SEC,
-      );
+    (rest: number) => {
       onChange({ ...block, restBetweenExercisesSec: rest });
     },
     [block, onChange],
   );
 
   const handleRestBetweenSupersetsChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const rest = clampInt(
-        e.target.value,
-        VALIDATION.MIN_REST_SEC,
-        VALIDATION.MAX_REST_SEC,
-      );
+    (rest: number) => {
       onChange({ ...block, restBetweenSupersetsSec: rest });
     },
     [block, onChange],
@@ -158,18 +141,14 @@ export const SupersetBlockEditor = ({
       </div>
 
       {/* Shared sets */}
-      <div className="mb-4 flex flex-col">
-        <label className="mb-1 text-xs text-text-muted">
-          Sets (all exercises)
-        </label>
-        <input
-          type="number"
-          inputMode="numeric"
-          min={1}
-          max={VALIDATION.MAX_SETS}
+      <div className="mb-4">
+        <NumberStepper
+          label="Sets (all exercises)"
           value={block.sets}
           onChange={handleSetsChange}
-          className="w-16 rounded-lg border border-border bg-elevated px-3 py-2 text-center text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+          min={1}
+          max={VALIDATION.MAX_SETS}
+          step={1}
         />
       </div>
 
@@ -185,8 +164,8 @@ export const SupersetBlockEditor = ({
             onNameChange={(name, exerciseId) =>
               handleExerciseNameChange(index, name, exerciseId)
             }
-            onRepsMinChange={(raw) => handleRepsMinChange(index, raw)}
-            onRepsMaxChange={(raw) => handleRepsMaxChange(index, raw)}
+            onRepsMinChange={(val) => handleRepsMinChange(index, val)}
+            onRepsMaxChange={(val) => handleRepsMaxChange(index, val)}
             onRemove={() => handleRemoveExercise(index)}
           />
         ))}
@@ -207,43 +186,27 @@ export const SupersetBlockEditor = ({
 
       {/* Rest settings */}
       <div className="mt-4 flex flex-wrap gap-4 border-t border-border pt-4">
-        <div className="flex flex-col">
-          <label className="mb-1 text-xs text-text-muted">
-            Rest between exercises
-          </label>
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              inputMode="numeric"
-              min={VALIDATION.MIN_REST_SEC}
-              max={VALIDATION.MAX_REST_SEC}
-              value={block.restBetweenExercisesSec ?? DEFAULT_REST_BETWEEN_EXERCISES}
-              onChange={handleRestBetweenExercisesChange}
-              className="w-20 rounded-lg border border-border bg-elevated px-3 py-2 text-center text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-              aria-label="Rest between exercises in seconds"
-            />
-            <span className="text-xs text-text-muted">sec</span>
-          </div>
-        </div>
+        <NumberStepper
+          label="Rest between exercises"
+          value={block.restBetweenExercisesSec}
+          onChange={handleRestBetweenExercisesChange}
+          min={VALIDATION.MIN_REST_SEC}
+          max={VALIDATION.MAX_REST_SEC}
+          step={5}
+          suffix="s"
+          ariaLabel="Rest between exercises in seconds"
+        />
 
-        <div className="flex flex-col">
-          <label className="mb-1 text-xs text-text-muted">
-            Rest between rounds
-          </label>
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              inputMode="numeric"
-              min={VALIDATION.MIN_REST_SEC}
-              max={VALIDATION.MAX_REST_SEC}
-              value={block.restBetweenSupersetsSec ?? DEFAULT_REST_BETWEEN_SUPERSETS}
-              onChange={handleRestBetweenSupersetsChange}
-              className="w-20 rounded-lg border border-border bg-elevated px-3 py-2 text-center text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-              aria-label="Rest between superset rounds in seconds"
-            />
-            <span className="text-xs text-text-muted">sec</span>
-          </div>
-        </div>
+        <NumberStepper
+          label="Rest between rounds"
+          value={block.restBetweenSupersetsSec}
+          onChange={handleRestBetweenSupersetsChange}
+          min={VALIDATION.MIN_REST_SEC}
+          max={VALIDATION.MAX_REST_SEC}
+          step={5}
+          suffix="s"
+          ariaLabel="Rest between superset rounds in seconds"
+        />
       </div>
     </div>
   );
@@ -259,8 +222,8 @@ interface SupersetExerciseRowProps {
   canRemove: boolean;
   exerciseName: string;
   onNameChange: (name: string, exerciseId: string | null) => void;
-  onRepsMinChange: (raw: string) => void;
-  onRepsMaxChange: (raw: string) => void;
+  onRepsMinChange: (value: number) => void;
+  onRepsMaxChange: (value: number) => void;
   onRemove: () => void;
 }
 
@@ -300,39 +263,24 @@ const SupersetExerciseRow = ({
 
       <div className="mt-2 flex items-center gap-1">
         <label className="mr-1 text-xs text-text-muted">Reps</label>
-        <input
-          type="number"
-          inputMode="numeric"
-          min={1}
-          max={VALIDATION.MAX_REPS}
+        <NumberStepper
           value={exercise.repsMin}
-          onChange={(e) => onRepsMinChange(e.target.value)}
-          className="w-14 rounded-lg border border-border bg-elevated px-2 py-1.5 text-center text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-          aria-label={`Exercise ${index + 1} minimum reps`}
-        />
-        <span className="text-text-muted">&ndash;</span>
-        <input
-          type="number"
-          inputMode="numeric"
+          onChange={onRepsMinChange}
           min={1}
           max={VALIDATION.MAX_REPS}
+          step={1}
+          ariaLabel={`Exercise ${index + 1} minimum reps`}
+        />
+        <span className="px-1 text-text-muted">&ndash;</span>
+        <NumberStepper
           value={exercise.repsMax}
-          onChange={(e) => onRepsMaxChange(e.target.value)}
-          className="w-14 rounded-lg border border-border bg-elevated px-2 py-1.5 text-center text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-          aria-label={`Exercise ${index + 1} maximum reps`}
+          onChange={onRepsMaxChange}
+          min={1}
+          max={VALIDATION.MAX_REPS}
+          step={1}
+          ariaLabel={`Exercise ${index + 1} maximum reps`}
         />
       </div>
     </div>
   );
 };
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Parse a string as an integer clamped to [min, max]. */
-function clampInt(raw: string, min: number, max: number): number {
-  const parsed = parseInt(raw, 10);
-  if (Number.isNaN(parsed)) return min;
-  return Math.min(max, Math.max(min, parsed));
-}

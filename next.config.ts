@@ -10,7 +10,6 @@ const withSerwist = withSerwistInit({
 });
 
 export default withSerwist({
-  output: "export",
   images: {
     unoptimized: true,
   },
