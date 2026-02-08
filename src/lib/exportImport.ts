@@ -2,10 +2,81 @@ import { db } from '@/lib/db';
 import { validateImportData } from '@/lib/validation';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { DEFAULT_SETTINGS } from '@/types/workout';
+import { VALIDATION } from '@/types/workout';
 import type { ExportData, UserSettings } from '@/types/workout';
 
 /** Maximum allowed import file size in bytes (10 MB). */
 const MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024;
+
+function getSettingsSnapshot(): UserSettings {
+  const s = useSettingsStore.getState();
+  return {
+    id: 'settings',
+    unitSystem: s.unitSystem,
+    defaultRestBetweenSetsSec: s.defaultRestBetweenSetsSec,
+    weightStepsKg: s.weightStepsKg,
+    weightStepsLb: s.weightStepsLb,
+    hapticFeedback: s.hapticFeedback,
+    soundEnabled: s.soundEnabled,
+    restTimerSound: s.restTimerSound,
+    theme: s.theme,
+  };
+}
+
+function normalizeImportedSettings(raw: unknown): UserSettings {
+  const next: UserSettings = { ...DEFAULT_SETTINGS };
+
+  if (typeof raw !== 'object' || raw === null) {
+    return next;
+  }
+
+  const r = raw as Record<string, unknown>;
+
+  if (r.unitSystem === 'kg' || r.unitSystem === 'lb') {
+    next.unitSystem = r.unitSystem;
+  }
+
+  if (typeof r.defaultRestBetweenSetsSec === 'number') {
+    next.defaultRestBetweenSetsSec = Math.max(
+      VALIDATION.MIN_REST_SEC,
+      Math.min(VALIDATION.MAX_REST_SEC, r.defaultRestBetweenSetsSec),
+    );
+  }
+
+  if (
+    Array.isArray(r.weightStepsKg) &&
+    r.weightStepsKg.length > 0 &&
+    r.weightStepsKg.every((v) => typeof v === 'number' && Number.isFinite(v) && v > 0)
+  ) {
+    next.weightStepsKg = r.weightStepsKg;
+  }
+
+  if (
+    Array.isArray(r.weightStepsLb) &&
+    r.weightStepsLb.length > 0 &&
+    r.weightStepsLb.every((v) => typeof v === 'number' && Number.isFinite(v) && v > 0)
+  ) {
+    next.weightStepsLb = r.weightStepsLb;
+  }
+
+  if (typeof r.hapticFeedback === 'boolean') {
+    next.hapticFeedback = r.hapticFeedback;
+  }
+
+  if (typeof r.soundEnabled === 'boolean') {
+    next.soundEnabled = r.soundEnabled;
+  }
+
+  if (typeof r.restTimerSound === 'boolean') {
+    next.restTimerSound = r.restTimerSound;
+  }
+
+  if (r.theme === 'dark' || r.theme === 'light' || r.theme === 'system') {
+    next.theme = r.theme;
+  }
+
+  return next;
+}
 
 /**
  * Export all app data as a JSON object.
@@ -15,22 +86,19 @@ const MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024;
  * @returns A fully-populated `ExportData` object
  */
 export async function exportAllData(): Promise<ExportData> {
-  const [exercises, templates, logs, exerciseHistory, achievements, settingsRow] =
+  const [exercises, templates, logs, exerciseHistory, achievements] =
     await Promise.all([
       db.exercises.toArray(),
       db.templates.toArray(),
       db.logs.toArray(),
       db.exerciseHistory.toArray(),
       db.achievements.toArray(),
-      db.settings.get('settings'),
     ]);
-
-  const settings: UserSettings = settingsRow ?? DEFAULT_SETTINGS;
 
   return {
     schemaVersion: 1,
     exportedAt: new Date().toISOString(),
-    settings,
+    settings: getSettingsSnapshot(),
     exercises,
     templates,
     logs,
@@ -91,6 +159,9 @@ export async function importData(
     }
 
     const parsed = data as ExportData;
+    const normalizedSettings = normalizeImportedSettings(
+      (parsed as unknown as { settings?: unknown }).settings,
+    );
 
     // Clear all tables and replace inside a single transaction
     await db.transaction(
@@ -132,15 +203,12 @@ export async function importData(
         if (parsed.achievements.length > 0) {
           await db.achievements.bulkAdd(parsed.achievements);
         }
-        if (parsed.settings) {
-          await db.settings.put(parsed.settings);
-        }
+        await db.settings.put(normalizedSettings);
       },
     );
 
     // Sync the Zustand settings store so in-memory state matches the imported data
-    const importedSettings: UserSettings = parsed.settings ?? DEFAULT_SETTINGS;
-    useSettingsStore.getState().rehydrateFromImport(importedSettings);
+    useSettingsStore.getState().rehydrateFromImport(normalizedSettings);
 
     return { success: true, errors: [] };
   } catch (err: unknown) {

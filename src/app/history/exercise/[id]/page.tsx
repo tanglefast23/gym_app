@@ -63,7 +63,7 @@ export default function ExerciseDetailPage() {
   const unitSystem = useSettingsStore((s) => s.unitSystem);
 
   const exercise = useLiveQuery(
-    () => db.exercises.get(params.id),
+    () => db.exercises.get(params.id).then((e) => e ?? null),
     [params.id],
   );
 

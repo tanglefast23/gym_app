@@ -41,6 +41,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       size = 'lg',
       fullWidth = false,
       loading = false,
+      type = 'button',
       disabled,
       className = '',
       children,
@@ -70,6 +71,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={classes}
         disabled={isDisabled}
+        type={type}
         {...rest}
       >
         {loading ? <Spinner /> : null}

@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Dumbbell, PlusCircle, BarChart2 } from 'lucide-react';
+import { Dumbbell, PlusCircle, BarChart2, TrendingUp } from 'lucide-react';
 import { type ComponentType } from 'react';
 
 interface Tab {
@@ -14,6 +14,7 @@ interface Tab {
 const tabs: readonly Tab[] = [
   { href: '/', label: 'Workouts', icon: Dumbbell },
   { href: '/create', label: 'Create', icon: PlusCircle },
+  { href: '/progress', label: 'Progress', icon: TrendingUp },
   { href: '/history', label: 'History', icon: BarChart2 },
 ] as const;
 
@@ -29,7 +30,7 @@ function isTabActive(tabHref: string, pathname: string): boolean {
 }
 
 /**
- * Fixed bottom navigation bar with 3 tabs: Workouts, Create, History.
+ * Fixed bottom navigation bar with 4 tabs: Workouts, Create, Progress, History.
  * Includes safe-area padding for notched devices.
  */
 export function BottomTabBar() {

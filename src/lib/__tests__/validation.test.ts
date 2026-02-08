@@ -533,7 +533,13 @@ describe('validateImportData', () => {
 describe('validateImportExercise', () => {
   it('returns empty errors for a valid exercise', () => {
     const errors = validateImportExercise(
-      { id: 'ex-1', name: 'Bench Press' },
+      {
+        id: 'ex-1',
+        name: 'Bench Press',
+        visualKey: 'default',
+        createdAt: '2025-01-01T00:00:00Z',
+        updatedAt: '2025-01-01T00:00:00Z',
+      },
       0,
     );
     expect(errors).toEqual([]);
@@ -575,7 +581,15 @@ describe('validateImportExercise', () => {
 describe('validateImportTemplate', () => {
   it('returns empty errors for a valid template', () => {
     const errors = validateImportTemplate(
-      { id: 't-1', name: 'Push Day', blocks: [] },
+      {
+        id: 't-1',
+        name: 'Push Day',
+        blocks: [],
+        defaultRestBetweenSetsSec: null,
+        createdAt: '2025-01-01T00:00:00Z',
+        updatedAt: '2025-01-01T00:00:00Z',
+        isArchived: false,
+      },
       0,
     );
     expect(errors).toEqual([]);
@@ -591,7 +605,7 @@ describe('validateImportTemplate', () => {
       { id: 't-1', name: 'Push Day' },
       0,
     );
-    expect(errors.some((e) => e.includes('"blocks"'))).toBe(true);
+    expect(errors.some((e) => e.includes('.blocks'))).toBe(true);
   });
 
   it('returns error for name exceeding max length', () => {
@@ -610,7 +624,18 @@ describe('validateImportTemplate', () => {
 describe('validateImportLog', () => {
   it('returns empty errors for a valid log', () => {
     const errors = validateImportLog(
-      { id: 'l-1', startedAt: '2025-01-01T10:00:00Z', status: 'completed' },
+      {
+        id: 'l-1',
+        startedAt: '2025-01-01T10:00:00Z',
+        status: 'completed',
+        templateId: 't-1',
+        templateName: 'Push Day',
+        templateSnapshot: [],
+        performedSets: [],
+        endedAt: '2025-01-01T11:00:00Z',
+        durationSec: 3600,
+        totalVolumeG: 0,
+      },
       0,
     );
     expect(errors).toEqual([]);
@@ -639,7 +664,18 @@ describe('validateImportLog', () => {
 
   it('accepts "partial" as valid status', () => {
     const errors = validateImportLog(
-      { id: 'l-1', startedAt: '2025-01-01T10:00:00Z', status: 'partial' },
+      {
+        id: 'l-1',
+        startedAt: '2025-01-01T10:00:00Z',
+        status: 'partial',
+        templateId: 't-1',
+        templateName: 'Push Day',
+        templateSnapshot: [],
+        performedSets: [],
+        endedAt: '2025-01-01T11:00:00Z',
+        durationSec: 3600,
+        totalVolumeG: 0,
+      },
       0,
     );
     expect(errors).toEqual([]);

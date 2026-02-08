@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
+import { lockBodyScroll, unlockBodyScroll } from '@/lib/scrollLock';
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -30,7 +31,7 @@ export const BottomSheet = ({
 
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      lockBodyScroll();
       // Delay to trigger CSS transition after mount
       const raf = requestAnimationFrame(() => {
         backdropRef.current?.classList.replace('bg-black/0', 'bg-black/60');
@@ -38,12 +39,8 @@ export const BottomSheet = ({
       });
       return () => {
         cancelAnimationFrame(raf);
-        document.body.style.overflow = '';
+        unlockBodyScroll();
       };
-    } else {
-      backdropRef.current?.classList.replace('bg-black/60', 'bg-black/0');
-      sheetRef.current?.classList.replace('translate-y-0', 'translate-y-full');
-      document.body.style.overflow = '';
     }
   }, [isOpen]);
 

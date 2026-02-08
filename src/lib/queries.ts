@@ -120,3 +120,125 @@ export async function getLastPerformedSets(exerciseId: string): Promise<Performe
 
   return log.performedSets.filter((s) => s.exerciseId === exerciseId);
 }
+
+/**
+ * Get all exercise history entries grouped by exerciseId.
+ *
+ * Fetches everything in a single query and groups in JS to avoid N+1 lookups.
+ * Each group is sorted by performedAt ascending (chart-ready).
+ */
+export async function getAllExerciseHistoryGrouped(): Promise<
+  Map<string, { exerciseId: string; exerciseName: string; entries: ExerciseHistoryEntry[] }>
+> {
+  const all = await db.exerciseHistory.orderBy('performedAt').toArray();
+  const grouped = new Map<
+    string,
+    { exerciseId: string; exerciseName: string; entries: ExerciseHistoryEntry[] }
+  >();
+
+  for (const entry of all) {
+    const existing = grouped.get(entry.exerciseId);
+    if (existing) {
+      existing.entries.push(entry);
+    } else {
+      grouped.set(entry.exerciseId, {
+        exerciseId: entry.exerciseId,
+        exerciseName: entry.exerciseName,
+        entries: [entry],
+      });
+    }
+  }
+
+  return grouped;
+}
+
+/** Get data counts for all tables (useful for "Delete All Data" confirmation). */
+export async function getDataCounts(): Promise<{
+  exercises: number;
+  templates: number;
+  logs: number;
+  exerciseHistory: number;
+  achievements: number;
+}> {
+  const [exercises, templates, logs, exerciseHistory, achievements] = await Promise.all([
+    db.exercises.count(),
+    db.templates.count(),
+    db.logs.count(),
+    db.exerciseHistory.count(),
+    db.achievements.count(),
+  ]);
+  return { exercises, templates, logs, exerciseHistory, achievements };
+}
+
+/**
+ * Delete ALL user data except settings.
+ *
+ * Clears exercises, templates, logs, exerciseHistory, achievements,
+ * and crashRecovery tables. Settings are preserved.
+ */
+export async function deleteAllData(): Promise<void> {
+  await Promise.all([
+    db.exercises.clear(),
+    db.templates.clear(),
+    db.logs.clear(),
+    db.exerciseHistory.clear(),
+    db.achievements.clear(),
+    db.crashRecovery.clear(),
+  ]);
+}
+
+/**
+ * Preview how many items would be deleted within a date range.
+ *
+ * Returns counts without actually deleting anything.
+ * Uses the `startedAt` field for logs and `performedAt` for exerciseHistory.
+ */
+export async function previewDeleteByDateRange(
+  fromISO: string,
+  toISO: string,
+): Promise<{ logs: number; exerciseHistory: number }> {
+  const logsInRange = await db.logs
+    .where('startedAt')
+    .between(fromISO, toISO, true, true)
+    .count();
+
+  const historyInRange = await db.exerciseHistory
+    .where('performedAt')
+    .between(fromISO, toISO, true, true)
+    .count();
+
+  return { logs: logsInRange, exerciseHistory: historyInRange };
+}
+
+/**
+ * Delete logs and exercise history within a date range.
+ *
+ * Returns the count of deleted items.
+ */
+export async function deleteDataByDateRange(
+  fromISO: string,
+  toISO: string,
+): Promise<{ deletedLogs: number; deletedHistory: number }> {
+  const logsToDelete = await db.logs
+    .where('startedAt')
+    .between(fromISO, toISO, true, true)
+    .toArray();
+
+  const logIds = new Set(logsToDelete.map((l) => l.id));
+
+  const historyToDelete = await db.exerciseHistory
+    .where('performedAt')
+    .between(fromISO, toISO, true, true)
+    .toArray();
+
+  const historyIds = historyToDelete
+    .filter((h) => h.id !== undefined)
+    .map((h) => h.id as number);
+
+  await Promise.all([
+    db.logs.bulkDelete([...logIds]),
+    db.exerciseHistory.bulkDelete(historyIds),
+  ]);
+
+  return { deletedLogs: logIds.size, deletedHistory: historyIds.length };
+}

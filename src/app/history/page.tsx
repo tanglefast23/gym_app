@@ -6,13 +6,11 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Settings, Search, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
-import { ACHIEVEMENTS } from '@/lib/achievements';
 import { AppShell } from '@/components/layout';
 import { Header } from '@/components/layout/Header';
 import { EmptyState } from '@/components/ui';
 import { LogCard } from '@/components/history/LogCard';
-import { AchievementCard } from '@/components/history/AchievementCard';
-import type { WorkoutLog, UnlockedAchievement } from '@/types/workout';
+import type { WorkoutLog } from '@/types/workout';
 
 const groupDateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -58,19 +56,6 @@ function groupLogsByDate(
   }));
 }
 
-/**
- * Builds a lookup map from achievement ID to its unlocked data.
- */
-function buildUnlockedMap(
-  unlocked: UnlockedAchievement[],
-): Map<string, UnlockedAchievement> {
-  const map = new Map<string, UnlockedAchievement>();
-  for (const a of unlocked) {
-    map.set(a.achievementId, a);
-  }
-  return map;
-}
-
 export default function HistoryPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,17 +66,7 @@ export default function HistoryPage() {
     [],
   );
 
-  const unlockedAchievements = useLiveQuery(
-    () => db.achievements.toArray(),
-    [],
-  );
-
   // -- Derived data --
-  const unlockedMap = useMemo(
-    () => buildUnlockedMap(unlockedAchievements ?? []),
-    [unlockedAchievements],
-  );
-
   const filteredLogs = useMemo(() => {
     if (!allLogs) return undefined;
     if (!searchQuery.trim()) return allLogs;
@@ -107,8 +82,7 @@ export default function HistoryPage() {
     [filteredLogs],
   );
 
-  const isLoading =
-    allLogs === undefined || unlockedAchievements === undefined;
+  const isLoading = allLogs === undefined;
 
   // -- Handlers --
   const handleLogClick = useCallback(
@@ -143,29 +117,6 @@ export default function HistoryPage() {
 
         {!isLoading ? (
           <>
-            {/* Achievements Section */}
-            <section className="mb-6">
-              <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[1px] text-text-muted">
-                ACHIEVEMENTS
-              </h2>
-              <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-none">
-                {ACHIEVEMENTS.map((def) => {
-                  const unlocked = unlockedMap.get(def.id);
-                  return (
-                    <AchievementCard
-                      key={def.id}
-                      icon={def.icon}
-                      name={def.name}
-                      description={def.description}
-                      isUnlocked={!!unlocked}
-                      unlockedAt={unlocked?.unlockedAt}
-                      context={unlocked?.context}
-                    />
-                  );
-                })}
-              </div>
-            </section>
-
             {/* Search Filter */}
             {allLogs.length > 0 ? (
               <div className="relative mb-4">

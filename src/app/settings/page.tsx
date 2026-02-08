@@ -1,13 +1,19 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Download, Upload, RotateCcw } from 'lucide-react';
+import { ChevronLeft, Download, Upload, RotateCcw, Trash2, CalendarRange } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Button, ConfirmDialog, useToastStore, ToastContainer } from '@/components/ui';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { downloadExport, importData, previewImport } from '@/lib/exportImport';
-import type { UnitSystem, ThemeMode } from '@/types/workout';
+import {
+  getDataCounts,
+  deleteAllData,
+  previewDeleteByDateRange,
+  deleteDataByDateRange,
+} from '@/lib/queries';
+import type { UnitSystem } from '@/types/workout';
 import { VALIDATION } from '@/types/workout';
 
 // ---------------------------------------------------------------------------
@@ -123,12 +129,6 @@ const unitOptions: { value: UnitSystem; label: string }[] = [
   { value: 'lb', label: 'lb' },
 ];
 
-const themeOptions: { value: ThemeMode; label: string }[] = [
-  { value: 'dark', label: 'Dark' },
-  { value: 'light', label: 'Light' },
-  { value: 'system', label: 'System' },
-];
-
 // ---------------------------------------------------------------------------
 // Page component
 // ---------------------------------------------------------------------------
@@ -146,13 +146,11 @@ export default function SettingsPage() {
   const hapticFeedback = useSettingsStore((s) => s.hapticFeedback);
   const soundEnabled = useSettingsStore((s) => s.soundEnabled);
   const restTimerSound = useSettingsStore((s) => s.restTimerSound);
-  const theme = useSettingsStore((s) => s.theme);
   const setUnitSystem = useSettingsStore((s) => s.setUnitSystem);
   const setDefaultRest = useSettingsStore((s) => s.setDefaultRest);
   const toggleHaptic = useSettingsStore((s) => s.toggleHapticFeedback);
   const toggleMasterSound = useSettingsStore((s) => s.toggleSoundEnabled);
   const toggleTimerSound = useSettingsStore((s) => s.toggleRestTimerSound);
-  const setTheme = useSettingsStore((s) => s.setTheme);
   const resetDefaults = useSettingsStore((s) => s.resetToDefaults);
 
   // Import flow state
@@ -253,6 +251,125 @@ export default function SettingsPage() {
     addToast('Settings reset to defaults', 'info');
   }, [resetDefaults, addToast]);
 
+  // ---- Data Management State ----
+
+  // Delete all data — two-step confirmation
+  const [showDeleteAllStep1, setShowDeleteAllStep1] = useState(false);
+  const [showDeleteAllStep2, setShowDeleteAllStep2] = useState(false);
+  const [deleteAllCounts, setDeleteAllCounts] = useState<{
+    exercises: number;
+    templates: number;
+    logs: number;
+    exerciseHistory: number;
+    achievements: number;
+  } | null>(null);
+  const [deleteAllCountdown, setDeleteAllCountdown] = useState(3);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
+
+  // Delete by date range
+  const [showDateRange, setShowDateRange] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [dateRangePreview, setDateRangePreview] = useState<{
+    logs: number;
+    exerciseHistory: number;
+  } | null>(null);
+  const [showDateRangeConfirm, setShowDateRangeConfirm] = useState(false);
+  const [isDeletingRange, setIsDeletingRange] = useState(false);
+
+  // ---- Data Management Handlers ----
+
+  const handleDeleteAllStep1 = useCallback(async () => {
+    try {
+      const counts = await getDataCounts();
+      setDeleteAllCounts(counts);
+      setShowDeleteAllStep1(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to load data counts';
+      addToast(msg, 'error');
+    }
+  }, [addToast]);
+
+  const handleDeleteAllStep1Confirm = useCallback(() => {
+    setShowDeleteAllStep1(false);
+    setDeleteAllCountdown(3);
+    setShowDeleteAllStep2(true);
+  }, []);
+
+  // Countdown timer for the final delete button
+  useEffect(() => {
+    if (!showDeleteAllStep2 || deleteAllCountdown <= 0) return;
+    const timer = setTimeout(() => setDeleteAllCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [showDeleteAllStep2, deleteAllCountdown]);
+
+  const handleDeleteAllFinal = useCallback(async () => {
+    // Guard: countdown must be complete
+    if (deleteAllCountdown > 0) return;
+
+    setIsDeletingAll(true);
+    setShowDeleteAllStep2(false);
+    try {
+      await deleteAllData();
+      addToast('All data deleted successfully', 'success');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Delete failed';
+      addToast(msg, 'error');
+    } finally {
+      setIsDeletingAll(false);
+      setDeleteAllCounts(null);
+    }
+  }, [addToast, deleteAllCountdown]);
+
+  // Date range preview — update when dates change
+  useEffect(() => {
+    if (!dateFrom || !dateTo) {
+      setDateRangePreview(null);
+      return;
+    }
+
+    const fromISO = new Date(dateFrom).toISOString();
+    // Set "to" date to end of day
+    const toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    const toISO = toDate.toISOString();
+
+    let cancelled = false;
+    previewDeleteByDateRange(fromISO, toISO).then((preview) => {
+      if (!cancelled) setDateRangePreview(preview);
+    });
+    return () => { cancelled = true; };
+  }, [dateFrom, dateTo]);
+
+  const handleDateRangeDelete = useCallback(async () => {
+    if (!dateFrom || !dateTo) return;
+
+    setIsDeletingRange(true);
+    setShowDateRangeConfirm(false);
+
+    const fromISO = new Date(dateFrom).toISOString();
+    const toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    const toISO = toDate.toISOString();
+
+    try {
+      const result = await deleteDataByDateRange(fromISO, toISO);
+      addToast(
+        `Deleted ${result.deletedLogs} workout log${result.deletedLogs !== 1 ? 's' : ''} and ${result.deletedHistory} history entr${result.deletedHistory !== 1 ? 'ies' : 'y'}`,
+        'success',
+      );
+      setShowDateRange(false);
+      setDateFrom('');
+      setDateTo('');
+      setDateRangePreview(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Delete failed';
+      addToast(msg, 'error');
+    } finally {
+      setIsDeletingRange(false);
+    }
+  }, [dateFrom, dateTo, addToast]);
+
   return (
     <div className="min-h-dvh bg-background">
       <Header
@@ -323,17 +440,6 @@ export default function SettingsPage() {
           />
         </SettingRow>
 
-        {/* ---- Theme ---- */}
-        <SectionTitle>Theme</SectionTitle>
-
-        <SettingRow label="Appearance">
-          <SegmentedControl
-            options={themeOptions}
-            value={theme}
-            onChange={setTheme}
-          />
-        </SettingRow>
-
         {/* ---- Data ---- */}
         <SectionTitle>Data</SectionTitle>
 
@@ -396,6 +502,99 @@ export default function SettingsPage() {
           </div>
         ) : null}
 
+        {/* ---- Data Management ---- */}
+        <SectionTitle>Data Management</SectionTitle>
+
+        <div className="space-y-3">
+          <Button
+            fullWidth
+            variant="danger"
+            onClick={handleDeleteAllStep1}
+            loading={isDeletingAll}
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete All Data
+          </Button>
+
+          <Button
+            fullWidth
+            variant="secondary"
+            onClick={() => setShowDateRange(!showDateRange)}
+          >
+            <CalendarRange className="h-4 w-4" />
+            Delete Data by Date Range
+          </Button>
+        </div>
+
+        {/* Date range picker card */}
+        {showDateRange ? (
+          <div className="mt-4 rounded-xl border border-border bg-surface p-4">
+            <p className="mb-3 text-sm font-medium text-text-primary">
+              Select Date Range
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs text-text-muted" htmlFor="date-from">
+                  From
+                </label>
+                <input
+                  id="date-from"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent [color-scheme:dark]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs text-text-muted" htmlFor="date-to">
+                  To
+                </label>
+                <input
+                  id="date-to"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent [color-scheme:dark]"
+                />
+              </div>
+            </div>
+
+            {/* Live preview of affected data */}
+            {dateRangePreview ? (
+              <div className="mt-3">
+                <p className="text-sm text-text-secondary">
+                  This will delete{' '}
+                  <span className="font-semibold text-danger">
+                    {dateRangePreview.logs} workout log{dateRangePreview.logs !== 1 ? 's' : ''}
+                  </span>{' '}
+                  and{' '}
+                  <span className="font-semibold text-danger">
+                    {dateRangePreview.exerciseHistory} history entr{dateRangePreview.exerciseHistory !== 1 ? 'ies' : 'y'}
+                  </span>
+                </p>
+                <p className="mt-1 text-xs text-warning">
+                  This action cannot be undone. Affected achievements may no longer be accurate.
+                </p>
+              </div>
+            ) : null}
+
+            {dateFrom && dateTo ? (
+              <Button
+                variant="danger"
+                size="sm"
+                className="mt-3"
+                onClick={() => setShowDateRangeConfirm(true)}
+                loading={isDeletingRange}
+                disabled={!dateRangePreview || (dateRangePreview.logs === 0 && dateRangePreview.exerciseHistory === 0)}
+              >
+                Delete Selected Data
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
         {/* ---- About ---- */}
         <SectionTitle>About</SectionTitle>
 
@@ -434,9 +633,50 @@ export default function SettingsPage() {
         onClose={() => setShowResetConfirm(false)}
         onConfirm={handleResetDefaults}
         title="Reset settings?"
-        description="This will reset all settings (units, rest timer, theme, etc.) to their defaults. Your workout data will not be affected."
+        description="This will reset all settings (units, rest timer, etc.) to their defaults. Your workout data will not be affected."
         confirmText="Reset Settings"
         variant="default"
+      />
+
+      {/* Delete all data — Step 1: Show what will be deleted */}
+      <ConfirmDialog
+        isOpen={showDeleteAllStep1}
+        onClose={() => setShowDeleteAllStep1(false)}
+        onConfirm={handleDeleteAllStep1Confirm}
+        title="Delete all data?"
+        description={
+          deleteAllCounts
+            ? `This will permanently delete ALL your data:\n\n• ${deleteAllCounts.logs} workout logs\n• ${deleteAllCounts.templates} workout templates\n• ${deleteAllCounts.exercises} exercises\n• ${deleteAllCounts.exerciseHistory} history entries\n• ${deleteAllCounts.achievements} achievements\n\nYour settings will be preserved. This cannot be undone.`
+            : 'Loading data counts...'
+        }
+        confirmText="Continue"
+        variant="danger"
+      />
+
+      {/* Delete all data — Step 2: Final confirmation with countdown */}
+      <ConfirmDialog
+        isOpen={showDeleteAllStep2}
+        onClose={() => setShowDeleteAllStep2(false)}
+        onConfirm={handleDeleteAllFinal}
+        title="Are you absolutely sure?"
+        description="All workouts, templates, exercises, history, and achievements will be permanently erased. This is your last chance to cancel."
+        confirmText={deleteAllCountdown > 0 ? `Wait ${deleteAllCountdown}s...` : 'Delete Everything'}
+        variant="danger"
+      />
+
+      {/* Delete by date range — confirmation */}
+      <ConfirmDialog
+        isOpen={showDateRangeConfirm}
+        onClose={() => setShowDateRangeConfirm(false)}
+        onConfirm={handleDateRangeDelete}
+        title="Delete data in this range?"
+        description={
+          dateRangePreview
+            ? `You are about to permanently delete ${dateRangePreview.logs} workout log${dateRangePreview.logs !== 1 ? 's' : ''} and ${dateRangePreview.exerciseHistory} history entr${dateRangePreview.exerciseHistory !== 1 ? 'ies' : 'y'} between ${dateFrom} and ${dateTo}. This cannot be undone.`
+            : 'No data to delete in this range.'
+        }
+        confirmText="Delete Selected Data"
+        variant="danger"
       />
 
       <ToastContainer />

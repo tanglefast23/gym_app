@@ -518,11 +518,11 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   // ---------------------------------------------------------------------------
 
   // Loading/not-found state: only block if we don't already have an active session.
-  if (!isActive && template === undefined) {
+  if (!isActive) {
+    if (template === null) {
+      return <NotFoundScreen onBack={() => router.push('/')} />;
+    }
     return <LoadingSpinner />;
-  }
-  if (!isActive && template === null) {
-    return <NotFoundScreen onBack={() => router.push('/')} />;
   }
 
   // Complete screen

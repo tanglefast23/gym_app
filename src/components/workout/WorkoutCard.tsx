@@ -108,9 +108,15 @@ function formatLastPerformed(isoDate: string | null | undefined): string {
 
   try {
     const performed = new Date(isoDate);
+    const performedMs = performed.getTime();
+    if (Number.isNaN(performedMs)) return 'Never performed';
+
     const now = new Date();
-    const diffMs = now.getTime() - performed.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffMs = now.getTime() - performedMs;
+    // If the device clock changed or the date is in the future, treat as "today"
+    // instead of showing negative/NaN day counts.
+    const safeDiffMs = Math.max(0, diffMs);
+    const diffDays = Math.floor(safeDiffMs / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) return 'Last performed: today';
     if (diffDays === 1) return 'Last performed: yesterday';

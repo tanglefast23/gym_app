@@ -59,7 +59,7 @@ export default function LogDetailPage() {
   const unitSystem = useSettingsStore((s) => s.unitSystem);
 
   const log = useLiveQuery(
-    () => db.logs.get(params.id),
+    () => db.logs.get(params.id).then((l) => l ?? null),
     [params.id],
   );
 

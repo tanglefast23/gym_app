@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from './Button';
+import { lockBodyScroll, unlockBodyScroll } from '@/lib/scrollLock';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ export const ConfirmDialog = ({
 
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      lockBodyScroll();
       const raf = requestAnimationFrame(() => {
         overlayRef.current?.classList.replace('bg-black/0', 'bg-black/60');
         panelRef.current?.classList.remove('scale-95', 'opacity-0');
@@ -41,13 +42,8 @@ export const ConfirmDialog = ({
       });
       return () => {
         cancelAnimationFrame(raf);
-        document.body.style.overflow = '';
+        unlockBodyScroll();
       };
-    } else {
-      overlayRef.current?.classList.replace('bg-black/60', 'bg-black/0');
-      panelRef.current?.classList.remove('scale-100', 'opacity-100');
-      panelRef.current?.classList.add('scale-95', 'opacity-0');
-      document.body.style.overflow = '';
     }
   }, [isOpen]);
 

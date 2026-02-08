@@ -30,7 +30,7 @@ export default function EditPage() {
   const addToast = useToastStore((s) => s.addToast);
 
   const template = useLiveQuery(
-    () => db.templates.get(templateId),
+    () => db.templates.get(templateId).then((t) => t ?? null),
     [templateId],
   );
 

@@ -106,7 +106,14 @@ export const ToastContainer = () => {
   }
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80">
+    <div
+      className={[
+        'fixed z-50 flex flex-col gap-2',
+        // Centered and responsive (mobile-first), respects safe-area.
+        'top-[calc(env(safe-area-inset-top)+1rem)] left-1/2 -translate-x-1/2',
+        'w-[calc(100%-2rem)] max-w-sm',
+      ].join(' ')}
+    >
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} />
       ))}
