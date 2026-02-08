@@ -85,6 +85,13 @@ export const WeightRecap = ({
   const exerciseSteps = useMemo(() => getExerciseSteps(steps), [steps]);
   const totalSets = exerciseSteps.length;
 
+  // Keep a ref to the latest performedSets so delayed callbacks (timeouts)
+  // can read fresh data instead of a stale closure snapshot.
+  const performedSetsRef = useRef(performedSets);
+  useEffect(() => {
+    performedSetsRef.current = performedSets;
+  }, [performedSets]);
+
   type DraftWeightSource =
     | 'existing'
     | 'previous'
@@ -235,6 +242,28 @@ export const WeightRecap = ({
   const [sameWeightFeedback, setSameWeightFeedback] = useState(false);
   const [savingPartial, setSavingPartial] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [saveNudge, setSaveNudge] = useState(false);
+
+  const applyTimeoutRef = useRef<number | null>(null);
+  const sameWeightTimeoutRef = useRef<number | null>(null);
+  const saveNudgeTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (applyTimeoutRef.current !== null) {
+        clearTimeout(applyTimeoutRef.current);
+        applyTimeoutRef.current = null;
+      }
+      if (sameWeightTimeoutRef.current !== null) {
+        clearTimeout(sameWeightTimeoutRef.current);
+        sameWeightTimeoutRef.current = null;
+      }
+      if (saveNudgeTimeoutRef.current !== null) {
+        clearTimeout(saveNudgeTimeoutRef.current);
+        saveNudgeTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   /** Save the current draft as a performed set. */
   const saveDraft = useCallback(() => {
@@ -270,8 +299,11 @@ export const WeightRecap = ({
     // (the Zustand store won't re-render performedSets until next tick).
     const justFilled = new Set<number>();
 
+    const latestPerformed = performedSetsRef.current;
     for (let i = currentIndex; i < exerciseSteps.length; i++) {
       if (exerciseSteps[i].exerciseId !== exerciseId) continue;
+      // Avoid silently overwriting already-logged sets (except the current index).
+      if (i !== currentIndex && latestPerformed[i]) continue;
 
       const step = exerciseSteps[i];
       const set: PerformedSet = {
@@ -295,13 +327,18 @@ export const WeightRecap = ({
     setApplyFeedback(true);
 
     // Auto-advance past filled sets after a brief visual delay
-    setTimeout(() => {
+    if (applyTimeoutRef.current !== null) {
+      clearTimeout(applyTimeoutRef.current);
+      applyTimeoutRef.current = null;
+    }
+    applyTimeoutRef.current = window.setTimeout(() => {
+      applyTimeoutRef.current = null;
       setApplyFeedback(false);
 
       // Find the next unfilled set anywhere after the current position
       const nextUnfilled = findNextUnfilledIndex(
         exerciseSteps,
-        performedSets,
+        performedSetsRef.current,
         currentIndex + 1,
         justFilled,
       );
@@ -310,16 +347,21 @@ export const WeightRecap = ({
         setCurrentIndex(nextUnfilled);
         initializeDraft(nextUnfilled);
       } else {
-        // All sets filled — jump to last set so Save Workout button is visible
-        setCurrentIndex(exerciseSteps.length - 1);
-        initializeDraft(exerciseSteps.length - 1);
+        // All sets filled — stay on the current set. The Save button is already visible.
+        setSaveNudge(true);
+        if (saveNudgeTimeoutRef.current !== null) {
+          clearTimeout(saveNudgeTimeoutRef.current);
+        }
+        saveNudgeTimeoutRef.current = window.setTimeout(() => {
+          saveNudgeTimeoutRef.current = null;
+          setSaveNudge(false);
+        }, 700);
       }
     }, 500);
   }, [
     currentStep,
     currentIndex,
     exerciseSteps,
-    performedSets,
     draftReps,
     draftWeightG,
     exerciseNameMap,
@@ -339,7 +381,14 @@ export const WeightRecap = ({
       setDraftWeight({ weightG: prevWeight, source: 'user' });
       playSfx('success');
       setSameWeightFeedback(true);
-      setTimeout(() => setSameWeightFeedback(false), 800);
+      if (sameWeightTimeoutRef.current !== null) {
+        clearTimeout(sameWeightTimeoutRef.current);
+        sameWeightTimeoutRef.current = null;
+      }
+      sameWeightTimeoutRef.current = window.setTimeout(() => {
+        sameWeightTimeoutRef.current = null;
+        setSameWeightFeedback(false);
+      }, 800);
     }
   }, [currentStep, performedSets, currentIndex]);
 
@@ -590,6 +639,7 @@ export const WeightRecap = ({
             size="lg"
             fullWidth
             onClick={handleComplete}
+            className={saveNudge ? 'animate-pulse-glow' : ''}
           >
             Save Workout
           </Button>
