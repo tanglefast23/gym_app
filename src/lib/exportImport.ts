@@ -19,6 +19,7 @@ function getSettingsSnapshot(): UserSettings {
     hapticFeedback: s.hapticFeedback,
     soundEnabled: s.soundEnabled,
     restTimerSound: s.restTimerSound,
+    autoStartRestTimer: s.autoStartRestTimer,
     theme: s.theme,
   };
 }
@@ -69,6 +70,10 @@ function normalizeImportedSettings(raw: unknown): UserSettings {
 
   if (typeof r.restTimerSound === 'boolean') {
     next.restTimerSound = r.restTimerSound;
+  }
+
+  if (typeof r.autoStartRestTimer === 'boolean') {
+    next.autoStartRestTimer = r.autoStartRestTimer;
   }
 
   if (r.theme === 'dark' || r.theme === 'light' || r.theme === 'system') {

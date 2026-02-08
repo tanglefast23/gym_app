@@ -162,6 +162,8 @@ export default function SettingsPage() {
   const toggleHaptic = useSettingsStore((s) => s.toggleHapticFeedback);
   const toggleMasterSound = useSettingsStore((s) => s.toggleSoundEnabled);
   const toggleTimerSound = useSettingsStore((s) => s.toggleRestTimerSound);
+  const autoStartRestTimer = useSettingsStore((s) => s.autoStartRestTimer);
+  const toggleAutoStartRestTimer = useSettingsStore((s) => s.toggleAutoStartRestTimer);
   const resetDefaults = useSettingsStore((s) => s.resetToDefaults);
 
   // Import flow state
@@ -454,6 +456,13 @@ export default function SettingsPage() {
             onToggle={toggleTimerSound}
             disabled={!soundEnabled}
           />
+        </SettingRow>
+
+        {/* ---- Workout ---- */}
+        <SectionTitle>Workout</SectionTitle>
+
+        <SettingRow label="Auto-Start Rest Timer" description="Start rest countdown automatically after each set">
+          <Toggle enabled={autoStartRestTimer} onToggle={toggleAutoStartRestTimer} />
         </SettingRow>
 
         {/* ---- Data ---- */}

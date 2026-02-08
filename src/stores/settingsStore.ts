@@ -20,6 +20,7 @@ interface SettingsState {
   hapticFeedback: boolean;
   soundEnabled: boolean;
   restTimerSound: boolean;
+  autoStartRestTimer: boolean;
   theme: ThemeMode;
 }
 
@@ -31,6 +32,7 @@ interface SettingsActions {
   toggleHapticFeedback: () => void;
   toggleSoundEnabled: () => void;
   toggleRestTimerSound: () => void;
+  toggleAutoStartRestTimer: () => void;
   setTheme: (theme: ThemeMode) => void;
   resetToDefaults: () => void;
   /** Refresh Zustand state from imported UserSettings (e.g. after a backup restore). */
@@ -48,6 +50,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       hapticFeedback: DEFAULT_SETTINGS.hapticFeedback,
       soundEnabled: DEFAULT_SETTINGS.soundEnabled,
       restTimerSound: DEFAULT_SETTINGS.restTimerSound,
+      autoStartRestTimer: DEFAULT_SETTINGS.autoStartRestTimer,
       theme: DEFAULT_SETTINGS.theme,
 
       // --- actions ---
@@ -61,6 +64,8 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         set((state) => ({ soundEnabled: !state.soundEnabled })),
       toggleRestTimerSound: () =>
         set((state) => ({ restTimerSound: !state.restTimerSound })),
+      toggleAutoStartRestTimer: () =>
+        set((state) => ({ autoStartRestTimer: !state.autoStartRestTimer })),
       setTheme: (theme) => set({ theme }),
       resetToDefaults: () =>
         set({
@@ -71,6 +76,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
           hapticFeedback: DEFAULT_SETTINGS.hapticFeedback,
           soundEnabled: DEFAULT_SETTINGS.soundEnabled,
           restTimerSound: DEFAULT_SETTINGS.restTimerSound,
+          autoStartRestTimer: DEFAULT_SETTINGS.autoStartRestTimer,
           theme: DEFAULT_SETTINGS.theme,
         }),
       rehydrateFromImport: (settings: UserSettings) =>
@@ -82,6 +88,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
           hapticFeedback: settings.hapticFeedback,
           soundEnabled: settings.soundEnabled ?? DEFAULT_SETTINGS.soundEnabled,
           restTimerSound: settings.restTimerSound,
+          autoStartRestTimer: settings.autoStartRestTimer ?? DEFAULT_SETTINGS.autoStartRestTimer,
           theme: settings.theme,
         }),
     }),
@@ -95,6 +102,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         hapticFeedback: state.hapticFeedback,
         soundEnabled: state.soundEnabled,
         restTimerSound: state.restTimerSound,
+        autoStartRestTimer: state.autoStartRestTimer,
         theme: state.theme,
       }),
     }

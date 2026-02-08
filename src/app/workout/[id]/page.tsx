@@ -144,6 +144,9 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   const globalDefaultRest = useSettingsStore(
     (s) => s.defaultRestBetweenSetsSec,
   );
+  const autoStartRestTimer = useSettingsStore(
+    (s) => s.autoStartRestTimer,
+  );
 
   // Toast
   const addToast = useToastStore((s) => s.addToast);
@@ -258,22 +261,38 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   // Handle "Done" on exercise step
   // ---------------------------------------------------------------------------
 
+  /** Manually start the rest timer for the current rest step. */
+  const handleManualTimerStart = useCallback(() => {
+    const step = steps[currentStepIndex];
+    if (
+      step &&
+      (step.type === 'rest' || step.type === 'superset-rest') &&
+      step.restDurationSec
+    ) {
+      const endTime = Date.now() + step.restDurationSec * 1000;
+      setTimerEndTime(endTime);
+      timer.start(step.restDurationSec);
+    }
+  }, [steps, currentStepIndex, setTimerEndTime, timer]);
+
   const handleExerciseDone = useCallback(() => {
     haptics.tap();
     advanceStep();
 
-    // If the next step is a rest step, start the timer
-    const nextStep = steps[currentStepIndex + 1];
-    if (
-      nextStep &&
-      (nextStep.type === 'rest' || nextStep.type === 'superset-rest') &&
-      nextStep.restDurationSec
-    ) {
-      const endTime = Date.now() + nextStep.restDurationSec * 1000;
-      setTimerEndTime(endTime);
-      timer.start(nextStep.restDurationSec);
+    // If the next step is a rest step, auto-start the timer (if enabled)
+    if (autoStartRestTimer) {
+      const nextStep = steps[currentStepIndex + 1];
+      if (
+        nextStep &&
+        (nextStep.type === 'rest' || nextStep.type === 'superset-rest') &&
+        nextStep.restDurationSec
+      ) {
+        const endTime = Date.now() + nextStep.restDurationSec * 1000;
+        setTimerEndTime(endTime);
+        timer.start(nextStep.restDurationSec);
+      }
     }
-  }, [haptics, advanceStep, steps, currentStepIndex, setTimerEndTime, timer]);
+  }, [haptics, advanceStep, autoStartRestTimer, steps, currentStepIndex, setTimerEndTime, timer]);
 
   // ---------------------------------------------------------------------------
   // Detect 'complete' step -> transition to recap phase
@@ -557,9 +576,11 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
             remainingMs={timer.remainingMs}
             totalMs={(currentStep.restDurationSec ?? 90) * 1000}
             isSuperset={currentStep.type === 'superset-rest'}
+            isRunning={timer.isRunning}
             nextUpLabel={nextUpLabel}
             onSkip={timer.skip}
             onAdjust={timer.adjust}
+            onStart={handleManualTimerStart}
           />
         ) : null}
       </div>

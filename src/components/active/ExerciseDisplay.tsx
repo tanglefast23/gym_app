@@ -95,7 +95,7 @@ export const ExerciseDisplay = ({
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 px-6 py-8">
-      {/* Superset badge */}
+      {/* Superset badge with round counter */}
       {isSuperset &&
       supersetExerciseIndex !== undefined &&
       supersetTotalExercises !== undefined ? (
@@ -103,7 +103,10 @@ export const ExerciseDisplay = ({
           <span className="rounded-full bg-accent/20 px-4 py-1 text-sm font-semibold text-accent">
             SUPERSET
           </span>
-          <span className="text-sm text-text-secondary">
+          <span className="text-sm font-medium text-text-secondary">
+            Round {setIndex + 1} of {totalSets}
+          </span>
+          <span className="text-xs text-text-muted">
             Exercise {supersetExerciseIndex + 1} of {supersetTotalExercises}
           </span>
         </div>
@@ -126,10 +129,12 @@ export const ExerciseDisplay = ({
         />
       </div>
 
-      {/* Set indicator */}
-      <p className="text-lg text-text-secondary">
-        Set {setIndex + 1} of {totalSets}
-      </p>
+      {/* Set indicator (hidden for supersets — round info is in the badge above) */}
+      {!isSuperset ? (
+        <p className="text-lg text-text-secondary">
+          Set {setIndex + 1} of {totalSets}
+        </p>
+      ) : null}
 
       {/* Rep target */}
       <p className="text-3xl font-bold text-accent">{repLabel}</p>

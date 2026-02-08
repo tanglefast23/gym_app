@@ -119,6 +119,7 @@ export interface UserSettings {
   hapticFeedback: boolean;
   soundEnabled: boolean;
   restTimerSound: boolean;
+  autoStartRestTimer: boolean;
   theme: ThemeMode;
 }
 
@@ -195,5 +196,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
   hapticFeedback: true,
   soundEnabled: true,
   restTimerSound: true,
+  autoStartRestTimer: true,
   theme: 'dark',
 };
