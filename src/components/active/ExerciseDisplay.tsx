@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { Check, TrendingUp } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Button, AMRAP_SENTINEL } from '@/components/ui';
 import { useHaptics } from '@/hooks';
 import { getLastPerformedSets } from '@/lib/queries';
 import { formatWeight } from '@/lib/calculations';
@@ -98,9 +98,11 @@ export const ExerciseDisplay = ({
   }, [onDone, haptics, doneFeedback]);
 
   const repLabel =
-    repsMin === repsMax
-      ? `${repsMin} reps`
-      : `${repsMin}-${repsMax} reps`;
+    repsMax === AMRAP_SENTINEL
+      ? 'MAX reps'
+      : repsMin === repsMax
+        ? `${repsMin} reps`
+        : `${repsMin}-${repsMax} reps`;
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 px-6 py-8">

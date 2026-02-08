@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { Minus, Plus, Play, SkipForward } from 'lucide-react';
 import { TimerRing } from './TimerRing';
 import { useHaptics } from '@/hooks';
+import { AMRAP_SENTINEL } from '@/components/ui';
 
 interface NextUpInfo {
   exerciseName: string;
@@ -231,7 +232,9 @@ function buildDetailString(info: NextUpInfo): string {
   if (info.setNumber != null && info.totalSets != null) {
     parts.push(`Set ${info.setNumber} of ${info.totalSets}`);
   }
-  if (info.repsMin != null) {
+  if (info.repsMax === AMRAP_SENTINEL) {
+    parts.push('MAX reps');
+  } else if (info.repsMin != null) {
     if (info.repsMax != null && info.repsMax !== info.repsMin) {
       parts.push(`${info.repsMin}-${info.repsMax} reps`);
     } else {

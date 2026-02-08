@@ -295,16 +295,20 @@ const SupersetExerciseRow = ({
 
       <div className="mt-2 flex items-center gap-1">
         <label className="mr-1 text-xs text-text-muted">Reps</label>
-        <NumberStepper
-          value={exercise.repsMin}
-          onChange={onRepsMinChange}
-          min={1}
-          max={VALIDATION.MAX_REPS}
-          step={1}
-          size="sm"
-          ariaLabel={`Exercise ${index + 1} minimum reps`}
-        />
-        <span className="px-1 text-text-muted">&ndash;</span>
+        {!isAmrap ? (
+          <>
+            <NumberStepper
+              value={exercise.repsMin}
+              onChange={onRepsMinChange}
+              min={1}
+              max={VALIDATION.MAX_REPS}
+              step={1}
+              size="sm"
+              ariaLabel={`Exercise ${index + 1} minimum reps`}
+            />
+            <span className="px-1 text-text-muted">&ndash;</span>
+          </>
+        ) : null}
         <NumberStepper
           value={exercise.repsMax}
           onChange={handleMaxChange}

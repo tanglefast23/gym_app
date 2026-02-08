@@ -153,16 +153,20 @@ export const ExerciseBlockEditor = ({
         <fieldset className="flex flex-col border-none p-0 m-0">
           <legend className="mb-1 text-xs font-medium text-text-muted">Reps</legend>
           <div className="flex items-center gap-1">
-            <NumberStepper
-              value={block.repsMin}
-              onChange={handleRepsMinChange}
-              min={1}
-              max={VALIDATION.MAX_REPS}
-              step={1}
-              size="sm"
-              ariaLabel="Minimum reps"
-            />
-            <span className="px-1 text-text-muted">&ndash;</span>
+            {!isAmrap ? (
+              <>
+                <NumberStepper
+                  value={block.repsMin}
+                  onChange={handleRepsMinChange}
+                  min={1}
+                  max={VALIDATION.MAX_REPS}
+                  step={1}
+                  size="sm"
+                  ariaLabel="Minimum reps"
+                />
+                <span className="px-1 text-text-muted">&ndash;</span>
+              </>
+            ) : null}
             <NumberStepper
               value={block.repsMax}
               onChange={handleRepsMaxChange}
