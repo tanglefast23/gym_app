@@ -90,7 +90,7 @@ export const WorkoutTimeline = ({
             {idx > 0 ? (
               <div
                 className={[
-                  'h-[2px] w-3',
+                  'h-[2px] w-5',
                   upcoming ? 'bg-border' : 'bg-accent',
                 ].join(' ')}
               />
@@ -99,7 +99,7 @@ export const WorkoutTimeline = ({
             {/* Node circle with label */}
             <div
               className={[
-                'flex h-7 min-w-7 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none',
+                'flex h-9 min-w-9 items-center justify-center rounded-full px-1.5 text-xs font-bold leading-none',
                 current
                   ? 'bg-accent text-background ring-2 ring-accent/40 ring-offset-1 ring-offset-background'
                   : '',
