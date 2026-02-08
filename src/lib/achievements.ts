@@ -48,8 +48,10 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     icon: '\u{1F3C6}',
     check: async (log) => {
       // Compute best estimated 1RM in THIS log per exerciseId, then compare
-      // to the previous best in history. This avoids N full-table scans for logs
-      // with repeated sets of the same exercise.
+      // to the previous best in history.
+      //
+      // Performance: Fetch history for all involved exercises in a single indexed
+      // query (anyOf) instead of N queries (one per exerciseId).
       const bestByExercise = new Map<string, { best1RM: number; name: string }>();
 
       for (const set of log.performedSets) {
@@ -66,15 +68,24 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
         }
       }
 
-      for (const [exerciseId, { best1RM, name }] of bestByExercise) {
-        const history = await db.exerciseHistory
-          .where('[exerciseId+performedAt]')
-          .between([exerciseId, ''], [exerciseId, '\uffff'])
-          .toArray();
+      const exerciseIds = [...bestByExercise.keys()];
+      if (exerciseIds.length === 0) return { earned: false, context: null };
 
-        const previousBest = history
-          .filter((h) => h.logId !== log.id && h.estimated1RM_G !== null)
-          .reduce((max, h) => Math.max(max, h.estimated1RM_G ?? 0), 0);
+      const history = await db.exerciseHistory
+        .where('exerciseId')
+        .anyOf(exerciseIds)
+        .toArray();
+
+      const previousBestByExercise = new Map<string, number>();
+      for (const h of history) {
+        if (h.logId === log.id) continue;
+        if (h.estimated1RM_G === null) continue;
+        const prev = previousBestByExercise.get(h.exerciseId) ?? 0;
+        if (h.estimated1RM_G > prev) previousBestByExercise.set(h.exerciseId, h.estimated1RM_G);
+      }
+
+      for (const [exerciseId, { best1RM, name }] of bestByExercise) {
+        const previousBest = previousBestByExercise.get(exerciseId) ?? 0;
 
         if (best1RM > previousBest && previousBest > 0) {
           return { earned: true, context: `${name} - new 1RM PR!` };
@@ -100,15 +111,23 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
         exerciseVolumes.set(set.exerciseId, existing);
       }
 
-      for (const [exerciseId, { volume, name }] of exerciseVolumes) {
-        const history = await db.exerciseHistory
-          .where('[exerciseId+performedAt]')
-          .between([exerciseId, ''], [exerciseId, '\uffff'])
-          .toArray();
+      const exerciseIds = [...exerciseVolumes.keys()];
+      if (exerciseIds.length === 0) return { earned: false, context: null };
 
-        const previousBest = history
-          .filter((h) => h.logId !== log.id)
-          .reduce((max, h) => Math.max(max, h.totalVolumeG), 0);
+      const history = await db.exerciseHistory
+        .where('exerciseId')
+        .anyOf(exerciseIds)
+        .toArray();
+
+      const previousBestByExercise = new Map<string, number>();
+      for (const h of history) {
+        if (h.logId === log.id) continue;
+        const prev = previousBestByExercise.get(h.exerciseId) ?? 0;
+        if (h.totalVolumeG > prev) previousBestByExercise.set(h.exerciseId, h.totalVolumeG);
+      }
+
+      for (const [exerciseId, { volume, name }] of exerciseVolumes) {
+        const previousBest = previousBestByExercise.get(exerciseId) ?? 0;
 
         if (volume > previousBest && previousBest > 0) {
           return { earned: true, context: `${name} - volume PR!` };
