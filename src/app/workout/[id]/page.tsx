@@ -17,6 +17,7 @@ import {
   RestTimer,
   WeightRecap,
   WorkoutComplete,
+  WorkoutTimeline,
 } from '@/components/active';
 import type { NewAchievementInfo } from '@/components/active';
 import {
@@ -716,6 +717,9 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
           </div>
         ) : null}
       </div>
+
+      {/* Workout progress timeline */}
+      <WorkoutTimeline steps={steps} currentStepIndex={currentStepIndex} />
 
       {/* Quit confirmation dialog */}
       <ConfirmDialog
