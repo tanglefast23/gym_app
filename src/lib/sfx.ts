@@ -68,31 +68,35 @@ function getOrCreateAudio(key: SfxKey): HTMLAudioElement {
   return audio;
 }
 
-async function unlockAllAudio(): Promise<void> {
+async function unlockAudio(): Promise<void> {
   if (!isBrowser()) return;
   if (unlocked) return;
   unlocked = true;
 
+  // iOS Safari requires a user-gesture-initiated audio action to "unlock"
+  // the audio pipeline. We use a single silent AudioContext + oscillator
+  // instead of playing every SFX file (which caused audible leaks on iOS PWA).
+  try {
+    const ctx = new AudioContext();
+    if (ctx.state === 'suspended') await ctx.resume();
+    // Create a silent oscillator for 1ms to fully unlock the audio path.
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    gain.gain.value = 0; // completely silent
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.001);
+    // Close context after a short delay — we only needed it for the unlock.
+    setTimeout(() => ctx.close().catch(() => {}), 100);
+  } catch {
+    // Best-effort. Some devices/browsers will still refuse.
+  }
+
+  // Preload (but don't play) all audio elements so they're ready when needed.
   const keys = Object.keys(SFX) as SfxKey[];
   for (const key of keys) {
-    try {
-      const audio = getOrCreateAudio(key);
-      const prevVolume = audio.volume;
-      audio.volume = 0;
-      // iOS: must be inside a user gesture; play -> pause is enough to unlock.
-      audio
-        .play()
-        .then(() => {
-          audio.pause();
-          audio.currentTime = 0;
-          audio.volume = prevVolume;
-        })
-        .catch(() => {
-          audio.volume = prevVolume;
-        });
-    } catch {
-      // Best-effort. Some devices/browsers will still refuse.
-    }
+    getOrCreateAudio(key);
   }
 }
 
@@ -106,7 +110,7 @@ export function initSfxUnlock(): void {
   unlockInitialized = true;
 
   const handler = () => {
-    void unlockAllAudio();
+    void unlockAudio();
   };
 
   // `touchstart` is important for iOS; `click` is a fallback.
