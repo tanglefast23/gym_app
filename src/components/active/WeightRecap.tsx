@@ -347,7 +347,19 @@ export const WeightRecap = ({
         setCurrentIndex(nextUnfilled);
         initializeDraft(nextUnfilled);
       } else {
-        // All sets filled — stay on the current set. The Save button is already visible.
+        // All sets filled — jump to the final set so the UI enters the "finish" state.
+        const lastIndex = exerciseSteps.length - 1;
+        setCurrentIndex(lastIndex);
+
+        // If we just filled the last set, performedSets won't reflect it yet.
+        // Use the current draft values instead of calling initializeDraft.
+        if (justFilled.has(lastIndex)) {
+          setDraftReps(draftReps);
+          setDraftWeight({ weightG: draftWeightG, source: 'existing' });
+        } else {
+          initializeDraft(lastIndex);
+        }
+
         setSaveNudge(true);
         if (saveNudgeTimeoutRef.current !== null) {
           clearTimeout(saveNudgeTimeoutRef.current);
@@ -491,6 +503,7 @@ export const WeightRecap = ({
         null
       : false;
   const isFinalSet = currentIndex === totalSets - 1;
+  const isFinalReview = allSetsLogged && isFinalSet;
   const hasRemainingSetsForExercise = useMemo(() => {
     const exerciseId = currentStep?.exerciseId;
     if (!exerciseId) return false;
@@ -559,61 +572,63 @@ export const WeightRecap = ({
           </div>
 
           {/* Quick action buttons */}
-          <div className="mt-4 flex gap-3">
-            {/* Same weight button */}
-            <button
-              type="button"
-              onClick={applySameWeight}
-              disabled={!hasPreviousSetWeight}
-              aria-label="Copy weight from previous set"
-              className={[
-                'flex flex-1 items-center justify-center gap-2',
-                'rounded-xl px-3 py-2.5',
-                'text-sm font-medium',
-                'transition-all duration-200',
-                sameWeightFeedback
-                  ? 'bg-success/20 text-success border border-success/40'
-                  : 'bg-elevated text-text-secondary',
-                hasPreviousSetWeight && !sameWeightFeedback
-                  ? 'hover:bg-surface active:scale-[0.97]'
-                  : '',
-                !hasPreviousSetWeight ? 'opacity-50 cursor-not-allowed' : '',
-              ].join(' ')}
-            >
-              {sameWeightFeedback ? (
-                <Check className="h-4 w-4 animate-check-pop" />
-              ) : (
-                <CopyCheck className="h-4 w-4" />
-              )}
-              {sameWeightFeedback ? 'Applied!' : 'Same weight'}
-            </button>
-
-            {/* Apply to remaining button */}
-            {hasRemainingSetsForExercise && !isFinalSet ? (
+          {!isFinalReview ? (
+            <div className="mt-4 flex gap-3">
+              {/* Same weight button */}
               <button
                 type="button"
-                onClick={applyToRemaining}
-                disabled={applyFeedback}
-                aria-label="Apply current weight to all remaining sets of this exercise"
+                onClick={applySameWeight}
+                disabled={!hasPreviousSetWeight}
+                aria-label="Copy weight from previous set"
                 className={[
                   'flex flex-1 items-center justify-center gap-2',
                   'rounded-xl px-3 py-2.5',
                   'text-sm font-medium',
                   'transition-all duration-200',
-                  applyFeedback
+                  sameWeightFeedback
                     ? 'bg-success/20 text-success border border-success/40'
-                    : 'bg-elevated text-text-secondary hover:bg-surface active:scale-[0.97]',
+                    : 'bg-elevated text-text-secondary',
+                  hasPreviousSetWeight && !sameWeightFeedback
+                    ? 'hover:bg-surface active:scale-[0.97]'
+                    : '',
+                  !hasPreviousSetWeight ? 'opacity-50 cursor-not-allowed' : '',
                 ].join(' ')}
               >
-                {applyFeedback ? (
+                {sameWeightFeedback ? (
                   <Check className="h-4 w-4 animate-check-pop" />
                 ) : (
-                  <Copy className="h-4 w-4" />
+                  <CopyCheck className="h-4 w-4" />
                 )}
-                {applyFeedback ? 'Applied!' : 'Apply to remaining'}
+                {sameWeightFeedback ? 'Applied!' : 'Same weight'}
               </button>
-            ) : null}
-          </div>
+
+              {/* Apply to remaining button */}
+              {hasRemainingSetsForExercise && !isFinalSet ? (
+                <button
+                  type="button"
+                  onClick={applyToRemaining}
+                  disabled={applyFeedback}
+                  aria-label="Apply current weight to all remaining sets of this exercise"
+                  className={[
+                    'flex flex-1 items-center justify-center gap-2',
+                    'rounded-xl px-3 py-2.5',
+                    'text-sm font-medium',
+                    'transition-all duration-200',
+                    applyFeedback
+                      ? 'bg-success/20 text-success border border-success/40'
+                      : 'bg-elevated text-text-secondary hover:bg-surface active:scale-[0.97]',
+                  ].join(' ')}
+                >
+                  {applyFeedback ? (
+                    <Check className="h-4 w-4 animate-check-pop" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  {applyFeedback ? 'Applied!' : 'Apply to remaining'}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -653,7 +668,8 @@ export const WeightRecap = ({
       </div>
 
       {/* Save buttons */}
-      <div className="mt-4 flex flex-col gap-2">
+      {!isFinalReview ? (
+        <div className="mt-4 flex flex-col gap-2">
         {allSetsLogged && !isFinalSet ? (
           <Button
             variant="primary"
@@ -708,7 +724,8 @@ export const WeightRecap = ({
             Discard Workout
           </button>
         ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {/* Discard confirmation */}
       <ConfirmDialog
