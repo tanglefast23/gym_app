@@ -88,7 +88,7 @@ export function TimerRing({
       <div className="relative z-10 flex flex-col items-center">
         <span
           className="font-timer text-text-primary"
-          style={{ fontSize: 72, lineHeight: 1 }}
+          style={{ fontSize: 56, lineHeight: 1 }}
         >
           {timeDisplay}
         </span>
