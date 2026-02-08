@@ -30,6 +30,20 @@ function getExerciseSteps(steps: WorkoutStep[]): WorkoutStep[] {
   return steps.filter((s) => s.type === 'exercise');
 }
 
+/** Find the next exercise step that hasn't been logged yet, starting from `from`. */
+function findNextUnfilledIndex(
+  exerciseSteps: WorkoutStep[],
+  performedSets: Array<PerformedSet | null>,
+  from: number,
+  /** Indices we just filled this tick (store hasn't re-rendered yet). */
+  justFilled?: Set<number>,
+): number {
+  for (let i = from; i < exerciseSteps.length; i++) {
+    if (!performedSets[i] && !justFilled?.has(i)) return i;
+  }
+  return -1; // All filled
+}
+
 function findPreviousSetWeight(
   performedSets: Array<PerformedSet | null>,
   exerciseId: string,
@@ -252,6 +266,10 @@ export const WeightRecap = ({
     if (!currentStep?.exerciseId) return;
     const exerciseId = currentStep.exerciseId;
 
+    // Track which indices we fill so we can skip them when looking for unfilled sets
+    // (the Zustand store won't re-render performedSets until next tick).
+    const justFilled = new Set<number>();
+
     for (let i = currentIndex; i < exerciseSteps.length; i++) {
       if (exerciseSteps[i].exerciseId !== exerciseId) continue;
 
@@ -269,30 +287,30 @@ export const WeightRecap = ({
       };
 
       onUpsertSet(i, set);
+      justFilled.add(i);
     }
 
     // SFX + visual feedback
     playSfx('success');
     setApplyFeedback(true);
 
-    // Auto-advance past the filled sets after a brief visual delay
+    // Auto-advance past filled sets after a brief visual delay
     setTimeout(() => {
       setApplyFeedback(false);
 
-      // Find the first set of the NEXT exercise (or stay at end if none)
-      let nextExerciseIndex = -1;
-      for (let i = currentIndex + 1; i < exerciseSteps.length; i++) {
-        if (exerciseSteps[i].exerciseId !== exerciseId) {
-          nextExerciseIndex = i;
-          break;
-        }
-      }
+      // Find the next unfilled set anywhere after the current position
+      const nextUnfilled = findNextUnfilledIndex(
+        exerciseSteps,
+        performedSets,
+        currentIndex + 1,
+        justFilled,
+      );
 
-      if (nextExerciseIndex >= 0) {
-        setCurrentIndex(nextExerciseIndex);
-        initializeDraft(nextExerciseIndex);
+      if (nextUnfilled >= 0) {
+        setCurrentIndex(nextUnfilled);
+        initializeDraft(nextUnfilled);
       } else {
-        // No next exercise — jump to the last set (all done)
+        // All sets filled — jump to last set so Save Workout button is visible
         setCurrentIndex(exerciseSteps.length - 1);
         initializeDraft(exerciseSteps.length - 1);
       }
@@ -301,6 +319,7 @@ export const WeightRecap = ({
     currentStep,
     currentIndex,
     exerciseSteps,
+    performedSets,
     draftReps,
     draftWeightG,
     exerciseNameMap,
@@ -335,19 +354,29 @@ export const WeightRecap = ({
     [unitSystem],
   );
 
-  /** Move to next set or complete. */
+  /** Move to next set or complete. Skips over already-logged sets. */
   const handleNext = useCallback(() => {
     const currentExerciseId = currentStep?.exerciseId ?? null;
     const currentWeightG = draftWeightG;
     saveDraft();
     if (currentIndex < totalSets - 1) {
-      const nextIndex = currentIndex + 1;
+      // Skip over already-filled sets to find the next one that needs input.
+      // We pass a justFilled set containing the current index since saveDraft()
+      // just saved it but performedSets won't reflect it until next render.
+      const justSaved = new Set([currentIndex]);
+      const nextUnfilled = findNextUnfilledIndex(
+        exerciseSteps,
+        performedSets,
+        currentIndex + 1,
+        justSaved,
+      );
+
+      const nextIndex = nextUnfilled >= 0 ? nextUnfilled : totalSets - 1;
       setCurrentIndex(nextIndex);
       const nextStep = exerciseSteps[nextIndex];
 
-      // `saveDraft()` upserts into Zustand, but this component won't see the
-      // updated `performedSets` prop until the next render. If the next step is
-      // the same exercise, we can prefill weight from the draft we just saved.
+      // If the next step is the same exercise and unfilled, prefill weight
+      // from the draft we just saved (Zustand won't have it yet).
       if (
         nextStep &&
         currentExerciseId &&
