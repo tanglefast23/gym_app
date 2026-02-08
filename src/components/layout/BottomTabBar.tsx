@@ -41,7 +41,7 @@ export function BottomTabBar() {
       className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)]"
       aria-label="Main navigation"
     >
-      <div className="flex items-center justify-around pt-3">
+      <div className="flex items-center justify-around pb-1 pt-5">
         {tabs.map((tab) => {
           const active = isTabActive(tab.href, pathname);
           const Icon = tab.icon;

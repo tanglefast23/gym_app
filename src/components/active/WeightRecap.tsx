@@ -730,7 +730,9 @@ export const WeightRecap = ({
       ) : null}
 
       {/* Workout progress timeline */}
-      <WorkoutTimeline steps={exerciseSteps} currentStepIndex={currentIndex} />
+      <div className="mt-6">
+        <WorkoutTimeline steps={exerciseSteps} currentStepIndex={currentIndex} />
+      </div>
 
       {/* Discard confirmation */}
       <ConfirmDialog
