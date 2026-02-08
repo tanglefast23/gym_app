@@ -51,6 +51,7 @@ export function BottomTabBar() {
             <Link
               key={tab.href}
               href={tab.href}
+              data-sfx="tab"
               role="tab"
               aria-selected={active}
               aria-label={tab.label}

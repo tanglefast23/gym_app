@@ -7,6 +7,7 @@ import { X, Loader2 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { writeExerciseHistory } from '@/lib/queries';
 import { checkAchievements, ACHIEVEMENTS } from '@/lib/achievements';
+import { playSfx } from '@/lib/sfx';
 import { useActiveWorkoutStore } from '@/stores/activeWorkoutStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useTimer, useWakeLock, useHaptics } from '@/hooks';
@@ -19,8 +20,6 @@ import {
 import { Button, ConfirmDialog, ToastContainer, useToastStore } from '@/components/ui';
 import type { WorkoutStep } from '@/types/workout';
 
-const TIMER_DONE_SFX_URL = '/sfx/level-up-2-199574.webm';
-const COUNTDOWN_SFX_URL = '/sfx/negative_sound.webm';
 const COUNTDOWN_THRESHOLD_MS = 5000;
 const COUNTDOWN_BEEP_INTERVAL_MS = 500; // 2x per second
 
@@ -155,63 +154,9 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   // Timer + Sound Effects
   // ---------------------------------------------------------------------------
 
-  // Create Audio elements eagerly so they're ready when needed
-  const timerSfxRef = useRef<HTMLAudioElement | null>(null);
-  const countdownSfxRef = useRef<HTMLAudioElement | null>(null);
-  const audioUnlockedRef = useRef(false);
-
-  // Preload and "unlock" audio on first user gesture (required for iOS Safari).
-  // iOS blocks programmatic .play() unless the Audio element has been played
-  // at least once from a user-initiated event (click/touch).
-  useEffect(() => {
-    function unlockAudio(): void {
-      if (audioUnlockedRef.current) return;
-      audioUnlockedRef.current = true;
-
-      // Create elements if not yet created
-      if (!timerSfxRef.current) {
-        timerSfxRef.current = new Audio(TIMER_DONE_SFX_URL);
-      }
-      if (!countdownSfxRef.current) {
-        countdownSfxRef.current = new Audio(COUNTDOWN_SFX_URL);
-      }
-
-      // Silent play→pause to unlock each element for later programmatic use
-      for (const audio of [timerSfxRef.current, countdownSfxRef.current]) {
-        audio.volume = 0;
-        audio.play().then(() => {
-          audio.pause();
-          audio.currentTime = 0;
-          audio.volume = 1;
-        }).catch(() => {
-          // Unlock failed — audio may still not work on this device
-        });
-      }
-
-      document.removeEventListener('click', unlockAudio);
-      document.removeEventListener('touchstart', unlockAudio);
-    }
-
-    document.addEventListener('click', unlockAudio, { passive: true });
-    document.addEventListener('touchstart', unlockAudio, { passive: true });
-
-    return () => {
-      document.removeEventListener('click', unlockAudio);
-      document.removeEventListener('touchstart', unlockAudio);
-    };
-  }, []);
-
   const handleTimerComplete = useCallback(() => {
     haptics.timerComplete();
-    const { soundEnabled, restTimerSound } = useSettingsStore.getState();
-    if (soundEnabled && restTimerSound && timerSfxRef.current) {
-      try {
-        timerSfxRef.current.currentTime = 0;
-        timerSfxRef.current.play().catch(() => {});
-      } catch {
-        // Audio playback is best-effort
-      }
-    }
+    playSfx('timerDone');
     advanceStep();
   }, [haptics, advanceStep]);
 
@@ -226,22 +171,14 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     lastBeepTimeRef.current = now;
 
     // Haptic pulse — gets stronger as we approach 0
-    const { hapticFeedback, soundEnabled, restTimerSound } =
-      useSettingsStore.getState();
+    const { hapticFeedback } = useSettingsStore.getState();
     if (hapticFeedback && 'vibrate' in navigator) {
       const intensity = remainingMs < 2000 ? 80 : remainingMs < 3500 ? 50 : 30;
       navigator.vibrate(intensity);
     }
 
     // Countdown beep
-    if (soundEnabled && restTimerSound && countdownSfxRef.current) {
-      try {
-        countdownSfxRef.current.currentTime = 0;
-        countdownSfxRef.current.play().catch(() => {});
-      } catch {
-        // Audio playback is best-effort
-      }
-    }
+    playSfx('countdown');
   }, []);
 
   const timer = useTimer({ onComplete: handleTimerComplete, onTick: handleTimerTick });

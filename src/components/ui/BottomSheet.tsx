@@ -64,6 +64,7 @@ export const BottomSheet = ({
       ref={backdropRef}
       className="fixed inset-0 z-50 bg-black/0 transition-colors duration-300"
       onClick={handleBackdropClick}
+      data-sfx="sheetClose"
       role="dialog"
       aria-modal="true"
       aria-label={title ?? 'Bottom sheet'}

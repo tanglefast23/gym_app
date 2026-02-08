@@ -44,19 +44,22 @@ function SettingRow({ label, description, children }: SettingRowProps) {
 interface ToggleProps {
   enabled: boolean;
   onToggle: () => void;
+  disabled?: boolean;
 }
 
 /** Accessible toggle switch. */
-function Toggle({ enabled, onToggle }: ToggleProps) {
+function Toggle({ enabled, onToggle, disabled = false }: ToggleProps) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={enabled}
-      onClick={onToggle}
+      aria-disabled={disabled}
+      disabled={disabled}
+      onClick={disabled ? undefined : onToggle}
       className={`relative h-6 w-11 rounded-full transition-colors ${
         enabled ? 'bg-accent' : 'bg-border'
-      }`}
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       <span
         className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
@@ -128,6 +131,14 @@ const unitOptions: { value: UnitSystem; label: string }[] = [
   { value: 'kg', label: 'kg' },
   { value: 'lb', label: 'lb' },
 ];
+
+function localDateStartISO(date: string): string {
+  return new Date(`${date}T00:00:00`).toISOString();
+}
+
+function localDateEndISO(date: string): string {
+  return new Date(`${date}T23:59:59.999`).toISOString();
+}
 
 // ---------------------------------------------------------------------------
 // Page component
@@ -328,11 +339,13 @@ export default function SettingsPage() {
       return;
     }
 
-    const fromISO = new Date(dateFrom).toISOString();
-    // Set "to" date to end of day
-    const toDate = new Date(dateTo);
-    toDate.setHours(23, 59, 59, 999);
-    const toISO = toDate.toISOString();
+    if (dateFrom > dateTo) {
+      setDateRangePreview(null);
+      return;
+    }
+
+    const fromISO = localDateStartISO(dateFrom);
+    const toISO = localDateEndISO(dateTo);
 
     let cancelled = false;
     previewDeleteByDateRange(fromISO, toISO).then((preview) => {
@@ -343,14 +356,16 @@ export default function SettingsPage() {
 
   const handleDateRangeDelete = useCallback(async () => {
     if (!dateFrom || !dateTo) return;
+    if (dateFrom > dateTo) {
+      addToast('"From" date must be on or before "To" date', 'error');
+      return;
+    }
 
     setIsDeletingRange(true);
     setShowDateRangeConfirm(false);
 
-    const fromISO = new Date(dateFrom).toISOString();
-    const toDate = new Date(dateTo);
-    toDate.setHours(23, 59, 59, 999);
-    const toISO = toDate.toISOString();
+    const fromISO = localDateStartISO(dateFrom);
+    const toISO = localDateEndISO(dateTo);
 
     try {
       const result = await deleteDataByDateRange(fromISO, toISO);
@@ -435,8 +450,9 @@ export default function SettingsPage() {
 
         <SettingRow label="Timer Sound" description="Countdown beeps and timer alerts">
           <Toggle
-            enabled={restTimerSound && soundEnabled}
+            enabled={restTimerSound}
             onToggle={toggleTimerSound}
+            disabled={!soundEnabled}
           />
         </SettingRow>
 
@@ -661,6 +677,7 @@ export default function SettingsPage() {
         title="Are you absolutely sure?"
         description="All workouts, templates, exercises, history, and achievements will be permanently erased. This is your last chance to cancel."
         confirmText={deleteAllCountdown > 0 ? `Wait ${deleteAllCountdown}s...` : 'Delete Everything'}
+        confirmDisabled={deleteAllCountdown > 0}
         variant="danger"
       />
 

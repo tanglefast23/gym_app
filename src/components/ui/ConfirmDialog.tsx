@@ -12,6 +12,7 @@ interface ConfirmDialogProps {
   title: string;
   description?: string;
   confirmText?: string;
+  confirmDisabled?: boolean;
   variant?: 'danger' | 'default';
 }
 
@@ -26,6 +27,7 @@ export const ConfirmDialog = ({
   title,
   description,
   confirmText = 'Confirm',
+  confirmDisabled = false,
   variant = 'default',
 }: ConfirmDialogProps) => {
   const isBrowser = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
@@ -72,6 +74,7 @@ export const ConfirmDialog = ({
       ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/0 transition-colors duration-200"
       onClick={handleOverlayClick}
+      data-sfx="cancel"
       role="dialog"
       aria-modal="true"
       aria-label={title}
@@ -86,7 +89,7 @@ export const ConfirmDialog = ({
         </h2>
 
         {description ? (
-          <p className="mt-2 text-sm text-text-secondary">
+          <p className="mt-2 whitespace-pre-line text-sm text-text-secondary">
             {description}
           </p>
         ) : null}
@@ -96,6 +99,7 @@ export const ConfirmDialog = ({
             variant="secondary"
             onClick={onClose}
             fullWidth
+            data-sfx="cancel"
           >
             Cancel
           </Button>
@@ -103,6 +107,8 @@ export const ConfirmDialog = ({
             variant={variant === 'danger' ? 'danger' : 'primary'}
             onClick={handleConfirm}
             fullWidth
+            disabled={confirmDisabled}
+            data-sfx={variant === 'danger' ? 'danger' : 'confirm'}
           >
             {confirmText}
           </Button>

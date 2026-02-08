@@ -68,6 +68,21 @@ export const WeightRecap = ({
   const exerciseSteps = useMemo(() => getExerciseSteps(steps), [steps]);
   const totalSets = exerciseSteps.length;
 
+  type DraftWeightSource =
+    | 'existing'
+    | 'previous'
+    | 'history'
+    | 'default'
+    | 'user';
+
+  // Default starting weight for first-time weight entry.
+  // In lb mode, use a "nice" round value (30 lb) instead of ~33.1 lb.
+  const firstWeightDefaultDisplay = unitSystem === 'kg' ? 15 : 30;
+  const firstWeightDefaultG = displayToGrams(
+    firstWeightDefaultDisplay,
+    unitSystem,
+  );
+
   // Historical weight data from previous sessions (fetched once on mount)
   const historicalSetsRef = useRef<Map<string, PerformedSet[]>>(new Map());
   const [historicalLoaded, setHistoricalLoaded] = useState(false);
@@ -100,32 +115,39 @@ export const WeightRecap = ({
   }, [exerciseSteps]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [draftWeightG, setDraftWeightG] = useState<number>(() => {
+  const [draftWeight, setDraftWeight] = useState<{
+    weightG: number;
+    source: DraftWeightSource;
+  }>(() => {
     const step = exerciseSteps[0];
     const existing = performedSets[0];
-    if (existing) return existing.weightG;
+    if (existing) return { weightG: existing.weightG, source: 'existing' };
     const prevWeight = step?.exerciseId
       ? findPreviousSetWeight(performedSets, step.exerciseId, 0)
       : null;
-    return prevWeight ?? 0;
+    if (prevWeight !== null) return { weightG: prevWeight, source: 'previous' };
+    return { weightG: firstWeightDefaultG, source: 'default' };
   });
+  const draftWeightG = draftWeight.weightG;
+  const draftWeightSource = draftWeight.source;
 
-  // Once historical data loads, re-initialize weight if it's still at 0 (no in-session data)
-  const hasAppliedHistoryRef = useRef(false);
   useEffect(() => {
-    if (!historicalLoaded || hasAppliedHistoryRef.current) return;
-    hasAppliedHistoryRef.current = true;
+    if (!historicalLoaded) return;
+    if (draftWeightSource !== 'default') return;
 
-    // Only apply if current draft is 0 (no in-session weight found)
-    if (draftWeightG === 0 && exerciseSteps[currentIndex]?.exerciseId) {
-      const histWeight = findHistoricalWeight(
-        historicalSetsRef.current,
-        exerciseSteps[currentIndex].exerciseId!,
-        exerciseSteps[currentIndex].setIndex ?? 0,
-      );
-      if (histWeight !== null) setDraftWeightG(histWeight);
+    const step = exerciseSteps[currentIndex];
+    if (!step?.exerciseId) return;
+
+    const histWeight = findHistoricalWeight(
+      historicalSetsRef.current,
+      step.exerciseId,
+      step.setIndex ?? 0,
+    );
+
+    if (histWeight !== null) {
+      setDraftWeight({ weightG: histWeight, source: 'history' });
     }
-  }, [historicalLoaded, draftWeightG, currentIndex, exerciseSteps]);
+  }, [historicalLoaded, currentIndex, exerciseSteps, draftWeightSource]);
   const [draftReps, setDraftReps] = useState<number>(() => {
     const step = exerciseSteps[0];
     const existing = performedSets[0];
@@ -163,7 +185,7 @@ export const WeightRecap = ({
       const existingSet = performedSets[index];
 
       if (existingSet) {
-        setDraftWeightG(existingSet.weightG);
+        setDraftWeight({ weightG: existingSet.weightG, source: 'existing' });
         setDraftReps(existingSet.repsDone);
         return;
       }
@@ -171,20 +193,24 @@ export const WeightRecap = ({
       // Prefill reps to repsMax
       setDraftReps(step.repsMax ?? step.repsMin ?? 0);
 
-      // Prefill weight: in-session first, then historical, then 0
+      // Prefill weight: in-session first, then historical, then default.
       const prevWeight = step.exerciseId
         ? findPreviousSetWeight(performedSets, step.exerciseId, index)
         : null;
       if (prevWeight !== null) {
-        setDraftWeightG(prevWeight);
+        setDraftWeight({ weightG: prevWeight, source: 'previous' });
       } else {
         const histWeight = step.exerciseId
           ? findHistoricalWeight(historicalSetsRef.current, step.exerciseId, step.setIndex ?? 0)
           : null;
-        setDraftWeightG(histWeight ?? 0);
+        if (histWeight !== null) {
+          setDraftWeight({ weightG: histWeight, source: 'history' });
+        } else {
+          setDraftWeight({ weightG: firstWeightDefaultG, source: 'default' });
+        }
       }
     },
-    [exerciseSteps, performedSets],
+    [exerciseSteps, performedSets, firstWeightDefaultG],
   );
 
   /** Save the current draft as a performed set. */
@@ -254,14 +280,17 @@ export const WeightRecap = ({
       currentIndex,
     );
     if (prevWeight !== null) {
-      setDraftWeightG(prevWeight);
+      setDraftWeight({ weightG: prevWeight, source: 'user' });
     }
   }, [currentStep, performedSets, currentIndex]);
 
   /** Handle weight change from stepper (value in display units). */
   const handleWeightChange = useCallback(
     (displayValue: number) => {
-      setDraftWeightG(displayToGrams(displayValue, unitSystem));
+      setDraftWeight({
+        weightG: displayToGrams(displayValue, unitSystem),
+        source: 'user',
+      });
     },
     [unitSystem],
   );
@@ -286,7 +315,7 @@ export const WeightRecap = ({
         !performedSets[nextIndex]
       ) {
         setDraftReps(nextStep.repsMax ?? nextStep.repsMin ?? 0);
-        setDraftWeightG(currentWeightG);
+        setDraftWeight({ weightG: currentWeightG, source: 'previous' });
       } else {
         initializeDraft(nextIndex);
       }
