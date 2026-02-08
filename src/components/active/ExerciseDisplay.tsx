@@ -12,6 +12,7 @@ import type { PerformedSet } from '@/types/workout';
 interface ExerciseDisplayProps {
   exerciseName: string;
   exerciseId?: string;
+  blockNumber: number;
   setIndex: number;
   totalSets: number;
   repsMin: number;
@@ -44,6 +45,7 @@ function computeWeightSuggestion(
 export const ExerciseDisplay = ({
   exerciseName,
   exerciseId,
+  blockNumber,
   setIndex,
   totalSets,
   repsMin,
@@ -106,20 +108,23 @@ export const ExerciseDisplay = ({
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-6 px-6 py-8">
-      {/* Superset badge with round counter */}
+      {/* Superset badge with block number + round counter */}
       {isSuperset &&
       supersetExerciseIndex !== undefined &&
       supersetTotalExercises !== undefined ? (
-        <div className="flex flex-col items-center gap-1">
-          <span className="rounded-full bg-accent/20 px-4 py-1 text-sm font-semibold text-accent">
-            SUPERSET
-          </span>
-          <span className="text-sm font-medium text-text-secondary">
-            Round {setIndex + 1} of {totalSets}
-          </span>
-          <span className="text-xs text-text-muted">
-            Exercise {supersetExerciseIndex + 1} of {supersetTotalExercises}
-          </span>
+        <div className="flex items-center gap-4">
+          <span className="text-5xl font-bold text-accent">{blockNumber}</span>
+          <div className="flex flex-col items-start gap-1">
+            <span className="rounded-full bg-accent/20 px-4 py-1 text-sm font-semibold text-accent">
+              SUPERSET
+            </span>
+            <span className="text-sm font-medium text-text-secondary">
+              Round {setIndex + 1} of {totalSets}
+            </span>
+            <span className="text-xs text-text-muted">
+              Exercise {supersetExerciseIndex + 1} of {supersetTotalExercises}
+            </span>
+          </div>
         </div>
       ) : null}
 
@@ -140,11 +145,14 @@ export const ExerciseDisplay = ({
         />
       </div>
 
-      {/* Set indicator (hidden for supersets — round info is in the badge above) */}
+      {/* Block number + set indicator (hidden for supersets — round info is in the badge above) */}
       {!isSuperset ? (
-        <p className="text-lg text-text-secondary">
-          Set {setIndex + 1} of {totalSets}
-        </p>
+        <div className="flex items-center gap-3">
+          <span className="text-5xl font-bold text-accent">{blockNumber}</span>
+          <p className="text-lg text-text-secondary">
+            Set {setIndex + 1} of {totalSets}
+          </p>
+        </div>
       ) : null}
 
       {/* Rep target */}
