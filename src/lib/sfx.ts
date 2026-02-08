@@ -23,19 +23,19 @@ type SfxCategory = 'ui' | 'timer' | 'celebration';
 const SFX: Record<SfxKey, { url: string; category: SfxCategory; volume: number }> =
   {
     // UI taps (generic)
-    click: { url: '/sfx/click2.webm', category: 'ui', volume: 1 },
-    tab: { url: '/sfx/click2.webm', category: 'ui', volume: 1 },
-    confirm: { url: '/sfx/click2.webm', category: 'ui', volume: 1 },
-    cancel: { url: '/sfx/click2.webm', category: 'ui', volume: 1 },
-    danger: { url: '/sfx/click2.webm', category: 'ui', volume: 1 },
-    sheetClose: { url: '/sfx/click2.webm', category: 'ui', volume: 1 },
+    click: { url: '/sfx/click2.webm', category: 'ui', volume: 0.5 },
+    tab: { url: '/sfx/click2.webm', category: 'ui', volume: 0.5 },
+    confirm: { url: '/sfx/click2.webm', category: 'ui', volume: 0.5 },
+    cancel: { url: '/sfx/click2.webm', category: 'ui', volume: 0.5 },
+    danger: { url: '/sfx/click2.webm', category: 'ui', volume: 0.5 },
+    sheetClose: { url: '/sfx/click2.webm', category: 'ui', volume: 0.5 },
 
     // Workout timer
-    timerDone: { url: '/sfx/level-up-2-199574.webm', category: 'timer', volume: 1 },
-    countdown: { url: '/sfx/negative_sound.webm', category: 'timer', volume: 1 },
+    timerDone: { url: '/sfx/level-up-2-199574.webm', category: 'timer', volume: 0.5 },
+    countdown: { url: '/sfx/negative_sound.webm', category: 'timer', volume: 0.5 },
 
     // Celebration
-    complete: { url: '/sfx/angels.webm', category: 'celebration', volume: 1 },
+    complete: { url: '/sfx/angels.webm', category: 'celebration', volume: 0.5 },
   };
 
 const audioMap = new Map<SfxKey, HTMLAudioElement>();
