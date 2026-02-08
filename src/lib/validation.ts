@@ -593,6 +593,9 @@ export function validateImportSettings(settings: unknown): string[] {
   if (settings.restTimerSound !== undefined && typeof settings.restTimerSound !== 'boolean') {
     errors.push(`${prefix}: "restTimerSound" must be a boolean`);
   }
+  if (settings.autoStartRestTimer !== undefined && typeof settings.autoStartRestTimer !== 'boolean') {
+    errors.push(`${prefix}: "autoStartRestTimer" must be a boolean`);
+  }
   if (settings.theme !== undefined && settings.theme !== 'dark' && settings.theme !== 'light' && settings.theme !== 'system') {
     errors.push(`${prefix}: "theme" must be "dark", "light", or "system"`);
   }

@@ -8,11 +8,14 @@ import {
   TrendingUp,
   Dumbbell,
   Calendar,
+  Clock,
+  Timer,
+  Trophy,
   ChevronRight,
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { ACHIEVEMENTS } from '@/lib/achievements';
-import { formatWeightValue } from '@/lib/calculations';
+import { formatWeightValue, formatWeight, formatDuration } from '@/lib/calculations';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { AppShell } from '@/components/layout';
 import { Header } from '@/components/layout/Header';
@@ -20,7 +23,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ProgressChart } from '@/components/history/ProgressChart';
 import { AchievementCard } from '@/components/history/AchievementCard';
-import type { ExerciseHistoryEntry, UnlockedAchievement } from '@/types/workout';
+import type { ExerciseHistoryEntry, UnlockedAchievement, WorkoutLog } from '@/types/workout';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -71,6 +74,95 @@ function buildUnlockedMap(
     map.set(a.achievementId, a);
   }
   return map;
+}
+
+// ---------------------------------------------------------------------------
+// Duration helpers (Feature 4)
+// ---------------------------------------------------------------------------
+
+interface DurationStats {
+  avgDurationSec: number;
+  totalTimeSec: number;
+}
+
+function computeDurationStats(logs: WorkoutLog[]): DurationStats {
+  if (logs.length === 0) return { avgDurationSec: 0, totalTimeSec: 0 };
+  const totalTimeSec = logs.reduce((sum, l) => sum + l.durationSec, 0);
+  const avgDurationSec = Math.round(totalTimeSec / logs.length);
+  return { avgDurationSec, totalTimeSec };
+}
+
+// ---------------------------------------------------------------------------
+// Personal Records helpers (Feature 11)
+// ---------------------------------------------------------------------------
+
+interface ExercisePR {
+  exerciseId: string;
+  exerciseName: string;
+  bestWeightG: number;
+  bestWeightDate: string;
+  best1RM_G: number | null;
+  best1RMDate: string | null;
+  bestVolumeG: number;
+  bestVolumeDate: string;
+}
+
+function computePersonalRecords(all: ExerciseHistoryEntry[]): ExercisePR[] {
+  const map = new Map<string, ExercisePR>();
+
+  for (const entry of all) {
+    const existing = map.get(entry.exerciseId);
+
+    if (!existing) {
+      map.set(entry.exerciseId, {
+        exerciseId: entry.exerciseId,
+        exerciseName: entry.exerciseName,
+        bestWeightG: entry.bestWeightG,
+        bestWeightDate: entry.performedAt,
+        best1RM_G: entry.estimated1RM_G,
+        best1RMDate: entry.estimated1RM_G ? entry.performedAt : null,
+        bestVolumeG: entry.totalVolumeG,
+        bestVolumeDate: entry.performedAt,
+      });
+      continue;
+    }
+
+    if (entry.bestWeightG > existing.bestWeightG) {
+      existing.bestWeightG = entry.bestWeightG;
+      existing.bestWeightDate = entry.performedAt;
+    }
+
+    if (
+      entry.estimated1RM_G !== null &&
+      (existing.best1RM_G === null || entry.estimated1RM_G > existing.best1RM_G)
+    ) {
+      existing.best1RM_G = entry.estimated1RM_G;
+      existing.best1RMDate = entry.performedAt;
+    }
+
+    if (entry.totalVolumeG > existing.bestVolumeG) {
+      existing.bestVolumeG = entry.totalVolumeG;
+      existing.bestVolumeDate = entry.performedAt;
+    }
+  }
+
+  // Sort by most recent PR date (any category)
+  return Array.from(map.values()).sort((a, b) => {
+    const aDate = [a.bestWeightDate, a.best1RMDate, a.bestVolumeDate]
+      .filter(Boolean)
+      .sort()
+      .pop() ?? '';
+    const bDate = [b.bestWeightDate, b.best1RMDate, b.bestVolumeDate]
+      .filter(Boolean)
+      .sort()
+      .pop() ?? '';
+    return bDate.localeCompare(aDate);
+  });
+}
+
+function formatShortDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 // ---------------------------------------------------------------------------
@@ -135,6 +227,73 @@ function ExerciseProgressCard({
 }
 
 // ---------------------------------------------------------------------------
+// PR Card (Feature 11)
+// ---------------------------------------------------------------------------
+
+function PRCard({
+  pr,
+  unitSystem,
+}: {
+  pr: ExercisePR;
+  unitSystem: 'kg' | 'lb';
+}) {
+  return (
+    <Link
+      href={`/history/exercise/${pr.exerciseId}`}
+      className="block"
+    >
+      <div className="rounded-2xl border border-border bg-surface p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="truncate text-sm font-semibold text-text-primary">
+            {pr.exerciseName}
+          </h3>
+          <ChevronRight className="h-4 w-4 shrink-0 text-text-muted" />
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          {/* Best Weight */}
+          <div className="rounded-xl bg-elevated p-2 text-center">
+            <p className="text-xs text-text-muted">Best Weight</p>
+            <p className="text-sm font-bold text-text-primary">
+              {formatWeight(pr.bestWeightG, unitSystem)}
+            </p>
+            <p className="text-[10px] text-text-muted">
+              {formatShortDate(pr.bestWeightDate)}
+            </p>
+          </div>
+
+          {/* Best 1RM */}
+          <div className="rounded-xl bg-elevated p-2 text-center">
+            <p className="text-xs text-text-muted">Est. 1RM</p>
+            <p className="text-sm font-bold text-accent">
+              {pr.best1RM_G !== null
+                ? formatWeight(pr.best1RM_G, unitSystem)
+                : '\u2014'}
+            </p>
+            {pr.best1RMDate ? (
+              <p className="text-[10px] text-text-muted">
+                {formatShortDate(pr.best1RMDate)}
+              </p>
+            ) : null}
+          </div>
+
+          {/* Best Volume */}
+          <div className="rounded-xl bg-elevated p-2 text-center">
+            <p className="text-xs text-text-muted">Best Vol.</p>
+            <p className="text-sm font-bold text-text-primary">
+              {formatWeight(pr.bestVolumeG, unitSystem)}
+            </p>
+            <p className="text-[10px] text-text-muted">
+              {formatShortDate(pr.bestVolumeDate)}
+            </p>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page Component
 // ---------------------------------------------------------------------------
 
@@ -150,6 +309,11 @@ export default function ProgressPage() {
   }, []);
 
   const totalExercises = useLiveQuery(() => db.exercises.count(), []);
+
+  const allLogs = useLiveQuery(
+    () => db.logs.toArray(),
+    [],
+  );
 
   const allHistory = useLiveQuery(
     () => db.exerciseHistory.orderBy('performedAt').toArray(),
@@ -172,10 +336,21 @@ export default function ProgressPage() {
     [unlockedAchievements],
   );
 
+  const durationStats = useMemo(
+    () => computeDurationStats(allLogs ?? []),
+    [allLogs],
+  );
+
+  const personalRecords = useMemo(
+    () => computePersonalRecords(allHistory ?? []),
+    [allHistory],
+  );
+
   const isLoading =
     totalWorkouts === undefined ||
     weekWorkouts === undefined ||
     totalExercises === undefined ||
+    allLogs === undefined ||
     allHistory === undefined ||
     unlockedAchievements === undefined;
 
@@ -222,6 +397,41 @@ export default function ProgressPage() {
                 label="Exercises"
               />
             </div>
+
+            {/* Duration Stats (Feature 4) */}
+            {totalWorkouts > 0 ? (
+              <div className="mb-6 grid grid-cols-2 gap-3">
+                <StatCard
+                  icon={Timer}
+                  value={formatDuration(durationStats.avgDurationSec)}
+                  label="Avg Duration"
+                />
+                <StatCard
+                  icon={Clock}
+                  value={formatDuration(durationStats.totalTimeSec)}
+                  label="Total Time"
+                />
+              </div>
+            ) : null}
+
+            {/* Personal Records (Feature 11) */}
+            {personalRecords.length > 0 ? (
+              <section className="mb-6">
+                <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[1px] text-text-muted">
+                  <Trophy className="h-3.5 w-3.5" />
+                  PERSONAL RECORDS
+                </h2>
+                <div className="space-y-3">
+                  {personalRecords.map((pr) => (
+                    <PRCard
+                      key={pr.exerciseId}
+                      pr={pr}
+                      unitSystem={unitSystem}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             {/* Exercise Charts */}
             {exerciseGroups.length === 0 ? (

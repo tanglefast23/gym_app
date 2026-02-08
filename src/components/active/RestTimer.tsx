@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
-import { Minus, Plus, SkipForward } from 'lucide-react';
+import { Minus, Plus, Play, SkipForward } from 'lucide-react';
 import { TimerRing } from './TimerRing';
 import { useHaptics } from '@/hooks';
 
@@ -17,10 +17,12 @@ interface RestTimerProps {
   remainingMs: number;
   totalMs: number;
   isSuperset?: boolean;
+  isRunning?: boolean;
   nextUpLabel?: string;
   nextUpInfo?: NextUpInfo;
   onSkip: () => void;
   onAdjust: (seconds: number) => void;
+  onStart?: () => void;
 }
 
 /**
@@ -39,10 +41,12 @@ export function RestTimer({
   remainingMs,
   totalMs,
   isSuperset,
+  isRunning = true,
   nextUpLabel,
   nextUpInfo,
   onSkip,
   onAdjust,
+  onStart,
 }: RestTimerProps) {
   const haptics = useHaptics();
 
@@ -104,62 +108,92 @@ export function RestTimer({
       ) : null}
 
       {/* Timer ring (includes REST label inside) */}
-      <TimerRing remainingMs={remainingMs} totalMs={totalMs} size={200} />
+      <TimerRing remainingMs={isRunning ? remainingMs : totalMs} totalMs={totalMs} size={200} />
 
       {/* Control buttons */}
-      <div className="mt-8 flex items-center justify-center gap-4">
-        {/* -10s button */}
-        <div className="flex flex-col items-center gap-1">
+      {isRunning ? (
+        <div className="mt-8 flex items-center justify-center gap-4">
+          {/* -10s button */}
+          <div className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={() => handleAdjust(-10)}
+              className={[
+                'flex h-14 w-14 items-center justify-center',
+                'rounded-full bg-elevated border border-border',
+                'transition-all duration-150',
+                'active:scale-95',
+              ].join(' ')}
+              aria-label="Subtract 10 seconds"
+            >
+              <Minus className="h-5 w-5 text-text-primary" />
+            </button>
+            <span className="text-sm text-text-muted">-10s</span>
+          </div>
+
+          {/* Skip button */}
           <button
             type="button"
-            onClick={() => handleAdjust(-10)}
+            onClick={handleSkip}
             className={[
-              'flex h-14 w-14 items-center justify-center',
-              'rounded-full bg-elevated border border-border',
-              'transition-all duration-150',
-              'active:scale-95',
+              'flex h-12 items-center gap-2 px-6',
+              'rounded-3xl bg-accent text-white',
+              'font-semibold transition-all duration-150',
+              'active:scale-95 hover:bg-accent/90',
             ].join(' ')}
-            aria-label="Subtract 10 seconds"
+            aria-label="Skip rest"
           >
-            <Minus className="h-5 w-5 text-text-primary" />
+            <span>Skip</span>
+            <SkipForward className="h-4 w-4" />
           </button>
-          <span className="text-sm text-text-muted">-10s</span>
+
+          {/* +10s button */}
+          <div className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              onClick={() => handleAdjust(10)}
+              className={[
+                'flex h-14 w-14 items-center justify-center',
+                'rounded-full bg-elevated border border-border',
+                'transition-all duration-150',
+                'active:scale-95',
+              ].join(' ')}
+              aria-label="Add 10 seconds"
+            >
+              <Plus className="h-5 w-5 text-text-primary" />
+            </button>
+            <span className="text-sm text-text-muted">+10s</span>
+          </div>
         </div>
-
-        {/* Skip button */}
-        <button
-          type="button"
-          onClick={handleSkip}
-          className={[
-            'flex h-12 items-center gap-2 px-6',
-            'rounded-3xl bg-accent text-white',
-            'font-semibold transition-all duration-150',
-            'active:scale-95 hover:bg-accent/90',
-          ].join(' ')}
-          aria-label="Skip rest"
-        >
-          <span>Skip</span>
-          <SkipForward className="h-4 w-4" />
-        </button>
-
-        {/* +10s button */}
-        <div className="flex flex-col items-center gap-1">
+      ) : (
+        <div className="mt-8 flex flex-col items-center gap-3">
           <button
             type="button"
-            onClick={() => handleAdjust(10)}
+            onClick={() => {
+              haptics.tap();
+              onStart?.();
+            }}
             className={[
-              'flex h-14 w-14 items-center justify-center',
-              'rounded-full bg-elevated border border-border',
-              'transition-all duration-150',
-              'active:scale-95',
+              'flex h-14 items-center gap-3 px-8',
+              'rounded-3xl bg-accent text-white',
+              'font-semibold text-lg transition-all duration-150',
+              'active:scale-95 hover:bg-accent/90',
             ].join(' ')}
-            aria-label="Add 10 seconds"
+            aria-label="Start rest timer"
           >
-            <Plus className="h-5 w-5 text-text-primary" />
+            <Play className="h-5 w-5" />
+            <span>Start Timer</span>
           </button>
-          <span className="text-sm text-text-muted">+10s</span>
+          <button
+            type="button"
+            onClick={handleSkip}
+            className="text-sm font-medium text-text-muted transition-colors hover:text-text-secondary"
+            aria-label="Skip rest"
+          >
+            Skip rest
+          </button>
         </div>
-      </div>
+      )}
 
       {/* Next Up section */}
       {nextName ? (
