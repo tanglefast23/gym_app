@@ -1,7 +1,12 @@
 'use client';
 
+import { useRef, useCallback } from 'react';
 import { Dumbbell } from 'lucide-react';
 import { Button } from '@/components/ui';
+import { useSettingsStore } from '@/stores/settingsStore';
+import { useHaptics } from '@/hooks';
+
+const DONE_SFX_URL = '/sfx/click2.webm';
 
 interface ExerciseDisplayProps {
   exerciseName: string;
@@ -27,6 +32,25 @@ export const ExerciseDisplay = ({
   supersetTotalExercises,
   onDone,
 }: ExerciseDisplayProps) => {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const haptics = useHaptics();
+
+  const handleDone = useCallback(() => {
+    haptics.press();
+    const { soundEnabled } = useSettingsStore.getState();
+    if (soundEnabled) {
+      try {
+        if (!audioRef.current) {
+          audioRef.current = new Audio(DONE_SFX_URL);
+        }
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(() => {});
+      } catch {
+        // Audio playback is best-effort
+      }
+    }
+    onDone();
+  }, [onDone, haptics]);
   const repLabel =
     repsMin === repsMax
       ? `${repsMin} reps`
@@ -71,7 +95,7 @@ export const ExerciseDisplay = ({
         <Button
           size="xl"
           fullWidth
-          onClick={onDone}
+          onClick={handleDone}
           className="rounded-2xl font-bold"
         >
           DONE

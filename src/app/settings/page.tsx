@@ -144,12 +144,14 @@ export default function SettingsPage() {
   const weightStepsKg = useSettingsStore((s) => s.weightStepsKg);
   const weightStepsLb = useSettingsStore((s) => s.weightStepsLb);
   const hapticFeedback = useSettingsStore((s) => s.hapticFeedback);
+  const soundEnabled = useSettingsStore((s) => s.soundEnabled);
   const restTimerSound = useSettingsStore((s) => s.restTimerSound);
   const theme = useSettingsStore((s) => s.theme);
   const setUnitSystem = useSettingsStore((s) => s.setUnitSystem);
   const setDefaultRest = useSettingsStore((s) => s.setDefaultRest);
   const toggleHaptic = useSettingsStore((s) => s.toggleHapticFeedback);
-  const toggleSound = useSettingsStore((s) => s.toggleRestTimerSound);
+  const toggleMasterSound = useSettingsStore((s) => s.toggleSoundEnabled);
+  const toggleTimerSound = useSettingsStore((s) => s.toggleRestTimerSound);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const resetDefaults = useSettingsStore((s) => s.resetToDefaults);
 
@@ -306,12 +308,19 @@ export default function SettingsPage() {
         {/* ---- Feedback ---- */}
         <SectionTitle>Feedback</SectionTitle>
 
-        <SettingRow label="Haptic Feedback">
+        <SettingRow label="Haptic Feedback" description="Vibration on taps and events">
           <Toggle enabled={hapticFeedback} onToggle={toggleHaptic} />
         </SettingRow>
 
-        <SettingRow label="Timer Sound">
-          <Toggle enabled={restTimerSound} onToggle={toggleSound} />
+        <SettingRow label="Sound" description="Master toggle for all sounds">
+          <Toggle enabled={soundEnabled} onToggle={toggleMasterSound} />
+        </SettingRow>
+
+        <SettingRow label="Timer Sound" description="Countdown beeps and timer alerts">
+          <Toggle
+            enabled={restTimerSound && soundEnabled}
+            onToggle={toggleTimerSound}
+          />
         </SettingRow>
 
         {/* ---- Theme ---- */}

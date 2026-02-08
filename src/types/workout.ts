@@ -117,6 +117,7 @@ export interface UserSettings {
   weightStepsKg: number[];
   weightStepsLb: number[];
   hapticFeedback: boolean;
+  soundEnabled: boolean;
   restTimerSound: boolean;
   theme: ThemeMode;
 }
@@ -192,6 +193,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   weightStepsKg: [1, 2.5, 5],
   weightStepsLb: [2.5, 5, 10],
   hapticFeedback: true,
+  soundEnabled: true,
   restTimerSound: true,
   theme: 'dark',
 };

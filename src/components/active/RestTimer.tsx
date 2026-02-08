@@ -1,7 +1,9 @@
 'use client';
 
+import { useCallback } from 'react';
 import { Minus, Plus, SkipForward } from 'lucide-react';
 import { TimerRing } from './TimerRing';
+import { useHaptics } from '@/hooks';
 
 interface NextUpInfo {
   exerciseName: string;
@@ -42,6 +44,21 @@ export function RestTimer({
   onSkip,
   onAdjust,
 }: RestTimerProps) {
+  const haptics = useHaptics();
+
+  const handleSkip = useCallback(() => {
+    haptics.tap();
+    onSkip();
+  }, [haptics, onSkip]);
+
+  const handleAdjust = useCallback(
+    (seconds: number) => {
+      haptics.tap();
+      onAdjust(seconds);
+    },
+    [haptics, onAdjust],
+  );
+
   const parsed = nextUpLabel ? parseNextUpLabel(nextUpLabel) : null;
   const nextName = nextUpInfo?.exerciseName ?? parsed?.name ?? null;
   const nextDetail = nextUpInfo
@@ -66,7 +83,7 @@ export function RestTimer({
         <div className="flex flex-col items-center gap-1">
           <button
             type="button"
-            onClick={() => onAdjust(-10)}
+            onClick={() => handleAdjust(-10)}
             className={[
               'flex h-14 w-14 items-center justify-center',
               'rounded-full bg-elevated border border-border',
@@ -83,7 +100,7 @@ export function RestTimer({
         {/* Skip button */}
         <button
           type="button"
-          onClick={onSkip}
+          onClick={handleSkip}
           className={[
             'flex h-12 items-center gap-2 px-6',
             'rounded-3xl bg-accent text-white',
@@ -100,7 +117,7 @@ export function RestTimer({
         <div className="flex flex-col items-center gap-1">
           <button
             type="button"
-            onClick={() => onAdjust(10)}
+            onClick={() => handleAdjust(10)}
             className={[
               'flex h-14 w-14 items-center justify-center',
               'rounded-full bg-elevated border border-border',

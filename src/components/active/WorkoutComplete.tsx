@@ -1,9 +1,13 @@
 'use client';
 
+import { useEffect, useRef, useCallback } from 'react';
 import { Clock, Layers, Weight } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useHaptics } from '@/hooks';
 import { formatDuration, formatWeight } from '@/lib/calculations';
+
+const COMPLETE_SFX_URL = '/sfx/angels.webm';
 
 interface WorkoutCompleteProps {
   durationSec: number;
@@ -19,6 +23,30 @@ export const WorkoutComplete = ({
   onFinish,
 }: WorkoutCompleteProps) => {
   const unitSystem = useSettingsStore((s) => s.unitSystem);
+  const soundEnabled = useSettingsStore((s) => s.soundEnabled);
+  const haptics = useHaptics();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Play celebration sound when the completion screen appears
+  useEffect(() => {
+    if (!soundEnabled) return;
+    try {
+      audioRef.current = new Audio(COMPLETE_SFX_URL);
+      audioRef.current.play().catch(() => {});
+    } catch {
+      // Audio playback is best-effort
+    }
+  }, [soundEnabled]);
+
+  // Haptic success pattern on mount
+  useEffect(() => {
+    haptics.success();
+  }, [haptics]);
+
+  const handleFinish = useCallback(() => {
+    haptics.tap();
+    onFinish();
+  }, [haptics, onFinish]);
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-8 px-6 py-8">
@@ -80,7 +108,7 @@ export const WorkoutComplete = ({
         <Button
           size="lg"
           fullWidth
-          onClick={onFinish}
+          onClick={handleFinish}
         >
           Done
         </Button>

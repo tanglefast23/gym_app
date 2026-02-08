@@ -19,6 +19,11 @@ import {
 import { ConfirmDialog, ToastContainer, useToastStore } from '@/components/ui';
 import type { WorkoutStep } from '@/types/workout';
 
+const TIMER_DONE_SFX_URL = '/sfx/level-up-2-199574.webm';
+const COUNTDOWN_SFX_URL = '/sfx/negative_sound.webm';
+const COUNTDOWN_THRESHOLD_MS = 3000;
+const COUNTDOWN_BEEP_INTERVAL_MS = 500; // 2x per second
+
 // -----------------------------------------------------------------------------
 // Helper: build a "next up" label from the rest of the step list
 // -----------------------------------------------------------------------------
@@ -127,12 +132,51 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   // Timer
   // ---------------------------------------------------------------------------
 
+  const timerSfxRef = useRef<HTMLAudioElement | null>(null);
+
   const handleTimerComplete = useCallback(() => {
     haptics.timerComplete();
+    const { soundEnabled, restTimerSound } = useSettingsStore.getState();
+    if (soundEnabled && restTimerSound) {
+      try {
+        if (!timerSfxRef.current) {
+          timerSfxRef.current = new Audio(TIMER_DONE_SFX_URL);
+        }
+        timerSfxRef.current.currentTime = 0;
+        timerSfxRef.current.play().catch(() => {});
+      } catch {
+        // Audio playback is best-effort
+      }
+    }
     advanceStep();
   }, [haptics, advanceStep]);
 
-  const timer = useTimer({ onComplete: handleTimerComplete });
+  // Countdown beep: plays 2x/sec in the last 3 seconds of the timer
+  const countdownSfxRef = useRef<HTMLAudioElement | null>(null);
+  const lastBeepTimeRef = useRef(0);
+
+  const handleTimerTick = useCallback((remainingMs: number) => {
+    if (remainingMs <= 0 || remainingMs > COUNTDOWN_THRESHOLD_MS) return;
+
+    const { soundEnabled, restTimerSound } = useSettingsStore.getState();
+    if (!soundEnabled || !restTimerSound) return;
+
+    const now = Date.now();
+    if (now - lastBeepTimeRef.current < COUNTDOWN_BEEP_INTERVAL_MS) return;
+    lastBeepTimeRef.current = now;
+
+    try {
+      if (!countdownSfxRef.current) {
+        countdownSfxRef.current = new Audio(COUNTDOWN_SFX_URL);
+      }
+      countdownSfxRef.current.currentTime = 0;
+      countdownSfxRef.current.play().catch(() => {});
+    } catch {
+      // Audio playback is best-effort
+    }
+  }, []);
+
+  const timer = useTimer({ onComplete: handleTimerComplete, onTick: handleTimerTick });
 
   // ---------------------------------------------------------------------------
   // Current step

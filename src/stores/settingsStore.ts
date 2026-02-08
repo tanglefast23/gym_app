@@ -18,6 +18,7 @@ interface SettingsState {
   weightStepsKg: number[];
   weightStepsLb: number[];
   hapticFeedback: boolean;
+  soundEnabled: boolean;
   restTimerSound: boolean;
   theme: ThemeMode;
 }
@@ -28,6 +29,7 @@ interface SettingsActions {
   setWeightStepsKg: (steps: number[]) => void;
   setWeightStepsLb: (steps: number[]) => void;
   toggleHapticFeedback: () => void;
+  toggleSoundEnabled: () => void;
   toggleRestTimerSound: () => void;
   setTheme: (theme: ThemeMode) => void;
   resetToDefaults: () => void;
@@ -44,6 +46,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       weightStepsKg: DEFAULT_SETTINGS.weightStepsKg,
       weightStepsLb: DEFAULT_SETTINGS.weightStepsLb,
       hapticFeedback: DEFAULT_SETTINGS.hapticFeedback,
+      soundEnabled: DEFAULT_SETTINGS.soundEnabled,
       restTimerSound: DEFAULT_SETTINGS.restTimerSound,
       theme: DEFAULT_SETTINGS.theme,
 
@@ -54,6 +57,8 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       setWeightStepsLb: (steps) => set({ weightStepsLb: steps }),
       toggleHapticFeedback: () =>
         set((state) => ({ hapticFeedback: !state.hapticFeedback })),
+      toggleSoundEnabled: () =>
+        set((state) => ({ soundEnabled: !state.soundEnabled })),
       toggleRestTimerSound: () =>
         set((state) => ({ restTimerSound: !state.restTimerSound })),
       setTheme: (theme) => set({ theme }),
@@ -64,6 +69,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
           weightStepsKg: DEFAULT_SETTINGS.weightStepsKg,
           weightStepsLb: DEFAULT_SETTINGS.weightStepsLb,
           hapticFeedback: DEFAULT_SETTINGS.hapticFeedback,
+          soundEnabled: DEFAULT_SETTINGS.soundEnabled,
           restTimerSound: DEFAULT_SETTINGS.restTimerSound,
           theme: DEFAULT_SETTINGS.theme,
         }),
@@ -74,6 +80,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
           weightStepsKg: settings.weightStepsKg,
           weightStepsLb: settings.weightStepsLb,
           hapticFeedback: settings.hapticFeedback,
+          soundEnabled: settings.soundEnabled ?? DEFAULT_SETTINGS.soundEnabled,
           restTimerSound: settings.restTimerSound,
           theme: settings.theme,
         }),
@@ -86,6 +93,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         weightStepsKg: state.weightStepsKg,
         weightStepsLb: state.weightStepsLb,
         hapticFeedback: state.hapticFeedback,
+        soundEnabled: state.soundEnabled,
         restTimerSound: state.restTimerSound,
         theme: state.theme,
       }),

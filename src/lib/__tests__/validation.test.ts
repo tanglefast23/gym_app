@@ -519,7 +519,7 @@ describe('validateImportData', () => {
       ],
       exerciseHistory: [],
       achievements: [],
-      settings: { id: 'settings', unitSystem: 'kg', defaultRestBetweenSetsSec: 90, weightStepsKg: [1, 2.5, 5], weightStepsLb: [2.5, 5, 10], hapticFeedback: true, restTimerSound: true, theme: 'dark' },
+      settings: { id: 'settings', unitSystem: 'kg', defaultRestBetweenSetsSec: 90, weightStepsKg: [1, 2.5, 5], weightStepsLb: [2.5, 5, 10], hapticFeedback: true, soundEnabled: true, restTimerSound: true, theme: 'dark' },
     });
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);

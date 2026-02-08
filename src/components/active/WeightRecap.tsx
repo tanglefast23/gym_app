@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Copy, CopyCheck } from 'lucide-react';
 import { Button, Stepper } from '@/components/ui';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { getLastPerformedSets } from '@/lib/queries';
 import {
   formatWeightValue,
   displayToGrams,
@@ -39,6 +40,19 @@ function findPreviousSetWeight(
   return null;
 }
 
+/** Look up weight from the last completed session for this exercise + set index. */
+function findHistoricalWeight(
+  historicalSets: Map<string, PerformedSet[]>,
+  exerciseId: string,
+  setIndex: number,
+): number | null {
+  const sets = historicalSets.get(exerciseId);
+  if (!sets || sets.length === 0) return null;
+  // Match by set index if available, otherwise fall back to first set
+  const match = sets.find((s) => s.setIndex === setIndex);
+  return (match ?? sets[0]).weightG;
+}
+
 export const WeightRecap = ({
   steps,
   performedSets,
@@ -54,6 +68,37 @@ export const WeightRecap = ({
   const exerciseSteps = useMemo(() => getExerciseSteps(steps), [steps]);
   const totalSets = exerciseSteps.length;
 
+  // Historical weight data from previous sessions (fetched once on mount)
+  const historicalSetsRef = useRef<Map<string, PerformedSet[]>>(new Map());
+  const [historicalLoaded, setHistoricalLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const exerciseIds = new Set<string>();
+    for (const s of exerciseSteps) {
+      if (s.exerciseId) exerciseIds.add(s.exerciseId);
+    }
+
+    const fetchHistory = async (): Promise<void> => {
+      const map = new Map<string, PerformedSet[]>();
+      const promises = [...exerciseIds].map(async (eid) => {
+        const sets = await getLastPerformedSets(eid);
+        if (sets.length > 0) map.set(eid, sets);
+      });
+      await Promise.all(promises);
+      if (!cancelled) {
+        historicalSetsRef.current = map;
+        setHistoricalLoaded(true);
+      }
+    };
+
+    fetchHistory().catch(() => {
+      if (!cancelled) setHistoricalLoaded(true);
+    });
+
+    return () => { cancelled = true; };
+  }, [exerciseSteps]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [draftWeightG, setDraftWeightG] = useState<number>(() => {
     const step = exerciseSteps[0];
@@ -64,6 +109,23 @@ export const WeightRecap = ({
       : null;
     return prevWeight ?? 0;
   });
+
+  // Once historical data loads, re-initialize weight if it's still at 0 (no in-session data)
+  const hasAppliedHistoryRef = useRef(false);
+  useEffect(() => {
+    if (!historicalLoaded || hasAppliedHistoryRef.current) return;
+    hasAppliedHistoryRef.current = true;
+
+    // Only apply if current draft is 0 (no in-session weight found)
+    if (draftWeightG === 0 && exerciseSteps[currentIndex]?.exerciseId) {
+      const histWeight = findHistoricalWeight(
+        historicalSetsRef.current,
+        exerciseSteps[currentIndex].exerciseId!,
+        exerciseSteps[currentIndex].setIndex ?? 0,
+      );
+      if (histWeight !== null) setDraftWeightG(histWeight);
+    }
+  }, [historicalLoaded, draftWeightG, currentIndex, exerciseSteps]);
   const [draftReps, setDraftReps] = useState<number>(() => {
     const step = exerciseSteps[0];
     const existing = performedSets[0];
@@ -86,6 +148,8 @@ export const WeightRecap = ({
   const weightStepValues =
     unitSystem === 'kg' ? weightStepsKg : weightStepsLb;
   const weightStep = weightStepValues[0] ?? (unitSystem === 'kg' ? 2.5 : 5);
+  /** Big step for the double buttons (always 5 in display units). */
+  const weightBigStep = 5;
   /** Convert grams to display value for the stepper. */
   const weightDisplay =
     unitSystem === 'kg' ? gramsToKg(draftWeightG) : gramsToLb(draftWeightG);
@@ -107,11 +171,18 @@ export const WeightRecap = ({
       // Prefill reps to repsMax
       setDraftReps(step.repsMax ?? step.repsMin ?? 0);
 
-      // Prefill weight from previous set of same exercise
+      // Prefill weight: in-session first, then historical, then 0
       const prevWeight = step.exerciseId
         ? findPreviousSetWeight(performedSets, step.exerciseId, index)
         : null;
-      setDraftWeightG(prevWeight ?? 0);
+      if (prevWeight !== null) {
+        setDraftWeightG(prevWeight);
+      } else {
+        const histWeight = step.exerciseId
+          ? findHistoricalWeight(historicalSetsRef.current, step.exerciseId, step.setIndex ?? 0)
+          : null;
+        setDraftWeightG(histWeight ?? 0);
+      }
     },
     [exerciseSteps, performedSets],
   );
@@ -197,13 +268,39 @@ export const WeightRecap = ({
 
   /** Move to next set or complete. */
   const handleNext = useCallback(() => {
+    const currentExerciseId = currentStep?.exerciseId ?? null;
+    const currentWeightG = draftWeightG;
     saveDraft();
     if (currentIndex < totalSets - 1) {
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
-      initializeDraft(nextIndex);
+      const nextStep = exerciseSteps[nextIndex];
+
+      // `saveDraft()` upserts into Zustand, but this component won't see the
+      // updated `performedSets` prop until the next render. If the next step is
+      // the same exercise, we can prefill weight from the draft we just saved.
+      if (
+        nextStep &&
+        currentExerciseId &&
+        nextStep.exerciseId === currentExerciseId &&
+        !performedSets[nextIndex]
+      ) {
+        setDraftReps(nextStep.repsMax ?? nextStep.repsMin ?? 0);
+        setDraftWeightG(currentWeightG);
+      } else {
+        initializeDraft(nextIndex);
+      }
     }
-  }, [saveDraft, currentIndex, totalSets, initializeDraft]);
+  }, [
+    currentStep,
+    draftWeightG,
+    saveDraft,
+    currentIndex,
+    totalSets,
+    exerciseSteps,
+    performedSets,
+    initializeDraft,
+  ]);
 
   /** Move to previous set. */
   const handlePrevious = useCallback(() => {
@@ -280,6 +377,7 @@ export const WeightRecap = ({
               value={weightDisplay}
               onChange={handleWeightChange}
               step={weightStep}
+              bigStep={weightBigStep}
               min={0}
               label={`Weight (${unitSystem})`}
               formatValue={(v) =>
