@@ -54,13 +54,7 @@ export function useInstallPrompt(): UseInstallPromptReturn {
 
     try {
       await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-
-      if (outcome === 'accepted') {
-        console.info('useInstallPrompt: User accepted the install prompt.');
-      } else {
-        console.info('useInstallPrompt: User dismissed the install prompt.');
-      }
+      await deferredPrompt.userChoice;
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : String(error);
