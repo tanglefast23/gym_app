@@ -6,3 +6,4 @@ export { EmptyState } from './EmptyState';
 export { ConfirmDialog } from './ConfirmDialog';
 export { Stepper } from './Stepper';
 export { NumberStepper, AMRAP_SENTINEL } from './NumberStepper';
+export { ClickSoundProvider } from './ClickSoundProvider';
