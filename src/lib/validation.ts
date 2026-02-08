@@ -67,6 +67,8 @@ export function validateSets(sets: number): string | null {
 export function validateRepRange(min: number, max: number): string | null {
   if (!Number.isInteger(min) || !Number.isInteger(max)) return 'Reps must be whole numbers';
   if (min < 1) return 'Minimum reps must be at least 1';
+  // max === 0 is the AMRAP sentinel — always valid
+  if (max === 0) return null;
   if (max > VALIDATION.MAX_REPS) return `Maximum ${VALIDATION.MAX_REPS} reps`;
   if (min > max) return 'Min reps cannot exceed max reps';
   return null;

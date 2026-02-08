@@ -5,4 +5,4 @@ export { ToastContainer, useToastStore } from './Toast';
 export { EmptyState } from './EmptyState';
 export { ConfirmDialog } from './ConfirmDialog';
 export { Stepper } from './Stepper';
-export { NumberStepper } from './NumberStepper';
+export { NumberStepper, AMRAP_SENTINEL } from './NumberStepper';

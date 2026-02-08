@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { GripVertical, Trash2, Plus } from 'lucide-react';
 import { ExerciseAutocomplete } from './ExerciseAutocomplete';
-import { Button, NumberStepper } from '@/components/ui';
+import { Button, NumberStepper, AMRAP_SENTINEL } from '@/components/ui';
 import { VALIDATION } from '@/types/workout';
 import type { SupersetBlock, ExerciseBlockExercise } from '@/types/workout';
 
@@ -78,6 +78,19 @@ export const SupersetBlockEditor = ({
         ...updated[index],
         repsMax,
         repsMin: Math.min(updated[index].repsMin, repsMax),
+      };
+      onChange({ ...block, exercises: updated });
+    },
+    [block, onChange],
+  );
+
+  const handleAmrapToggle = useCallback(
+    (index: number, lastNumericMax: number) => {
+      const updated = [...block.exercises];
+      const isAmrap = updated[index].repsMax === AMRAP_SENTINEL;
+      updated[index] = {
+        ...updated[index],
+        repsMax: isAmrap ? lastNumericMax : AMRAP_SENTINEL,
       };
       onChange({ ...block, exercises: updated });
     },
@@ -166,6 +179,7 @@ export const SupersetBlockEditor = ({
             }
             onRepsMinChange={(val) => handleRepsMinChange(index, val)}
             onRepsMaxChange={(val) => handleRepsMaxChange(index, val)}
+            onAmrapToggle={(lastMax) => handleAmrapToggle(index, lastMax)}
             onRemove={() => handleRemoveExercise(index)}
           />
         ))}
@@ -185,7 +199,7 @@ export const SupersetBlockEditor = ({
       </div>
 
       {/* Rest settings */}
-      <div className="mt-4 flex flex-wrap gap-4 border-t border-border pt-4">
+      <div className="mt-4 flex flex-col items-center gap-4 border-t border-border pt-4 sm:flex-row sm:flex-wrap">
         <NumberStepper
           label="Rest between exercises"
           value={block.restBetweenExercisesSec}
@@ -224,6 +238,7 @@ interface SupersetExerciseRowProps {
   onNameChange: (name: string, exerciseId: string | null) => void;
   onRepsMinChange: (value: number) => void;
   onRepsMaxChange: (value: number) => void;
+  onAmrapToggle: (lastNumericMax: number) => void;
   onRemove: () => void;
 }
 
@@ -235,8 +250,27 @@ const SupersetExerciseRow = ({
   onNameChange,
   onRepsMinChange,
   onRepsMaxChange,
+  onAmrapToggle,
   onRemove,
 }: SupersetExerciseRowProps) => {
+  const lastNumericMaxRef = useRef(exercise.repsMax || 12);
+  const isAmrap = exercise.repsMax === AMRAP_SENTINEL;
+
+  const handleMaxChange = useCallback(
+    (val: number) => {
+      lastNumericMaxRef.current = val;
+      onRepsMaxChange(val);
+    },
+    [onRepsMaxChange],
+  );
+
+  const handleAmrap = useCallback(() => {
+    if (!isAmrap) {
+      lastNumericMaxRef.current = exercise.repsMax;
+    }
+    onAmrapToggle(lastNumericMaxRef.current);
+  }, [exercise.repsMax, isAmrap, onAmrapToggle]);
+
   return (
     <div className="rounded-xl border border-border bg-elevated/50 p-3">
       <div className="mb-2 flex items-center justify-between">
@@ -269,15 +303,19 @@ const SupersetExerciseRow = ({
           min={1}
           max={VALIDATION.MAX_REPS}
           step={1}
+          size="sm"
           ariaLabel={`Exercise ${index + 1} minimum reps`}
         />
         <span className="px-1 text-text-muted">&ndash;</span>
         <NumberStepper
           value={exercise.repsMax}
-          onChange={onRepsMaxChange}
+          onChange={handleMaxChange}
           min={1}
           max={VALIDATION.MAX_REPS}
           step={1}
+          size="sm"
+          amrap={isAmrap}
+          onAmrapToggle={handleAmrap}
           ariaLabel={`Exercise ${index + 1} maximum reps`}
         />
       </div>

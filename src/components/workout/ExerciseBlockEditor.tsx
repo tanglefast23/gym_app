@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { ExerciseAutocomplete } from './ExerciseAutocomplete';
-import { NumberStepper } from '@/components/ui';
+import { NumberStepper, AMRAP_SENTINEL } from '@/components/ui';
 import { VALIDATION } from '@/types/workout';
 import type { ExerciseBlock } from '@/types/workout';
 
@@ -31,6 +31,7 @@ export const ExerciseBlockEditor = ({
   onExerciseNameChange,
 }: ExerciseBlockEditorProps) => {
   const [localName, setLocalName] = useState(exerciseName);
+  const lastNumericMaxRef = useRef(block.repsMax || 12);
 
   // Sync when external prop changes (e.g. loading from DB)
   useEffect(() => {
@@ -69,6 +70,7 @@ export const ExerciseBlockEditor = ({
 
   const handleRepsMaxChange = useCallback(
     (repsMax: number) => {
+      lastNumericMaxRef.current = repsMax;
       onChange({
         ...block,
         repsMax,
@@ -77,6 +79,19 @@ export const ExerciseBlockEditor = ({
     },
     [block, onChange],
   );
+
+  const isAmrap = block.repsMax === AMRAP_SENTINEL;
+
+  const handleAmrapToggle = useCallback(() => {
+    if (isAmrap) {
+      // Restore last numeric value
+      onChange({ ...block, repsMax: lastNumericMaxRef.current });
+    } else {
+      // Save current and switch to AMRAP
+      lastNumericMaxRef.current = block.repsMax;
+      onChange({ ...block, repsMax: AMRAP_SENTINEL });
+    }
+  }, [block, isAmrap, onChange]);
 
   const handleRestToggle = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,6 +159,7 @@ export const ExerciseBlockEditor = ({
               min={1}
               max={VALIDATION.MAX_REPS}
               step={1}
+              size="sm"
               ariaLabel="Minimum reps"
             />
             <span className="px-1 text-text-muted">&ndash;</span>
@@ -153,6 +169,9 @@ export const ExerciseBlockEditor = ({
               min={1}
               max={VALIDATION.MAX_REPS}
               step={1}
+              size="sm"
+              amrap={isAmrap}
+              onAmrapToggle={handleAmrapToggle}
               ariaLabel="Maximum reps"
             />
           </div>
