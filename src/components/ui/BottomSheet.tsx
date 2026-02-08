@@ -1,0 +1,104 @@
+'use client';
+
+import { type ReactNode, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
+
+interface BottomSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  children: ReactNode;
+}
+
+/**
+ * Subscribe to nothing -- we only need this to read a snapshot
+ * that tells us whether we're in the browser (SSR guard).
+ */
+const subscribe = () => () => {};
+const getSnapshot = () => true;
+const getServerSnapshot = () => false;
+
+export const BottomSheet = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+}: BottomSheetProps) => {
+  const isBrowser = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      // Delay to trigger CSS transition after mount
+      const raf = requestAnimationFrame(() => {
+        backdropRef.current?.classList.replace('bg-black/0', 'bg-black/60');
+        sheetRef.current?.classList.replace('translate-y-full', 'translate-y-0');
+      });
+      return () => {
+        cancelAnimationFrame(raf);
+        document.body.style.overflow = '';
+      };
+    } else {
+      backdropRef.current?.classList.replace('bg-black/60', 'bg-black/0');
+      sheetRef.current?.classList.replace('translate-y-0', 'translate-y-full');
+      document.body.style.overflow = '';
+    }
+  }, [isOpen]);
+
+  const handleBackdropClick = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  const handleSheetClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+    },
+    [],
+  );
+
+  if (!isBrowser || !isOpen) {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      ref={backdropRef}
+      className="fixed inset-0 z-50 bg-black/0 transition-colors duration-300"
+      onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title ?? 'Bottom sheet'}
+    >
+      <div
+        ref={sheetRef}
+        className={[
+          'fixed bottom-0 left-0 right-0',
+          'rounded-t-3xl bg-elevated',
+          'pb-[env(safe-area-inset-bottom)]',
+          'transition-transform duration-300 ease-out',
+          'max-h-[85vh] overflow-y-auto',
+          'translate-y-full',
+        ].join(' ')}
+        onClick={handleSheetClick}
+      >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-2">
+          <div className="h-1.5 w-10 rounded-full bg-border" />
+        </div>
+
+        {/* Title */}
+        {title ? (
+          <h2 className="px-6 pb-4 text-lg font-semibold text-text-primary">
+            {title}
+          </h2>
+        ) : null}
+
+        {/* Content */}
+        <div className="px-6 pb-6">{children}</div>
+      </div>
+    </div>,
+    document.body,
+  );
+};

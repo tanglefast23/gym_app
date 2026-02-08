@@ -1,0 +1,182 @@
+import { db } from '@/lib/db';
+import { validateImportData } from '@/lib/validation';
+import { DEFAULT_SETTINGS } from '@/types/workout';
+import type { ExportData, UserSettings } from '@/types/workout';
+
+/**
+ * Export all app data as a JSON object.
+ * Reads every Dexie table in parallel and packages the result
+ * into the `ExportData` envelope with schema version and timestamp.
+ * The caller decides how to persist/download the returned object.
+ * @returns A fully-populated `ExportData` object
+ */
+export async function exportAllData(): Promise<ExportData> {
+  const [exercises, templates, logs, exerciseHistory, achievements, settingsRow] =
+    await Promise.all([
+      db.exercises.toArray(),
+      db.templates.toArray(),
+      db.logs.toArray(),
+      db.exerciseHistory.toArray(),
+      db.achievements.toArray(),
+      db.settings.get('settings'),
+    ]);
+
+  const settings: UserSettings = settingsRow ?? DEFAULT_SETTINGS;
+
+  return {
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    settings,
+    exercises,
+    templates,
+    logs,
+    exerciseHistory,
+    achievements,
+  };
+}
+
+/**
+ * Download all app data as a timestamped JSON file via the browser
+ * download mechanism. Creates a temporary anchor element, triggers
+ * the download, then cleans up the object URL.
+ */
+export async function downloadExport(): Promise<void> {
+  const data = await exportAllData();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `workout-pwa-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Import data from a JSON file, replacing ALL existing data (v1 replace-all strategy).
+ * Validates the file contents via `validateImportData` before touching the database.
+ * The entire operation runs inside a single Dexie read-write transaction so a
+ * failure at any point rolls back cleanly.
+ * @param file - A `File` object (e.g. from an `<input type="file">`)
+ * @returns `{ success: true, errors: [] }` on success, or
+ *          `{ success: false, errors: string[] }` describing what went wrong
+ */
+export async function importData(
+  file: File,
+): Promise<{ success: boolean; errors: string[] }> {
+  try {
+    const text = await file.text();
+    const data: unknown = JSON.parse(text);
+
+    // Validate structure before touching DB
+    const validation = validateImportData(data);
+    if (!validation.valid) {
+      return { success: false, errors: validation.errors };
+    }
+
+    const parsed = data as ExportData;
+
+    // Clear all tables and replace inside a single transaction
+    await db.transaction(
+      'rw',
+      [
+        db.exercises,
+        db.templates,
+        db.logs,
+        db.exerciseHistory,
+        db.achievements,
+        db.settings,
+        db.crashRecovery,
+      ],
+      async () => {
+        // Clear everything
+        await Promise.all([
+          db.exercises.clear(),
+          db.templates.clear(),
+          db.logs.clear(),
+          db.exerciseHistory.clear(),
+          db.achievements.clear(),
+          db.settings.clear(),
+          db.crashRecovery.clear(),
+        ]);
+
+        // Import new data (skip empty arrays to avoid unnecessary calls)
+        if (parsed.exercises.length > 0) {
+          await db.exercises.bulkAdd(parsed.exercises);
+        }
+        if (parsed.templates.length > 0) {
+          await db.templates.bulkAdd(parsed.templates);
+        }
+        if (parsed.logs.length > 0) {
+          await db.logs.bulkAdd(parsed.logs);
+        }
+        if (parsed.exerciseHistory.length > 0) {
+          await db.exerciseHistory.bulkAdd(parsed.exerciseHistory);
+        }
+        if (parsed.achievements.length > 0) {
+          await db.achievements.bulkAdd(parsed.achievements);
+        }
+        if (parsed.settings) {
+          await db.settings.put(parsed.settings);
+        }
+      },
+    );
+
+    return { success: true, errors: [] };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : 'Unknown import error';
+    return { success: false, errors: [message] };
+  }
+}
+
+/**
+ * Read and parse a JSON backup file without modifying the database,
+ * returning a human-readable summary of what would be imported.
+ * Useful for showing a confirmation dialog before the destructive
+ * replace-all import.
+ * @param file - A `File` object to preview
+ * @returns An object with `valid`, `errors`, and an optional `summary`
+ *          containing counts and the original export timestamp
+ */
+export async function previewImport(file: File): Promise<{
+  valid: boolean;
+  errors: string[];
+  summary?: {
+    exercises: number;
+    templates: number;
+    logs: number;
+    achievements: number;
+    exportedAt: string;
+  };
+}> {
+  try {
+    const text = await file.text();
+    const data: unknown = JSON.parse(text);
+
+    const validation = validateImportData(data);
+    if (!validation.valid) {
+      return { valid: false, errors: validation.errors };
+    }
+
+    const d = data as ExportData;
+    return {
+      valid: true,
+      errors: [],
+      summary: {
+        exercises: d.exercises.length,
+        templates: d.templates.length,
+        logs: d.logs.length,
+        achievements: d.achievements.length,
+        exportedAt: d.exportedAt,
+      },
+    };
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : 'Failed to read file';
+    return { valid: false, errors: [message] };
+  }
+}

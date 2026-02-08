@@ -1,0 +1,163 @@
+import { db } from '@/lib/db';
+import type { UnlockedAchievement, WorkoutLog } from '@/types/workout';
+
+interface AchievementDefinition {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  check: (log: WorkoutLog) => Promise<{ earned: boolean; context: string | null }>;
+}
+
+export const ACHIEVEMENTS: AchievementDefinition[] = [
+  {
+    id: 'first-workout',
+    name: 'First Rep',
+    description: 'Complete your first workout',
+    icon: '\u{1F4AA}',
+    check: async () => {
+      const count = await db.logs.count();
+      return { earned: count === 1, context: null };
+    },
+  },
+  {
+    id: 'consistency-3',
+    name: 'Consistency',
+    description: '3 workouts in a week',
+    icon: '\u{1F525}',
+    check: async () => {
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const recentLogs = await db.logs.where('startedAt').above(weekAgo).count();
+      return { earned: recentLogs >= 3, context: `${recentLogs} workouts this week` };
+    },
+  },
+  {
+    id: 'iron-will',
+    name: 'Iron Will',
+    description: '10 total workouts',
+    icon: '\u{1F3CB}\uFE0F',
+    check: async () => {
+      const count = await db.logs.count();
+      return { earned: count >= 10, context: `${count} total workouts` };
+    },
+  },
+  {
+    id: 'pr-1rm',
+    name: 'PR Breaker',
+    description: 'New highest estimated 1RM on any exercise',
+    icon: '\u{1F3C6}',
+    check: async (log) => {
+      for (const set of log.performedSets) {
+        if (set.repsDone > 12 || set.repsDone <= 0 || set.weightG <= 0) continue;
+
+        const current1RM = set.weightG * (1 + set.repsDone / 30);
+
+        const history = await db.exerciseHistory
+          .where('exerciseId')
+          .equals(set.exerciseId)
+          .toArray();
+
+        const previousBest = history
+          .filter((h) => h.logId !== log.id && h.estimated1RM_G !== null)
+          .reduce((max, h) => Math.max(max, h.estimated1RM_G ?? 0), 0);
+
+        if (current1RM > previousBest && previousBest > 0) {
+          return {
+            earned: true,
+            context: `${set.exerciseNameSnapshot} - new 1RM PR!`,
+          };
+        }
+      }
+      return { earned: false, context: null };
+    },
+  },
+  {
+    id: 'volume-king',
+    name: 'Volume King',
+    description: 'New highest session volume for an exercise',
+    icon: '\u{1F451}',
+    check: async (log) => {
+      const exerciseVolumes = new Map<string, { volume: number; name: string }>();
+
+      for (const set of log.performedSets) {
+        const existing = exerciseVolumes.get(set.exerciseId) ?? {
+          volume: 0,
+          name: set.exerciseNameSnapshot,
+        };
+        existing.volume += set.weightG * set.repsDone;
+        exerciseVolumes.set(set.exerciseId, existing);
+      }
+
+      for (const [exerciseId, { volume, name }] of exerciseVolumes) {
+        const history = await db.exerciseHistory
+          .where('exerciseId')
+          .equals(exerciseId)
+          .toArray();
+
+        const previousBest = history
+          .filter((h) => h.logId !== log.id)
+          .reduce((max, h) => Math.max(max, h.totalVolumeG), 0);
+
+        if (volume > previousBest && previousBest > 0) {
+          return { earned: true, context: `${name} - volume PR!` };
+        }
+      }
+      return { earned: false, context: null };
+    },
+  },
+  {
+    id: 'superset-master',
+    name: 'Superset Master',
+    description: 'Complete a workout containing supersets',
+    icon: '\u{26A1}',
+    check: async (log) => {
+      const hasSupersets = log.templateSnapshot.some((b) => b.type === 'superset');
+      return { earned: hasSupersets, context: null };
+    },
+  },
+  {
+    id: 'century',
+    name: 'Century',
+    description: '100 total workouts',
+    icon: '\u{1F4AF}',
+    check: async () => {
+      const count = await db.logs.count();
+      return { earned: count >= 100, context: `${count} total workouts!` };
+    },
+  },
+];
+
+/**
+ * Check all achievement definitions against a newly saved workout log.
+ *
+ * Skips achievements that are already unlocked. Returns an array of
+ * newly unlocked achievements (persisted to the database).
+ */
+export async function checkAchievements(log: WorkoutLog): Promise<UnlockedAchievement[]> {
+  const existing = await db.achievements.toArray();
+  const existingIds = new Set(existing.map((a) => a.achievementId));
+
+  const newlyUnlocked: UnlockedAchievement[] = [];
+
+  for (const achievement of ACHIEVEMENTS) {
+    if (existingIds.has(achievement.id)) continue;
+
+    const result = await achievement.check(log);
+    if (result.earned) {
+      const unlock: UnlockedAchievement = {
+        achievementId: achievement.id,
+        unlockedAt: new Date().toISOString(),
+        context: result.context,
+      };
+      await db.achievements.add(unlock);
+      newlyUnlocked.push(unlock);
+    }
+  }
+
+  return newlyUnlocked;
+}
+
+/** Get all unlocked achievements, sorted by unlockedAt descending (most recent first). */
+export async function getUnlockedAchievements(): Promise<UnlockedAchievement[]> {
+  return db.achievements.orderBy('unlockedAt').reverse().toArray();
+}

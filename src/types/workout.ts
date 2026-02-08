@@ -1,0 +1,197 @@
+// === EXERCISE LIBRARY ===
+export interface Exercise {
+  id: string;                              // crypto.randomUUID()
+  name: string;                            // "Bench Press"
+  visualKey: string;                       // maps to built-in illustration asset
+  createdAt: string;
+  updatedAt: string;
+}
+
+// === TEMPLATE BLOCKS ===
+export type RepTarget = { min: number; max: number };
+
+export interface ExerciseBlockExercise {
+  exerciseId: string;
+  repsMin: number;
+  repsMax: number;
+}
+
+export interface ExerciseBlock {
+  id: string;
+  type: 'exercise';
+  exerciseId: string;
+  sets: number;
+  repsMin: number;
+  repsMax: number;
+  restBetweenSetsSec: number | null;
+}
+
+export interface SupersetBlock {
+  id: string;
+  type: 'superset';
+  sets: number;
+  exercises: ExerciseBlockExercise[];
+  restBetweenExercisesSec: number;
+  restBetweenSupersetsSec: number;
+}
+
+export type TemplateBlock = ExerciseBlock | SupersetBlock;
+
+export interface WorkoutTemplate {
+  id: string;
+  name: string;
+  blocks: TemplateBlock[];
+  defaultRestBetweenSetsSec: number | null;
+  createdAt: string;
+  updatedAt: string;
+  isArchived: boolean;
+}
+
+// === WORKOUT SESSION (in-progress) ===
+export type SessionState = 'exercising' | 'resting' | 'recap' | 'complete';
+
+export interface WorkoutSessionState {
+  id: string;
+  templateSnapshot: TemplateBlock[];
+  startedAt: string;
+  state: SessionState;
+  timerEndsAt: string | null;
+}
+
+// === WORKOUT LOG ===
+export type LogStatus = 'completed' | 'partial';
+
+export interface PerformedSet {
+  exerciseId: string;
+  exerciseNameSnapshot: string;
+  blockPath: string;
+  setIndex: number;
+  repsTargetMin: number;
+  repsTargetMax: number;
+  repsDone: number;
+  weightG: number;
+}
+
+export interface WorkoutLog {
+  id: string;
+  status: LogStatus;
+  templateId: string | null;
+  templateName: string;
+  templateSnapshot: TemplateBlock[];
+  performedSets: PerformedSet[];
+  startedAt: string;
+  endedAt: string | null;
+  durationSec: number;
+  totalVolumeG: number;
+}
+
+// === DENORMALIZED CHART DATA ===
+export interface ExerciseHistoryEntry {
+  id?: number;
+  logId: string;
+  exerciseId: string;
+  exerciseName: string;
+  performedAt: string;
+  bestWeightG: number;
+  totalVolumeG: number;
+  totalSets: number;
+  totalReps: number;
+  estimated1RM_G: number | null;
+}
+
+// === ACHIEVEMENTS ===
+export interface UnlockedAchievement {
+  achievementId: string;
+  unlockedAt: string;
+  context: string | null;
+}
+
+// === SETTINGS ===
+export type UnitSystem = 'kg' | 'lb';
+export type ThemeMode = 'dark' | 'light' | 'system';
+
+export interface UserSettings {
+  id: 'settings';
+  unitSystem: UnitSystem;
+  defaultRestBetweenSetsSec: number;
+  weightStepsKg: number[];
+  weightStepsLb: number[];
+  hapticFeedback: boolean;
+  restTimerSound: boolean;
+  theme: ThemeMode;
+}
+
+// === CRASH RECOVERY ===
+export interface CrashRecoveryData {
+  id: 'recovery';
+  sessionState: WorkoutSessionState;
+  templateId: string;
+  templateName: string;
+  savedAt: string;
+}
+
+// === EXPORT/IMPORT ===
+export interface ExportData {
+  schemaVersion: number;
+  exportedAt: string;
+  settings: UserSettings;
+  exercises: Exercise[];
+  templates: WorkoutTemplate[];
+  logs: WorkoutLog[];
+  exerciseHistory: ExerciseHistoryEntry[];
+  achievements: UnlockedAchievement[];
+}
+
+// === STEP ENGINE ===
+export type StepType = 'exercise' | 'rest' | 'superset-rest' | 'complete';
+
+export interface WorkoutStep {
+  type: StepType;
+  blockIndex: number;
+  exerciseId?: string;
+  exerciseName?: string;
+  setIndex?: number;
+  totalSets?: number;
+  repsMin?: number;
+  repsMax?: number;
+  restDurationSec?: number;
+  visualKey?: string;
+  isSuperset?: boolean;
+  supersetExerciseIndex?: number;
+  supersetTotalExercises?: number;
+}
+
+// === TIMER ===
+export type TimerMessageType = 'START' | 'STOP' | 'TICK' | 'COMPLETE' | 'ADJUST';
+
+export interface TimerMessage {
+  type: TimerMessageType;
+  endTime?: number;
+  remaining?: number;
+  adjustMs?: number;
+}
+
+// === VALIDATION CONSTRAINTS ===
+export const VALIDATION = {
+  WORKOUT_NAME_MAX: 100,
+  EXERCISE_NAME_MAX: 80,
+  NOTES_MAX: 500,
+  MAX_SETS: 20,
+  MAX_REPS: 999,
+  MAX_WEIGHT_G: 999_000, // 999kg
+  MIN_REST_SEC: 5,
+  MAX_REST_SEC: 600,
+  RECOVERY_MAX_AGE_MS: 4 * 60 * 60 * 1000, // 4 hours
+} as const;
+
+// === DEFAULT SETTINGS ===
+export const DEFAULT_SETTINGS: UserSettings = {
+  id: 'settings',
+  unitSystem: 'kg',
+  defaultRestBetweenSetsSec: 90,
+  weightStepsKg: [1, 2.5, 5],
+  weightStepsLb: [2.5, 5, 10],
+  hapticFeedback: true,
+  restTimerSound: true,
+  theme: 'dark',
+};
