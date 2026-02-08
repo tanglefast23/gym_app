@@ -16,7 +16,8 @@ export type SfxKey =
   | 'sheetClose'
   | 'timerDone'
   | 'countdown'
-  | 'complete';
+  | 'complete'
+  | 'success';
 
 type SfxCategory = 'ui' | 'timer' | 'celebration';
 
@@ -36,6 +37,9 @@ const SFX: Record<SfxKey, { url: string; category: SfxCategory; volume: number }
 
     // Celebration
     complete: { url: '/sfx/angels.webm', category: 'celebration', volume: 0.5 },
+
+    // Success confirmation (e.g. save partial, apply to remaining)
+    success: { url: '/sfx/level-up-2-199574.webm', category: 'ui', volume: 0.5 },
   };
 
 const audioMap = new Map<SfxKey, HTMLAudioElement>();

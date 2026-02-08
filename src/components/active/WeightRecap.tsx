@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Copy, CopyCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Copy, CopyCheck, Check } from 'lucide-react';
 import { Button, Stepper } from '@/components/ui';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { getLastPerformedSets } from '@/lib/queries';
+import { playSfx } from '@/lib/sfx';
 import {
   formatWeightValue,
   displayToGrams,
@@ -213,6 +214,11 @@ export const WeightRecap = ({
     [exerciseSteps, performedSets, firstWeightDefaultG],
   );
 
+  // Visual feedback states
+  const [applyFeedback, setApplyFeedback] = useState(false);
+  const [sameWeightFeedback, setSameWeightFeedback] = useState(false);
+  const [savingPartial, setSavingPartial] = useState(false);
+
   /** Save the current draft as a performed set. */
   const saveDraft = useCallback(() => {
     if (!currentStep) return;
@@ -238,7 +244,7 @@ export const WeightRecap = ({
     onUpsertSet,
   ]);
 
-  /** Apply current weight to all remaining sets of the same exercise. */
+  /** Apply current weight to all remaining sets of the same exercise, then auto-advance. */
   const applyToRemaining = useCallback(() => {
     if (!currentStep?.exerciseId) return;
     const exerciseId = currentStep.exerciseId;
@@ -261,6 +267,33 @@ export const WeightRecap = ({
 
       onUpsertSet(i, set);
     }
+
+    // SFX + visual feedback
+    playSfx('success');
+    setApplyFeedback(true);
+
+    // Auto-advance past the filled sets after a brief visual delay
+    setTimeout(() => {
+      setApplyFeedback(false);
+
+      // Find the first set of the NEXT exercise (or stay at end if none)
+      let nextExerciseIndex = -1;
+      for (let i = currentIndex + 1; i < exerciseSteps.length; i++) {
+        if (exerciseSteps[i].exerciseId !== exerciseId) {
+          nextExerciseIndex = i;
+          break;
+        }
+      }
+
+      if (nextExerciseIndex >= 0) {
+        setCurrentIndex(nextExerciseIndex);
+        initializeDraft(nextExerciseIndex);
+      } else {
+        // No next exercise — jump to the last set (all done)
+        setCurrentIndex(exerciseSteps.length - 1);
+        initializeDraft(exerciseSteps.length - 1);
+      }
+    }, 500);
   }, [
     currentStep,
     currentIndex,
@@ -269,6 +302,7 @@ export const WeightRecap = ({
     draftWeightG,
     exerciseNameMap,
     onUpsertSet,
+    initializeDraft,
   ]);
 
   /** Copy weight from the previous set of this exercise. */
@@ -281,6 +315,9 @@ export const WeightRecap = ({
     );
     if (prevWeight !== null) {
       setDraftWeight({ weightG: prevWeight, source: 'user' });
+      playSfx('success');
+      setSameWeightFeedback(true);
+      setTimeout(() => setSameWeightFeedback(false), 800);
     }
   }, [currentStep, performedSets, currentIndex]);
 
@@ -439,32 +476,47 @@ export const WeightRecap = ({
               disabled={!hasPreviousSetWeight}
               className={[
                 'flex flex-1 items-center justify-center gap-2',
-                'rounded-xl bg-elevated px-3 py-2.5',
-                'text-sm font-medium text-text-secondary',
-                'transition-all duration-150',
-                hasPreviousSetWeight
+                'rounded-xl px-3 py-2.5',
+                'text-sm font-medium',
+                'transition-all duration-200',
+                sameWeightFeedback
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/40'
+                  : 'bg-elevated text-text-secondary',
+                hasPreviousSetWeight && !sameWeightFeedback
                   ? 'hover:bg-surface active:scale-[0.97]'
-                  : 'opacity-50 cursor-not-allowed',
+                  : '',
+                !hasPreviousSetWeight ? 'opacity-50 cursor-not-allowed' : '',
               ].join(' ')}
             >
-              <CopyCheck className="h-4 w-4" />
-              Same weight
+              {sameWeightFeedback ? (
+                <Check className="h-4 w-4 animate-check-pop" />
+              ) : (
+                <CopyCheck className="h-4 w-4" />
+              )}
+              {sameWeightFeedback ? 'Applied!' : 'Same weight'}
             </button>
 
             {/* Apply to remaining button */}
             <button
               type="button"
               onClick={applyToRemaining}
+              disabled={applyFeedback}
               className={[
                 'flex flex-1 items-center justify-center gap-2',
-                'rounded-xl bg-elevated px-3 py-2.5',
-                'text-sm font-medium text-text-secondary',
-                'transition-all duration-150',
-                'hover:bg-surface active:scale-[0.97]',
+                'rounded-xl px-3 py-2.5',
+                'text-sm font-medium',
+                'transition-all duration-200',
+                applyFeedback
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/40'
+                  : 'bg-elevated text-text-secondary hover:bg-surface active:scale-[0.97]',
               ].join(' ')}
             >
-              <Copy className="h-4 w-4" />
-              Apply to remaining
+              {applyFeedback ? (
+                <Check className="h-4 w-4 animate-check-pop" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+              {applyFeedback ? 'Applied!' : 'Apply to remaining'}
             </button>
           </div>
         </div>
@@ -509,17 +561,30 @@ export const WeightRecap = ({
           </Button>
         ) : null}
 
-        <Button
-          variant="ghost"
-          size="md"
-          fullWidth
+        <button
+          type="button"
+          disabled={savingPartial}
           onClick={() => {
             saveDraft();
-            onSavePartial();
+            playSfx('success');
+            setSavingPartial(true);
+            setTimeout(() => onSavePartial(), 500);
           }}
+          className={[
+            'flex w-full items-center justify-center gap-2',
+            'rounded-xl border px-4 py-3',
+            'text-sm font-medium',
+            'transition-all duration-200',
+            savingPartial
+              ? 'border-green-500/40 bg-green-500/20 text-green-400'
+              : 'border-border bg-transparent text-text-secondary hover:bg-elevated active:scale-[0.98]',
+          ].join(' ')}
         >
-          Save Partial
-        </Button>
+          {savingPartial ? (
+            <Check className="h-4 w-4 animate-check-pop" />
+          ) : null}
+          {savingPartial ? 'Saving...' : 'Save Partial'}
+        </button>
       </div>
     </div>
   );
