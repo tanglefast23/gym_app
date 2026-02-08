@@ -3,6 +3,7 @@
 import { type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { BottomTabBar } from './BottomTabBar';
+import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 
 interface AppShellProps {
   children: ReactNode;
@@ -30,9 +31,14 @@ function shouldHideTabBar(pathname: string): boolean {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const hideTabBar = shouldHideTabBar(pathname);
+  const { onTouchStart, onTouchEnd } = useSwipeNavigation();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div
+      className="flex min-h-dvh flex-col bg-background"
+      onTouchStart={hideTabBar ? undefined : onTouchStart}
+      onTouchEnd={hideTabBar ? undefined : onTouchEnd}
+    >
       <main className={['flex-1', hideTabBar ? '' : 'pb-20'].filter(Boolean).join(' ')}>
         {children}
       </main>

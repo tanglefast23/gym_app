@@ -11,7 +11,7 @@ interface Tab {
   readonly icon: ComponentType<{ className?: string }>;
 }
 
-const tabs: readonly Tab[] = [
+export const tabs: readonly Tab[] = [
   { href: '/', label: 'Workouts', icon: Dumbbell },
   { href: '/create', label: 'Create', icon: PlusCircle },
   { href: '/progress', label: 'Progress', icon: TrendingUp },
