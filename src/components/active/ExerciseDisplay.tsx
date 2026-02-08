@@ -1,7 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
-import { Dumbbell } from 'lucide-react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui';
 import { useHaptics } from '@/hooks';
 
@@ -24,12 +23,24 @@ export const ExerciseDisplay = ({
   totalSets,
   repsMin,
   repsMax,
+  visualKey,
   isSuperset,
   supersetExerciseIndex,
   supersetTotalExercises,
   onDone,
 }: ExerciseDisplayProps) => {
   const haptics = useHaptics();
+
+  const initialVisualSrc = useMemo(() => {
+    const key = visualKey && visualKey.trim().length > 0 ? visualKey : 'default';
+    return `/visuals/exercises/${key}.svg`;
+  }, [visualKey]);
+
+  const [visualSrc, setVisualSrc] = useState(initialVisualSrc);
+
+  useEffect(() => {
+    setVisualSrc(initialVisualSrc);
+  }, [initialVisualSrc]);
 
   const handleDone = useCallback(() => {
     haptics.press();
@@ -63,8 +74,15 @@ export const ExerciseDisplay = ({
       </h2>
 
       {/* Visual placeholder */}
-      <div className="flex h-[120px] w-[120px] items-center justify-center rounded-2xl bg-surface">
-        <Dumbbell className="h-12 w-12 text-text-muted" />
+      <div className="flex h-[140px] w-[140px] items-center justify-center overflow-hidden rounded-2xl bg-surface">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={visualSrc}
+          alt=""
+          className="h-[120px] w-[120px] select-none opacity-95"
+          draggable={false}
+          onError={() => setVisualSrc('/visuals/exercises/default.svg')}
+        />
       </div>
 
       {/* Set indicator */}

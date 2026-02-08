@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Settings, Search, ClipboardList } from 'lucide-react';
+import { Settings, Search } from 'lucide-react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { AppShell } from '@/components/layout';
@@ -134,7 +134,8 @@ export default function HistoryPage() {
             {/* Empty state - no logs at all */}
             {allLogs.length === 0 ? (
               <EmptyState
-                icon={<ClipboardList className="h-12 w-12" />}
+                illustrationSrc="/visuals/empty/empty-history.svg"
+                illustrationAlt=""
                 title="No workouts yet"
                 description="Complete your first workout to see your history here"
               />
@@ -146,7 +147,8 @@ export default function HistoryPage() {
             filteredLogs &&
             filteredLogs.length === 0 ? (
               <EmptyState
-                icon={<Search className="h-12 w-12" />}
+                illustrationSrc="/visuals/empty/empty-search.svg"
+                illustrationAlt=""
                 title="No results"
                 description={`No workouts match "${searchQuery.trim()}"`}
               />

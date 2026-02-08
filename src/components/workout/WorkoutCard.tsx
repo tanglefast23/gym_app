@@ -25,14 +25,24 @@ export const WorkoutCard = ({
   const exerciseCount = countExercises(template.blocks);
   const estimatedDuration = estimateWorkoutDuration(template);
   const lastPerformedLabel = formatLastPerformed(lastPerformed);
+  const coverSrc = `/visuals/covers/cover-${pickCoverIndex(template.id)}.svg`;
 
   return (
     <Card onClick={onClick} padding="md">
       {/* Header row */}
-      <div className="flex items-center justify-between">
-        <h3 className="truncate text-lg font-semibold text-text-primary">
-          {template.name}
-        </h3>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={coverSrc}
+            alt=""
+            className="h-11 w-11 shrink-0 rounded-xl bg-elevated object-cover"
+            draggable={false}
+          />
+          <h3 className="truncate text-lg font-semibold text-text-primary">
+            {template.name}
+          </h3>
+        </div>
         <ChevronRight className="h-5 w-5 flex-shrink-0 text-text-muted" />
       </div>
 
@@ -69,6 +79,16 @@ function countExercises(blocks: TemplateBlock[]): number {
     if (block.type === 'exercise') return count + 1;
     return count + block.exercises.length;
   }, 0);
+}
+
+function pickCoverIndex(templateId: string): string {
+  // Stable pseudo-random cover selection with no new schema fields.
+  let hash = 0;
+  for (let i = 0; i < templateId.length; i++) {
+    hash = (hash * 31 + templateId.charCodeAt(i)) >>> 0;
+  }
+  const idx = (hash % 4) + 1;
+  return String(idx).padStart(2, '0');
 }
 
 /**

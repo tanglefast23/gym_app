@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" fill="none">
+  <rect x="0" y="0" width="600" height="360" rx="32" fill="#111113"/>
+
+  <path
+    d="M60 220 C130 160 210 260 300 200 C390 140 450 240 540 180"
+    stroke="#ADADB0"
+    stroke-width="16"
+    stroke-linecap="round"
+    opacity="0.18"
+  />
+  <path
+    d="M70 250 C140 190 220 290 310 230 C400 170 470 270 550 210"
+    stroke="#ADADB0"
+    stroke-width="16"
+    stroke-linecap="round"
+    opacity="0.12"
+  />
+  <path
+    d="M90 160 C170 120 230 170 300 150 C370 130 430 160 510 120"
+    stroke="#F59E0B"
+    stroke-width="18"
+    stroke-linecap="round"
+    opacity="0.9"
+  />
+
+  <rect x="76" y="72" width="164" height="16" rx="8" fill="#ADADB0" opacity="0.12"/>
+  <rect x="76" y="98" width="110" height="16" rx="8" fill="#ADADB0" opacity="0.10"/>
+</svg>
+

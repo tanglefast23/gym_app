@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <circle cx="60" cy="60" r="46" fill="#111113" stroke="#2A2A2E" stroke-width="2"/>
+  <circle cx="60" cy="60" r="46" stroke="#F59E0B" stroke-width="8" opacity="0.9"/>
+
+  <!-- Crown -->
+  <path
+    d="M40 54 L50 62 L60 48 L70 62 L80 54 V72 H40 V54 Z"
+    fill="#F59E0B"
+    opacity="0.95"
+  />
+
+  <!-- Plates -->
+  <rect x="42" y="74" width="10" height="22" rx="5" fill="#ADADB0" opacity="0.85"/>
+  <rect x="52" y="78" width="8" height="18" rx="4" fill="#ADADB0" opacity="0.65"/>
+  <rect x="60" y="82" width="16" height="10" rx="5" fill="#ADADB0" opacity="0.5"/>
+  <rect x="76" y="78" width="8" height="18" rx="4" fill="#ADADB0" opacity="0.65"/>
+  <rect x="84" y="74" width="10" height="22" rx="5" fill="#ADADB0" opacity="0.85"/>
+</svg>
+

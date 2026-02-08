@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 360" fill="none">
+  <rect x="0" y="0" width="600" height="360" rx="32" fill="#111113"/>
+
+  <!-- Dot field -->
+  <g opacity="0.18" fill="#ADADB0">
+    <circle cx="120" cy="90" r="6"/>
+    <circle cx="170" cy="90" r="6"/>
+    <circle cx="220" cy="90" r="6"/>
+    <circle cx="270" cy="90" r="6"/>
+    <circle cx="320" cy="90" r="6"/>
+    <circle cx="370" cy="90" r="6"/>
+    <circle cx="420" cy="90" r="6"/>
+    <circle cx="470" cy="90" r="6"/>
+
+    <circle cx="120" cy="140" r="6"/>
+    <circle cx="170" cy="140" r="6"/>
+    <circle cx="220" cy="140" r="6"/>
+    <circle cx="270" cy="140" r="6"/>
+    <circle cx="320" cy="140" r="6"/>
+    <circle cx="370" cy="140" r="6"/>
+    <circle cx="420" cy="140" r="6"/>
+    <circle cx="470" cy="140" r="6"/>
+
+    <circle cx="120" cy="190" r="6"/>
+    <circle cx="170" cy="190" r="6"/>
+    <circle cx="220" cy="190" r="6"/>
+    <circle cx="270" cy="190" r="6"/>
+    <circle cx="320" cy="190" r="6"/>
+    <circle cx="370" cy="190" r="6"/>
+    <circle cx="420" cy="190" r="6"/>
+    <circle cx="470" cy="190" r="6"/>
+  </g>
+
+  <!-- Accent highlight -->
+  <circle cx="420" cy="190" r="10" fill="#F59E0B" opacity="0.9"/>
+
+  <rect x="76" y="250" width="200" height="18" rx="9" fill="#ADADB0" opacity="0.14"/>
+  <rect x="76" y="278" width="132" height="18" rx="9" fill="#ADADB0" opacity="0.10"/>
+</svg>
+

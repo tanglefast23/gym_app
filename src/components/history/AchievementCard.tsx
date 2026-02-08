@@ -7,6 +7,7 @@ const shortDateFormatter = new Intl.DateTimeFormat('en-US', {
 
 interface AchievementCardProps {
   icon: string;
+  iconSrc?: string;
   name: string;
   description: string;
   isUnlocked: boolean;
@@ -20,6 +21,7 @@ interface AchievementCardProps {
  */
 export const AchievementCard = ({
   icon,
+  iconSrc,
   name,
   description,
   isUnlocked,
@@ -35,13 +37,28 @@ export const AchievementCard = ({
       className={`flex w-[140px] shrink-0 flex-col items-center gap-2 rounded-2xl p-4 ${containerClasses}`}
     >
       {/* Icon */}
-      <span
-        className={`text-[32px] leading-none ${isUnlocked ? '' : 'opacity-30 grayscale'}`}
-        role="img"
-        aria-label={name}
-      >
-        {icon}
-      </span>
+      {iconSrc ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={iconSrc}
+            alt=""
+            className={[
+              'h-12 w-12 select-none',
+              isUnlocked ? '' : 'opacity-30 grayscale',
+            ].join(' ')}
+            draggable={false}
+          />
+        </>
+      ) : (
+        <span
+          className={`text-[32px] leading-none ${isUnlocked ? '' : 'opacity-30 grayscale'}`}
+          role="img"
+          aria-label={name}
+        >
+          {icon}
+        </span>
+      )}
 
       {/* Name */}
       <p

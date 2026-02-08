@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <circle cx="60" cy="60" r="46" fill="#111113" stroke="#2A2A2E" stroke-width="2"/>
+  <circle cx="60" cy="60" r="46" stroke="#F59E0B" stroke-width="8" opacity="0.9"/>
+
+  <!-- Shield -->
+  <path
+    d="M60 34 C72 40 82 40 82 40 V62 C82 78 70 88 60 92 C50 88 38 78 38 62 V40 C38 40 48 40 60 34 Z"
+    fill="#ADADB0"
+    opacity="0.28"
+  />
+
+  <!-- Flame -->
+  <path
+    d="M60 52 C54 60 66 62 58 74 C54 80 58 86 60 88 C62 86 72 82 68 72 C64 62 74 60 60 52 Z"
+    fill="#F59E0B"
+    opacity="0.95"
+  />
+</svg>
+

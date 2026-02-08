@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <circle cx="60" cy="60" r="46" fill="#111113" stroke="#2A2A2E" stroke-width="2"/>
+  <circle cx="60" cy="60" r="46" stroke="#F59E0B" stroke-width="8" opacity="0.9"/>
+
+  <!-- Medal -->
+  <path d="M48 36 L60 50 L72 36" stroke="#ADADB0" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+  <circle cx="60" cy="64" r="18" fill="#ADADB0" opacity="0.9"/>
+  <path
+    d="M60 54 L64.5 60.5 L72 61.5 L66.5 66.5 L67.8 74 L60 70.5 L52.2 74 L53.5 66.5 L48 61.5 L55.5 60.5 Z"
+    fill="#F59E0B"
+    opacity="0.95"
+  />
+</svg>
+

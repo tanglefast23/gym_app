@@ -108,6 +108,10 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   const [exerciseNameMap, setExerciseNameMap] = useState<Map<string, string>>(
     new Map(),
   );
+  /** Map exerciseId -> visualKey, used for exercise illustrations. */
+  const [exerciseVisualMap, setExerciseVisualMap] = useState<Map<string, string>>(
+    new Map(),
+  );
 
   // ---------------------------------------------------------------------------
   // Template loading from Dexie
@@ -229,15 +233,18 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
         const ids = Array.from(exerciseIds);
         const exercises = await db.exercises.bulkGet(ids);
         const nameMap = new Map<string, string>();
+        const visualMap = new Map<string, string>();
 
         for (let i = 0; i < ids.length; i++) {
           const exercise = exercises[i];
           if (exercise) {
             nameMap.set(exercise.id, exercise.name);
+            visualMap.set(exercise.id, exercise.visualKey);
           }
         }
 
         setExerciseNameMap(nameMap);
+        setExerciseVisualMap(visualMap);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Failed to load exercises';
         console.error('Failed to fetch exercise names:', msg);
@@ -441,6 +448,11 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     );
   }, [currentStep, exerciseNameMap]);
 
+  const currentExerciseVisualKey = useMemo(() => {
+    if (!currentStep || currentStep.type !== 'exercise') return undefined;
+    return exerciseVisualMap.get(currentStep.exerciseId ?? '') ?? currentStep.visualKey;
+  }, [currentStep, exerciseVisualMap]);
+
   // ---------------------------------------------------------------------------
   // Next-up label for rest timer
   // ---------------------------------------------------------------------------
@@ -521,7 +533,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
             totalSets={currentStep.totalSets ?? 1}
             repsMin={currentStep.repsMin ?? 1}
             repsMax={currentStep.repsMax ?? 1}
-            visualKey={currentStep.visualKey}
+            visualKey={currentExerciseVisualKey}
             isSuperset={currentStep.isSuperset}
             supersetExerciseIndex={currentStep.supersetExerciseIndex}
             supersetTotalExercises={currentStep.supersetTotalExercises}

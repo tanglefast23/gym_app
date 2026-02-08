@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 240" fill="none">
+  <!-- Confetti -->
+  <path d="M60 60 C80 40 100 40 120 60" stroke="#ADADB0" stroke-width="10" stroke-linecap="round" opacity="0.22"/>
+  <path d="M240 60 C260 40 280 40 300 60" stroke="#ADADB0" stroke-width="10" stroke-linecap="round" opacity="0.22"/>
+  <circle cx="92" cy="44" r="6" fill="#F59E0B" opacity="0.85"/>
+  <circle cx="268" cy="44" r="6" fill="#F59E0B" opacity="0.85"/>
+
+  <!-- Big check -->
+  <path
+    d="M88 126 L152 176 L276 88"
+    stroke="#F59E0B"
+    stroke-width="18"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.95"
+  />
+
+  <!-- Tiny dumbbell -->
+  <rect x="138" y="192" width="12" height="34" rx="6" fill="#ADADB0" opacity="0.75"/>
+  <rect x="152" y="198" width="8" height="22" rx="4" fill="#ADADB0" opacity="0.55"/>
+  <rect x="160" y="206" width="40" height="8" rx="4" fill="#ADADB0" opacity="0.45"/>
+  <rect x="200" y="198" width="8" height="22" rx="4" fill="#ADADB0" opacity="0.55"/>
+  <rect x="208" y="192" width="12" height="34" rx="6" fill="#ADADB0" opacity="0.75"/>
+</svg>
+

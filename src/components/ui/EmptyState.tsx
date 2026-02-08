@@ -3,6 +3,8 @@
 import { type ReactNode } from 'react';
 
 interface EmptyStateProps {
+  illustrationSrc?: string;
+  illustrationAlt?: string;
   icon?: ReactNode;
   title: string;
   description?: string;
@@ -10,6 +12,8 @@ interface EmptyStateProps {
 }
 
 export const EmptyState = ({
+  illustrationSrc,
+  illustrationAlt,
   icon,
   title,
   description,
@@ -17,7 +21,17 @@ export const EmptyState = ({
 }: EmptyStateProps) => {
   return (
     <div className="flex flex-col items-center justify-center p-6 max-w-[280px] mx-auto gap-4">
-      {icon ? (
+      {illustrationSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={illustrationSrc}
+          alt={illustrationAlt ?? ''}
+          className="w-[260px] max-w-full select-none"
+          draggable={false}
+        />
+      ) : null}
+
+      {!illustrationSrc && icon ? (
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-elevated text-text-muted">
           {icon}
         </div>

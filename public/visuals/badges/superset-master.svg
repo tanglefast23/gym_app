@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <circle cx="60" cy="60" r="46" fill="#111113" stroke="#2A2A2E" stroke-width="2"/>
+  <circle cx="60" cy="60" r="46" stroke="#F59E0B" stroke-width="8" opacity="0.9"/>
+
+  <!-- Link -->
+  <path
+    d="M42 70 C34 70 34 58 42 58 H54"
+    stroke="#ADADB0"
+    stroke-width="10"
+    stroke-linecap="round"
+  />
+  <path
+    d="M78 58 C86 58 86 70 78 70 H66"
+    stroke="#ADADB0"
+    stroke-width="10"
+    stroke-linecap="round"
+    opacity="0.8"
+  />
+
+  <!-- Lightning -->
+  <path
+    d="M62 40 L50 62 H62 L56 84 L78 56 H66 L72 40 Z"
+    fill="#F59E0B"
+    opacity="0.95"
+  />
+</svg>
+

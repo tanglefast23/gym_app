@@ -226,7 +226,8 @@ export default function ProgressPage() {
             {/* Exercise Charts */}
             {exerciseGroups.length === 0 ? (
               <EmptyState
-                icon={<TrendingUp className="h-12 w-12" />}
+                illustrationSrc="/visuals/empty/empty-progress.svg"
+                illustrationAlt=""
                 title="No progress data yet"
                 description="Complete workouts to see your exercise progress charts here"
               />
@@ -258,6 +259,7 @@ export default function ProgressPage() {
                   return (
                     <AchievementCard
                       key={def.id}
+                      iconSrc={`/visuals/badges/${def.id}.svg`}
                       icon={def.icon}
                       name={def.name}
                       description={def.description}

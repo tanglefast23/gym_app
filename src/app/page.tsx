@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Dumbbell, Search, Play, Pencil, Copy, Trash2, ArrowRight, Settings } from 'lucide-react';
+import { Search, Play, Pencil, Copy, Trash2, ArrowRight, Settings } from 'lucide-react';
 import { db } from '@/lib/db';
 import { VALIDATION } from '@/types/workout';
 import type { WorkoutTemplate, CrashRecoveryData } from '@/types/workout';
@@ -336,7 +336,8 @@ export default function HomePage() {
         {/* Empty State */}
         {!isLoading && allTemplates.length === 0 ? (
           <EmptyState
-            icon={<Dumbbell className="h-12 w-12" />}
+            illustrationSrc="/visuals/empty/empty-workouts.svg"
+            illustrationAlt=""
             title="No workouts yet"
             description="Create your first workout template to get started"
             action={
@@ -370,7 +371,8 @@ export default function HomePage() {
         filteredTemplates.length === 0 &&
         allTemplates.length > 0 ? (
           <EmptyState
-            icon={<Search className="h-12 w-12" />}
+            illustrationSrc="/visuals/empty/empty-search.svg"
+            illustrationAlt=""
             title="No results"
             description={`No workouts match "${searchQuery.trim()}"`}
           />

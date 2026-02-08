@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" fill="none">
+  <!-- Chart frame -->
+  <rect x="64" y="56" width="192" height="136" rx="28" fill="#111113" stroke="#2A2A2E" stroke-width="2"/>
+
+  <!-- Grid dots -->
+  <circle cx="104" cy="100" r="3" fill="#ADADB0" opacity="0.25"/>
+  <circle cx="160" cy="100" r="3" fill="#ADADB0" opacity="0.25"/>
+  <circle cx="216" cy="100" r="3" fill="#ADADB0" opacity="0.25"/>
+  <circle cx="104" cy="148" r="3" fill="#ADADB0" opacity="0.18"/>
+  <circle cx="160" cy="148" r="3" fill="#ADADB0" opacity="0.18"/>
+  <circle cx="216" cy="148" r="3" fill="#ADADB0" opacity="0.18"/>
+
+  <!-- Line -->
+  <path
+    d="M92 160 C120 146 132 132 156 134 C184 136 196 108 228 104"
+    stroke="#F59E0B"
+    stroke-width="8"
+    stroke-linecap="round"
+  />
+
+  <!-- Points -->
+  <circle cx="92" cy="160" r="7" fill="#ADADB0"/>
+  <circle cx="156" cy="134" r="7" fill="#ADADB0"/>
+  <circle cx="228" cy="104" r="7" fill="#ADADB0"/>
+</svg>
+

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <circle cx="60" cy="60" r="46" fill="#111113" stroke="#2A2A2E" stroke-width="2"/>
+  <circle cx="60" cy="60" r="46" stroke="#F59E0B" stroke-width="8" opacity="0.9"/>
+
+  <!-- Calendar -->
+  <rect x="34" y="38" width="52" height="44" rx="12" fill="#ADADB0" opacity="0.18"/>
+  <rect x="34" y="38" width="52" height="12" rx="6" fill="#F59E0B" opacity="0.95"/>
+  <rect x="40" y="34" width="8" height="12" rx="4" fill="#ADADB0" opacity="0.8"/>
+  <rect x="72" y="34" width="8" height="12" rx="4" fill="#ADADB0" opacity="0.8"/>
+
+  <!-- 3 dots -->
+  <circle cx="46" cy="66" r="5" fill="#ADADB0" opacity="0.85"/>
+  <circle cx="60" cy="66" r="5" fill="#ADADB0" opacity="0.85"/>
+  <circle cx="74" cy="66" r="5" fill="#ADADB0" opacity="0.85"/>
+</svg>
+

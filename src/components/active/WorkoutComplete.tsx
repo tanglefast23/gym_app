@@ -41,23 +41,13 @@ export const WorkoutComplete = ({
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-8 px-6 py-8">
-      {/* Animated checkmark */}
-      <div className="flex h-24 w-24 items-center justify-center rounded-full bg-accent">
-        <svg
-          className="checkmark-draw h-12 w-12 text-white"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={3}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <polyline
-            points="4 12 9 17 20 6"
-            className="checkmark-path"
-          />
-        </svg>
-      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/visuals/celebrate/workout-complete.svg"
+        alt=""
+        className="w-[300px] max-w-full select-none"
+        draggable={false}
+      />
 
       {/* Title */}
       <h2 className="text-2xl font-bold text-text-primary">
@@ -104,23 +94,6 @@ export const WorkoutComplete = ({
           Done
         </Button>
       </div>
-
-      {/* Checkmark draw-on animation */}
-      <style jsx>{`
-        @keyframes checkmark-draw {
-          0% {
-            stroke-dashoffset: 30;
-          }
-          100% {
-            stroke-dashoffset: 0;
-          }
-        }
-        .checkmark-path {
-          stroke-dasharray: 30;
-          stroke-dashoffset: 30;
-          animation: checkmark-draw 0.6s ease-out 0.3s forwards;
-        }
-      `}</style>
     </div>
   );
 };
