@@ -1,10 +1,12 @@
 'use client';
 
-export type WeightTimeline = 'day' | 'week' | 'year';
+import type { WeightTimeline } from '@/types/weight';
+
+export type { WeightTimeline } from '@/types/weight';
 
 const OPTIONS: Array<{ value: WeightTimeline; label: string }> = [
-  { value: 'day', label: 'Day' },
   { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
   { value: 'year', label: 'Year' },
 ];
 
@@ -47,4 +49,3 @@ export function TimelinePills({
     </div>
   );
 }
-

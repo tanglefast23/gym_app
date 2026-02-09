@@ -86,6 +86,8 @@ export function BodyWeightChart({
             fontSize={10}
             tickLine={false}
             axisLine={false}
+            interval="preserveStartEnd"
+            minTickGap={18}
           />
           <YAxis hide domain={['auto', 'auto']} />
           <Tooltip content={<CustomTooltip unit={unitSystem} />} />
@@ -111,4 +113,3 @@ export function BodyWeightChart({
     </div>
   );
 }
-

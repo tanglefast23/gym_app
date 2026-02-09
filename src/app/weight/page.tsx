@@ -14,78 +14,12 @@ import { ScaleIcon } from '@/components/icons/ScaleIcon';
 import { BodyWeightChart } from '@/components/weight/BodyWeightChart';
 import { TimelinePills, type WeightTimeline } from '@/components/weight/TimelinePills';
 import { latestPerDay } from '@/lib/bodyWeight';
-import type { BodyWeightEntry, UnitSystem } from '@/types/workout';
-
-function buildChartData(
-  entries: BodyWeightEntry[],
-  timeline: WeightTimeline,
-  unit: UnitSystem,
-): Array<{ label: string; value: number | null }> {
-  const byDay = latestPerDay(entries);
-  const today = new Date();
-
-  if (timeline === 'day') {
-    // Last 2 days (today + yesterday) in local time, by-day points.
-    const values = new Map(byDay.map((x) => [x.dateKey, x.entry]));
-    const points: Array<{ label: string; value: number | null }> = [];
-    for (let i = 1; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const e = values.get(k);
-      points.push({
-        label: `${d.getMonth() + 1}/${d.getDate()}`,
-        value: e ? Number(formatWeightValue(e.weightG, unit)) : null,
-      });
-    }
-    return points;
-  }
-
-  if (timeline === 'year') {
-    // Last 12 months, monthly latest.
-    const monthMap = new Map<string, BodyWeightEntry>();
-    for (const { dateKey, entry } of byDay) {
-      const monthKey = dateKey.slice(0, 7); // YYYY-MM
-      const existing = monthMap.get(monthKey);
-      if (!existing || entry.recordedAt > existing.recordedAt) {
-        monthMap.set(monthKey, entry);
-      }
-    }
-
-    const points: Array<{ label: string; value: number | null }> = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(today);
-      d.setMonth(d.getMonth() - i);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const e = monthMap.get(key);
-      points.push({
-        label: `${String(d.getMonth() + 1)}/${String(d.getFullYear()).slice(-2)}`,
-        value: e ? Number(formatWeightValue(e.weightG, unit)) : null,
-      });
-    }
-    return points;
-  }
-
-  // week: last 7 days
-  const values = new Map(byDay.map((x) => [x.dateKey, x.entry]));
-  const points: Array<{ label: string; value: number | null }> = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const e = values.get(k);
-    points.push({
-      label: `${d.getMonth() + 1}/${d.getDate()}`,
-      value: e ? Number(formatWeightValue(e.weightG, unit)) : null,
-    });
-  }
-  return points;
-}
+import { buildBodyWeightChartData } from '@/lib/bodyWeightChartData';
 
 export default function WeightPage() {
   const router = useRouter();
   const unitSystem = useSettingsStore((s) => s.unitSystem);
-  const [timeline, setTimeline] = useState<WeightTimeline>('week');
+  const [timeline, setTimeline] = useState<WeightTimeline>('month');
 
   const bodyWeights = useLiveQuery(
     () => db.bodyWeights.orderBy('recordedAt').toArray(),
@@ -98,7 +32,7 @@ export default function WeightPage() {
   }, [bodyWeights]);
 
   const chartData = useMemo(
-    () => buildChartData(bodyWeights ?? [], timeline, unitSystem),
+    () => buildBodyWeightChartData(bodyWeights ?? [], timeline, unitSystem),
     [bodyWeights, timeline, unitSystem],
   );
 
@@ -196,4 +130,3 @@ export default function WeightPage() {
     </AppShell>
   );
 }
-

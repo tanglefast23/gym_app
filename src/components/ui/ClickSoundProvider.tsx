@@ -36,7 +36,7 @@ export function ClickSoundProvider(): null {
       let key: Parameters<typeof playSfx>[0] | null = null;
       if (requested && isSfxKey(requested)) {
         key = requested;
-      } else if (interactive) {
+      } else if (interactive && !target.closest<HTMLElement>('[data-no-click-sfx]')) {
         key = 'click';
       }
       if (!key) return;

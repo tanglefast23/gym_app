@@ -50,8 +50,9 @@ function buildLastPerformedMap(
  */
 function isRecoveryValid(
   recovery: CrashRecoveryData | undefined,
-): recovery is CrashRecoveryData {
+): recovery is CrashRecoveryData & { templateId: string } {
   if (!recovery) return false;
+  if (!recovery.templateId) return false;
   const age = Date.now() - new Date(recovery.savedAt).getTime();
   return age < VALIDATION.RECOVERY_MAX_AGE_MS;
 }

@@ -87,7 +87,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
       for (const [exerciseId, { best1RM, name }] of bestByExercise) {
         const previousBest = previousBestByExercise.get(exerciseId) ?? 0;
 
-        if (best1RM > previousBest && previousBest > 0) {
+        if (best1RM > previousBest) {
           return { earned: true, context: `${name} - new 1RM PR!` };
         }
       }
@@ -180,7 +180,7 @@ export async function checkAchievements(log: WorkoutLog): Promise<UnlockedAchiev
         unlockedAt: new Date().toISOString(),
         context: result.context,
       };
-      await db.achievements.add(unlock);
+      await db.achievements.put(unlock);
       newlyUnlocked.push(unlock);
     }
   }

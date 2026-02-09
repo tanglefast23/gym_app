@@ -1,9 +1,8 @@
 'use client';
 
-import { useMemo, useCallback, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   Settings,
   TrendingUp,
@@ -13,26 +12,20 @@ import {
   Timer,
   Trophy,
   ChevronRight,
-  Minus,
-  Plus,
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { ACHIEVEMENTS } from '@/lib/achievements';
-import { displayToGrams, formatWeight, formatWeightValue, formatDuration } from '@/lib/calculations';
+import { formatWeight, formatWeightValue, formatDuration } from '@/lib/calculations';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { AppShell } from '@/components/layout';
 import { Header } from '@/components/layout/Header';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Button } from '@/components/ui/Button';
+import { ToastContainer } from '@/components/ui';
 import { ProgressChart } from '@/components/history/ProgressChart';
 import { AchievementCard } from '@/components/history/AchievementCard';
-import { ScaleIcon } from '@/components/icons/ScaleIcon';
-import { BodyWeightChart } from '@/components/weight/BodyWeightChart';
-import { TimelinePills, type WeightTimeline } from '@/components/weight/TimelinePills';
-import { latestPerDay } from '@/lib/bodyWeight';
+import { WeightTrackerSection } from '@/components/progress/WeightTrackerSection';
 import type { ExerciseHistoryEntry, UnlockedAchievement, WorkoutLog } from '@/types/workout';
-import type { BodyWeightEntry, UnitSystem } from '@/types/workout';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -309,7 +302,6 @@ function PRCard({
 // ---------------------------------------------------------------------------
 
 export default function ProgressPage() {
-  const router = useRouter();
   const unitSystem = useSettingsStore((s) => s.unitSystem);
 
   // -- Queries --
@@ -334,11 +326,6 @@ export default function ProgressPage() {
 
   const unlockedAchievements = useLiveQuery(
     () => db.achievements.toArray(),
-    [],
-  );
-
-  const bodyWeights = useLiveQuery(
-    () => db.bodyWeights.orderBy('recordedAt').toArray(),
     [],
   );
 
@@ -369,166 +356,11 @@ export default function ProgressPage() {
     totalExercises === undefined ||
     allLogs === undefined ||
     allHistory === undefined ||
-    unlockedAchievements === undefined ||
-    bodyWeights === undefined;
-
-  // ---------------------------------------------------------------------------
-  // Weight Tracker UI state + helpers
-  // ---------------------------------------------------------------------------
-
-  const [weightTimeline, setWeightTimeline] = useState<WeightTimeline>('week');
-  const [todayDraft, setTodayDraft] = useState<number>(0);
-  const [isSubmittingWeight, setIsSubmittingWeight] = useState(false);
-  const [draftInitialized, setDraftInitialized] = useState(false);
-
-  const step = unitSystem === 'kg' ? 0.1 : 0.5;
-
-  const latestEntry = useMemo(() => {
-    const arr = bodyWeights ?? [];
-    return arr.length > 0 ? arr[arr.length - 1] : null;
-  }, [bodyWeights]);
-
-  const todayKey = useMemo(() => {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  }, []);
-
-  const latestByDay = useMemo(() => latestPerDay(bodyWeights ?? []), [bodyWeights]);
-
-  const todaysEntry = useMemo(() => {
-    const byKey = new Map(latestByDay.map((x) => [x.dateKey, x.entry]));
-    return byKey.get(todayKey) ?? null;
-  }, [latestByDay, todayKey]);
-
-  // Keep the draft in sync with today's existing entry (and fall back to latest entry).
-  useEffect(() => {
-    const base = (todaysEntry ?? latestEntry)?.weightG;
-    if (base == null) return;
-    if (draftInitialized && !todaysEntry) return;
-    const v = Number(formatWeightValue(base, unitSystem));
-    if (Number.isFinite(v)) {
-      setTodayDraft(v);
-      setDraftInitialized(true);
-    }
-  }, [todaysEntry, latestEntry, unitSystem, draftInitialized]);
-
-  const handleAdjustDraft = useCallback(
-    (delta: number) => {
-      setTodayDraft((v) => {
-        const next = Math.max(0, Math.round((v + delta) * 10) / 10);
-        return next;
-      });
-    },
-    [],
-  );
-
-  const handleSubmitToday = useCallback(async () => {
-    const value = todayDraft;
-    if (!Number.isFinite(value) || value <= 0) return;
-    setIsSubmittingWeight(true);
-    try {
-      const now = new Date().toISOString();
-      const entry: BodyWeightEntry = {
-        id: todayKey, // one entry per day; update replaces the same key
-        recordedAt: now,
-        weightG: displayToGrams(value, unitSystem),
-      };
-      await db.bodyWeights.put(entry);
-    } finally {
-      setIsSubmittingWeight(false);
-    }
-  }, [todayDraft, todayKey, unitSystem]);
-
-  function buildChartData(
-    entries: BodyWeightEntry[],
-    timeline: WeightTimeline,
-    unit: UnitSystem,
-  ): Array<{ label: string; value: number | null }> {
-    const byDay = latestPerDay(entries);
-    const today = new Date();
-
-    if (timeline === 'day') {
-      // Last 2 days (today + yesterday) in local time, by-day points.
-      const labels: string[] = [];
-      const values = new Map(byDay.map((x) => [x.dateKey, x.entry]));
-
-      for (let i = 1; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - i);
-        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        labels.push(k);
-      }
-
-      return labels.map((k) => {
-        const e = values.get(k);
-        return {
-          label: k.slice(5), // MM-DD
-          value: e ? Number(formatWeightValue(e.weightG, unit)) : null,
-        };
-      });
-    }
-
-    if (timeline === 'year') {
-      // Last 12 months, monthly latest.
-      const monthMap = new Map<string, BodyWeightEntry>();
-      for (const { dateKey, entry } of byDay) {
-        const monthKey = dateKey.slice(0, 7); // YYYY-MM
-        const existing = monthMap.get(monthKey);
-        if (!existing || entry.recordedAt > existing.recordedAt) {
-          monthMap.set(monthKey, entry);
-        }
-      }
-
-      const points: Array<{ label: string; value: number | null }> = [];
-      for (let i = 11; i >= 0; i--) {
-        const d = new Date(today);
-        d.setMonth(d.getMonth() - i);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const e = monthMap.get(key);
-        points.push({
-          label: `${String(d.getMonth() + 1)}/${String(d.getFullYear()).slice(-2)}`,
-          value: e ? Number(formatWeightValue(e.weightG, unit)) : null,
-        });
-      }
-      return points;
-    }
-
-    // week: last 7 days
-    const values = new Map(byDay.map((x) => [x.dateKey, x.entry]));
-    const points: Array<{ label: string; value: number | null }> = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const e = values.get(k);
-      points.push({
-        label: `${d.getMonth() + 1}/${d.getDate()}`,
-        value: e ? Number(formatWeightValue(e.weightG, unit)) : null,
-      });
-    }
-    return points;
-  }
-
-  const weightChartData = useMemo(
-    () => buildChartData(bodyWeights ?? [], weightTimeline, unitSystem),
-    [bodyWeights, weightTimeline, unitSystem],
-  );
-
-  const recentEntries = useMemo(() => {
-    const byDay = latestPerDay(bodyWeights ?? []);
-    const last = byDay.slice(-5).reverse(); // latest first
-    return last.map((x, idx) => {
-      const prev = last[idx + 1]?.entry ?? null;
-      const deltaG = prev ? x.entry.weightG - prev.weightG : null;
-      return { ...x, deltaG };
-    });
-  }, [bodyWeights]);
+    unlockedAchievements === undefined;
 
   return (
     <AppShell>
+      <ToastContainer />
       <Header
         title="Progress"
         rightAction={
@@ -593,159 +425,7 @@ export default function ProgressPage() {
               </div>
             ) : null}
 
-            {/* Personal Records (Feature 11) */}
-            <section className="mb-6">
-              <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[1px] text-text-muted">
-                <ScaleIcon className="h-3.5 w-3.5" />
-                WEIGHT TRACKER
-              </h2>
-
-              {/* Today's weight input */}
-              <Card
-                padding="md"
-                className="mb-3"
-                onClick={() => router.push('/weight')}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-text-primary">
-                      Today&apos;s weight
-                    </p>
-                    <p className="text-xs text-text-muted">
-                      Tap to view full history
-                    </p>
-                  </div>
-                  <p className="text-xs text-text-muted">
-                    {unitSystem === 'kg' ? 'kg' : 'lbs'}
-                  </p>
-                </div>
-
-                <div className="mt-4 flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAdjustDraft(-step);
-                    }}
-                    className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-elevated text-text-primary transition-transform active:scale-[0.97]"
-                    aria-label="Decrease body weight"
-                  >
-                    <Minus className="h-5 w-5" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const next = window.prompt(
-                        `Enter today\\'s weight (${unitSystem === 'kg' ? 'kg' : 'lbs'})`,
-                        String(todayDraft || ''),
-                      );
-                      if (next === null) return;
-                      const parsed = Number(next);
-                      if (!Number.isFinite(parsed)) return;
-                      setTodayDraft(Math.max(0, Math.round(parsed * 10) / 10));
-                    }}
-                    className="min-w-[7.5rem] rounded-2xl border border-border bg-surface px-4 py-3 text-center font-timer text-4xl text-text-primary"
-                    aria-label="Edit today's body weight"
-                  >
-                    {todayDraft ? todayDraft.toFixed(todayDraft % 1 === 0 ? 0 : 1) : '—'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAdjustDraft(step);
-                    }}
-                    className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-elevated text-text-primary transition-transform active:scale-[0.97]"
-                    aria-label="Increase body weight"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </button>
-
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    disabled={todayDraft <= 0}
-                    loading={isSubmittingWeight}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void handleSubmitToday();
-                    }}
-                  >
-                    Submit
-                  </Button>
-                </div>
-              </Card>
-
-              {/* Recent changes + chart */}
-              <Card
-                padding="md"
-                onClick={() => router.push('/weight')}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-text-primary">
-                      Recent changes
-                    </p>
-                    <p className="text-xs text-text-muted">
-                      Last {weightTimeline} view
-                    </p>
-                  </div>
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                  >
-                    <TimelinePills
-                      value={weightTimeline}
-                      onChange={(v) => setWeightTimeline(v)}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-3 rounded-2xl border border-border bg-elevated/40 p-3">
-                  <BodyWeightChart data={weightChartData} unitSystem={unitSystem} height={140} />
-                </div>
-
-                {recentEntries.length > 0 ? (
-                  <div className="mt-4 space-y-2">
-                    {recentEntries.map(({ dateKey, entry, deltaG }) => (
-                      <div
-                        key={entry.id}
-                        className="flex items-center justify-between rounded-xl bg-elevated px-3 py-2"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-text-secondary">
-                            {dateKey}
-                          </p>
-                          <p className="text-[11px] text-text-muted">
-                            {new Date(entry.recordedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-text-primary">
-                            {formatWeight(entry.weightG, unitSystem)}
-                          </p>
-                          {deltaG !== null ? (
-                            <p className={`text-[11px] ${deltaG >= 0 ? 'text-success' : 'text-danger'}`}>
-                              {deltaG >= 0 ? '+' : ''}
-                              {formatWeightValue(deltaG, unitSystem)} {unitSystem}
-                            </p>
-                          ) : (
-                            <p className="text-[11px] text-text-muted">—</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-4 text-xs text-text-muted">
-                    No weight entries yet. Add today&apos;s weight to start tracking.
-                  </p>
-                )}
-              </Card>
-            </section>
+            <WeightTrackerSection unitSystem={unitSystem} />
 
             {personalRecords.length > 0 ? (
               <section className="mb-6">

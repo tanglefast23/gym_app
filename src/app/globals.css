@@ -186,6 +186,33 @@ body.workout-active {
   animation: check-pop 0.3s ease-out forwards;
 }
 
+/* ─── Weight Logged Overlay ─── */
+@keyframes weight-log-overlay {
+  0% {
+    transform: translateY(14px) scale(0.9);
+    opacity: 0;
+    filter: blur(10px);
+  }
+  16% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    filter: blur(0);
+  }
+  70% {
+    transform: translateY(-6px) scale(1.03);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-18px) scale(1.08);
+    opacity: 0;
+    filter: blur(3px);
+  }
+}
+
+.animate-weight-log-overlay {
+  animation: weight-log-overlay 1.4s var(--ease-expo-out) both;
+}
+
 /* ─── Fade-in-Up (Staggered page entrances) ─── */
 @keyframes fade-in-up {
   from {

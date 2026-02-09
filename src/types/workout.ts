@@ -153,7 +153,7 @@ export interface UserSettings {
 export interface CrashRecoveryData {
   id: 'recovery';
   sessionState: WorkoutSessionState;
-  templateId: string;
+  templateId: string | null;
   templateName: string;
   savedAt: string;
 }

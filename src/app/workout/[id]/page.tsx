@@ -552,8 +552,11 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   /** Discard workout entirely — no data saved. */
   const handleDiscard = useCallback(async () => {
     await db.crashRecovery.delete('recovery').catch(() => {});
-    sessionStorage.removeItem('active-workout');
     resetStore();
+    // Clear persisted active-workout store (sessionStorage-backed).
+    sessionStorage.removeItem('workout-pwa-active-session');
+    // Legacy cleanup (older builds used this key).
+    sessionStorage.removeItem('active-workout');
     router.push('/');
   }, [resetStore, router]);
 

@@ -255,7 +255,7 @@ export const useActiveWorkoutStore = create<
               state: 'exercising',
               timerEndsAt: null,
             },
-            templateId: templateId ?? '',
+            templateId,
             templateName,
             savedAt: new Date().toISOString(),
           };
