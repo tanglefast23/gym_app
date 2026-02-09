@@ -10,6 +10,10 @@ import type {
 import { generateSteps, countExerciseSteps } from '@/lib/stepEngine';
 import { db } from '@/lib/db';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useToastStore } from '@/components/ui';
+
+/** Ensures the crash-recovery-failed toast is only shown once per session. */
+let crashRecoveryWarningShown = false;
 
 /**
  * State describing the currently active workout session.
@@ -264,8 +268,16 @@ export const useActiveWorkoutStore = create<
         } catch (error: unknown) {
           const message =
             error instanceof Error ? error.message : 'Unknown error';
-          // TODO: Consider surfacing this to the user via a toast
           console.error(`Failed to write crash recovery: ${message}`);
+          if (!crashRecoveryWarningShown) {
+            crashRecoveryWarningShown = true;
+            useToastStore
+              .getState()
+              .addToast(
+                'Workout backup failed \u2014 progress may not survive a crash',
+                'error',
+              );
+          }
         }
       },
 

@@ -147,7 +147,7 @@ function EditPageShell({
           <button
             type="button"
             onClick={() => router.back()}
-            className="rounded-lg p-2 text-text-secondary transition-colors hover:bg-surface"
+            className="flex items-center justify-center rounded-lg p-2 min-h-[44px] min-w-[44px] text-text-secondary transition-colors hover:bg-surface"
             aria-label="Go back"
           >
             <ChevronLeft className="h-5 w-5" />

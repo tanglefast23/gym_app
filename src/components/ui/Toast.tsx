@@ -1,62 +1,13 @@
 'use client';
 
-import { create } from 'zustand';
 import { CheckCircle, AlertCircle, Info, X } from 'lucide-react';
 import { type ComponentType, useCallback } from 'react';
+import { useToastStore, timerMap, type ToastItemData } from '@/stores/toastStore';
+
+export { useToastStore } from '@/stores/toastStore';
+export type { ToastItemData } from '@/stores/toastStore';
 
 type ToastType = 'success' | 'error' | 'info';
-
-interface ToastItemData {
-  id: string;
-  message: string;
-  type: ToastType;
-  duration?: number;
-}
-
-interface ToastState {
-  toasts: ToastItemData[];
-  addToast: (
-    message: string,
-    type: ToastType,
-    duration?: number,
-  ) => void;
-  removeToast: (id: string) => void;
-}
-
-/** Map of toast id -> timeout handle, kept outside Zustand to avoid non-serializable state. */
-const timerMap = new Map<string, ReturnType<typeof setTimeout>>();
-
-export const useToastStore = create<ToastState>((set) => ({
-  toasts: [],
-
-  addToast: (message, type, duration = 3000) => {
-    const id = crypto.randomUUID();
-    const toast: ToastItemData = { id, message, type, duration };
-
-    set((state) => ({
-      toasts: [...state.toasts, toast],
-    }));
-
-    const timeoutId = setTimeout(() => {
-      timerMap.delete(id);
-      set((state) => ({
-        toasts: state.toasts.filter((t) => t.id !== id),
-      }));
-    }, duration);
-    timerMap.set(id, timeoutId);
-  },
-
-  removeToast: (id) => {
-    const timeoutId = timerMap.get(id);
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      timerMap.delete(id);
-    }
-    set((state) => ({
-      toasts: state.toasts.filter((t) => t.id !== id),
-    }));
-  },
-}));
 
 interface ToastIconConfig {
   icon: ComponentType<{ size?: number; className?: string }>;
@@ -83,15 +34,15 @@ const ToastItem = ({ toast }: { toast: ToastItemData }) => {
   }, [toast.id]);
 
   const handleMouseLeave = useCallback(() => {
-    // Resume auto-dismiss with remaining time (use default 3s)
+    // Resume auto-dismiss with the toast's duration (fallback to 3s)
     if (!timerMap.has(toast.id)) {
       const timeoutId = setTimeout(() => {
         timerMap.delete(toast.id);
         removeToast(toast.id);
-      }, 3000);
+      }, toast.duration ?? 3000);
       timerMap.set(toast.id, timeoutId);
     }
-  }, [toast.id, removeToast]);
+  }, [toast.id, toast.duration, removeToast]);
 
   return (
     <div

@@ -24,6 +24,8 @@ interface WeightRecapProps {
   onComplete: () => void;
   onSavePartial: () => void;
   onDiscard?: () => void;
+  /** When true, the Save Workout button shows a loading state. */
+  isSaving?: boolean;
 }
 
 /** Filter to only exercise-type steps. */
@@ -78,6 +80,7 @@ export const WeightRecap = ({
   onComplete,
   onSavePartial,
   onDiscard,
+  isSaving,
 }: WeightRecapProps) => {
   const unitSystem = useSettingsStore((s) => s.unitSystem);
   const weightStepsKg = useSettingsStore((s) => s.weightStepsKg);
@@ -294,6 +297,7 @@ export const WeightRecap = ({
   /** Apply current weight to all remaining sets of the same exercise, then auto-advance. */
   const applyToRemaining = useCallback(() => {
     if (!currentStep?.exerciseId) return;
+    if (applyTimeoutRef.current) clearTimeout(applyTimeoutRef.current);
     const exerciseId = currentStep.exerciseId;
 
     // Track which indices we fill so we can skip them when looking for unfilled sets
@@ -662,6 +666,8 @@ export const WeightRecap = ({
             variant="primary"
             size="lg"
             onClick={handleComplete}
+            loading={isSaving}
+            disabled={isSaving}
             className={['flex-1', saveNudge ? 'animate-pulse-glow' : ''].join(' ')}
           >
             Save Workout
@@ -678,6 +684,8 @@ export const WeightRecap = ({
             size="lg"
             fullWidth
             onClick={handleComplete}
+            loading={isSaving}
+            disabled={isSaving}
             className={saveNudge ? 'animate-pulse-glow' : ''}
           >
             Save Workout

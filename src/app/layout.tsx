@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, DM_Mono } from 'next/font/google';
 import { ClickSoundProvider } from '@/components/ui/ClickSoundProvider';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ThemeProvider } from '@/components/ui/ThemeProvider';
 import './globals.css';
 
@@ -47,7 +48,7 @@ export default function RootLayout({
       <head>
         <meta
           httpEquiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; worker-src 'self' blob:; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self';"
+          content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; img-src 'self' data:; font-src 'self' data:; connect-src 'self';"
         />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
@@ -56,7 +57,9 @@ export default function RootLayout({
       >
         <ThemeProvider />
         <ClickSoundProvider />
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
       </body>
     </html>
   );

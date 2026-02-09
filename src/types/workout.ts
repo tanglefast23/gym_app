@@ -116,6 +116,15 @@ export interface UnlockedAchievement {
   context: string | null;
 }
 
+/** Summary of a newly unlocked achievement, used for overlay/celebration display. */
+export interface NewAchievementInfo {
+  id: string;
+  name: string;
+  icon: string;
+  iconSrc: string;
+  context: string | null;
+}
+
 // === BODY WEIGHT ===
 export interface BodyWeightEntry {
   id: string;               // crypto.randomUUID()

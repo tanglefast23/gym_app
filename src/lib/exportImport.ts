@@ -146,6 +146,36 @@ export async function downloadExport(): Promise<void> {
 }
 
 /**
+ * Export a backup of all data before an import operation.
+ * Creates a timestamped JSON file download so the user has a safety net
+ * before the destructive replace-all import overwrites their data.
+ *
+ * This should be called by the settings/import UI before calling `importData()`.
+ *
+ * @returns `true` if the backup download was triggered successfully, `false` on error
+ */
+export async function exportBackupBeforeImport(): Promise<boolean> {
+  try {
+    const data = await exportAllData();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `workout-pwa-backup-before-import-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Import data from a JSON file, replacing ALL existing data (v1 replace-all strategy).
  * Validates the file contents via `validateImportData` before touching the database.
  * The entire operation runs inside a single Dexie read-write transaction so a

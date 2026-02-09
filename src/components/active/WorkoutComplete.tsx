@@ -175,9 +175,11 @@ export const WorkoutComplete = ({
     return `That's like lifting a small car ~${nice} times`;
   }, [totalVolumeG]);
 
+  const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   return (
     <div className="relative flex h-full flex-col items-center justify-center gap-8 px-6 py-8">
-      <ConfettiBurst />
+      {!prefersReducedMotion && <ConfettiBurst />}
 
       {/* Hero illustration — dramatic scale-in entrance */}
       {/* eslint-disable-next-line @next/next/no-img-element */}

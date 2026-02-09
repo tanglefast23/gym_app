@@ -15,7 +15,6 @@ import {
   deleteDataByDateRange,
 } from '@/lib/queries';
 import type { UnitSystem, ThemeMode, Sex } from '@/types/workout';
-import { VALIDATION } from '@/types/workout';
 
 // ---------------------------------------------------------------------------
 // Local sub-components
@@ -319,34 +318,6 @@ export default function SettingsPage() {
     }
   }, [importFile, addToast]);
 
-  const handleRestChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const raw = parseInt(e.target.value, 10);
-      if (Number.isNaN(raw)) return;
-
-      const clamped = Math.max(
-        VALIDATION.MIN_REST_SEC,
-        Math.min(VALIDATION.MAX_REST_SEC, raw),
-      );
-      setDefaultRest(clamped);
-    },
-    [setDefaultRest],
-  );
-
-  const handleTransitionsChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const raw = parseInt(e.target.value, 10);
-      if (Number.isNaN(raw)) return;
-
-      const clamped = Math.max(
-        VALIDATION.MIN_REST_SEC,
-        Math.min(VALIDATION.MAX_REST_SEC, raw),
-      );
-      setDefaultTransitions(clamped);
-    },
-    [setDefaultTransitions],
-  );
-
   const handleResetDefaults = useCallback(() => {
     resetDefaults();
     setShowResetConfirm(false);
@@ -478,9 +449,13 @@ export default function SettingsPage() {
     const toISO = localDateEndISO(dateTo);
 
     let cancelled = false;
-    previewDeleteByDateRange(fromISO, toISO).then((preview) => {
-      if (!cancelled) setDateRangePreview(preview);
-    });
+    previewDeleteByDateRange(fromISO, toISO)
+      .then((preview) => {
+        if (!cancelled) setDateRangePreview(preview);
+      })
+      .catch(() => {
+        if (!cancelled) setDateRangePreview(null);
+      });
     return () => { cancelled = true; };
   }, [dateFrom, dateTo]);
 
@@ -604,28 +579,26 @@ export default function SettingsPage() {
         </SettingRow>
 
         <SettingRow label="Default Rest" description="Between sets (seconds)">
-          <input
-            id="default-rest"
-            type="number"
+          <InlineStepper
             value={defaultRest}
-            onChange={handleRestChange}
-            min={VALIDATION.MIN_REST_SEC}
-            max={VALIDATION.MAX_REST_SEC}
-            aria-label="Default rest between sets in seconds"
-            className="w-20 rounded-lg border border-border bg-surface px-3 py-1.5 text-right text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+            onChange={setDefaultRest}
+            min={5}
+            max={300}
+            step={5}
+            formatValue={(v) => `${v}s`}
+            ariaLabel="default rest between sets"
           />
         </SettingRow>
 
         <SettingRow label="Default transitions" description="Between exercises (seconds)">
-          <input
-            id="default-transitions"
-            type="number"
+          <InlineStepper
             value={defaultTransitions}
-            onChange={handleTransitionsChange}
-            min={VALIDATION.MIN_REST_SEC}
-            max={VALIDATION.MAX_REST_SEC}
-            aria-label="Default transitions between exercises in seconds"
-            className="w-20 rounded-lg border border-border bg-surface px-3 py-1.5 text-right text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+            onChange={setDefaultTransitions}
+            min={5}
+            max={180}
+            step={5}
+            formatValue={(v) => `${v}s`}
+            ariaLabel="default transitions between exercises"
           />
         </SettingRow>
 

@@ -117,7 +117,7 @@ export function RestTimer({
       ) : null}
 
       {/* Timer ring (includes REST label inside) */}
-      <TimerRing remainingMs={isRunning ? remainingMs : totalMs} totalMs={totalMs} size={200} />
+      <TimerRing remainingMs={isRunning ? remainingMs : totalMs} totalMs={totalMs} size={200} isRunning={isRunning} />
 
       {/* Control buttons */}
       {isRunning ? (
@@ -206,7 +206,7 @@ export function RestTimer({
 
       {/* Next Up section */}
       {nextName ? (
-        <div className="mt-10 flex flex-col items-center gap-1">
+        <div className="mt-6 flex flex-col items-center gap-1">
           <span className="text-xs font-semibold uppercase tracking-[1px] text-text-muted">
             NEXT UP
           </span>

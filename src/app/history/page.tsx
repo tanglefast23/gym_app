@@ -355,7 +355,7 @@ export default function HistoryPage() {
                       type="button"
                       onClick={() => setTemplateFilters([])}
                       className={[
-                        'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                        'shrink-0 rounded-full border px-3 py-2.5 text-xs font-semibold transition-colors',
                         templateFilters.length === 0
                           ? 'border-accent bg-accent/15 text-text-primary'
                           : 'border-border bg-surface text-text-muted hover:text-text-secondary',
@@ -371,7 +371,7 @@ export default function HistoryPage() {
                           type="button"
                           onClick={() => toggleTemplateFilter(opt.name)}
                           className={[
-                            'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                            'shrink-0 rounded-full border px-3 py-2.5 text-xs font-semibold transition-colors',
                             selected
                               ? 'text-[#0A0A0B]'
                               : 'text-text-secondary hover:text-text-primary',
@@ -453,7 +453,7 @@ export default function HistoryPage() {
                             type="button"
                             onClick={() => setSelectedMonthKey(m.key)}
                             className={[
-                              'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                              'shrink-0 rounded-full border px-3 py-2.5 text-xs font-semibold transition-colors',
                               active
                                 ? 'border-accent bg-accent/15 text-text-primary'
                                 : 'border-border bg-surface text-text-muted hover:text-text-secondary',

@@ -5,8 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useRouter } from 'next/navigation';
 import { Check, Minus, Plus } from 'lucide-react';
 import { db } from '@/lib/db';
-import { localDateKey, latestPerDay } from '@/lib/bodyWeight';
-import { buildBodyWeightChartData } from '@/lib/bodyWeightChartData';
+import { localDateKey, latestPerDay, buildBodyWeightChartData } from '@/lib/bodyWeight';
 import { displayToGrams, formatWeight, formatWeightValue } from '@/lib/calculations';
 import { playSfx } from '@/lib/sfx';
 import { ScaleIcon } from '@/components/icons/ScaleIcon';
@@ -34,6 +33,8 @@ export function WeightTrackerSection({
   const [isSubmittingWeight, setIsSubmittingWeight] = useState(false);
   const [draftInitialized, setDraftInitialized] = useState(false);
   const [showLoggedCheck, setShowLoggedCheck] = useState(false);
+  const [isEditingWeight, setIsEditingWeight] = useState(false);
+  const weightInputRef = useRef<HTMLInputElement | null>(null);
   const [weightLoggedOverlay, setWeightLoggedOverlay] = useState<{
     valueText: string;
     unitText: string;
@@ -86,6 +87,16 @@ export function WeightTrackerSection({
       });
     },
     [showLoggedCheck],
+  );
+
+  const handleCommitWeightEdit = useCallback(
+    (rawValue: string) => {
+      setIsEditingWeight(false);
+      const parsed = Number(rawValue);
+      if (!Number.isFinite(parsed)) return;
+      setTodayDraft(Math.max(0, Math.round(parsed * 10) / 10));
+    },
+    [],
   );
 
   const handleSubmitToday = useCallback(async () => {
@@ -208,34 +219,46 @@ export function WeightTrackerSection({
             <Minus className="h-5 w-5" />
           </button>
 
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (showLoggedCheck) setShowLoggedCheck(false);
-              const next = window.prompt(
-                `Enter today's weight (${unitSystem === 'kg' ? 'kg' : 'lbs'})`,
-                String(todayDraft || ''),
-              );
-              if (next === null) return;
-              const parsed = Number(next);
-              if (!Number.isFinite(parsed)) return;
-              setTodayDraft(Math.max(0, Math.round(parsed * 10) / 10));
-            }}
-            className="min-w-[7.5rem] rounded-2xl border border-border bg-surface px-4 py-3 text-center font-timer text-4xl text-text-primary"
-            aria-label="Edit today's body weight"
-          >
-            {showLoggedCheck ? (
-              <span className="flex flex-col items-center justify-center">
-                <Check className="h-8 w-8 text-success animate-check-pop" />
-                <span className="mt-1 text-xs font-semibold uppercase tracking-[1px] text-text-muted">
-                  Logged
+          {isEditingWeight ? (
+            <input
+              ref={weightInputRef}
+              type="text"
+              inputMode="decimal"
+              defaultValue={todayDraft ? todayDraft.toFixed(todayDraft % 1 === 0 ? 0 : 1) : ''}
+              autoFocus
+              onBlur={(e) => handleCommitWeightEdit(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="min-w-[7.5rem] rounded-2xl border border-border bg-surface px-4 py-3 text-center font-timer text-4xl text-text-primary outline-none focus:border-accent"
+              aria-label="Enter today's body weight"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (showLoggedCheck) setShowLoggedCheck(false);
+                setIsEditingWeight(true);
+              }}
+              className="min-w-[7.5rem] rounded-2xl border border-border bg-surface px-4 py-3 text-center font-timer text-4xl text-text-primary"
+              aria-label="Edit today's body weight"
+            >
+              {showLoggedCheck ? (
+                <span className="flex flex-col items-center justify-center">
+                  <Check className="h-8 w-8 text-success animate-check-pop" />
+                  <span className="mt-1 text-xs font-semibold uppercase tracking-[1px] text-text-muted">
+                    Logged
+                  </span>
                 </span>
-              </span>
-            ) : (
-              todayDraft ? todayDraft.toFixed(todayDraft % 1 === 0 ? 0 : 1) : '—'
-            )}
-          </button>
+              ) : (
+                todayDraft ? todayDraft.toFixed(todayDraft % 1 === 0 ? 0 : 1) : '\u2014'
+              )}
+            </button>
+          )}
 
           <button
             type="button"

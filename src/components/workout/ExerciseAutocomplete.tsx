@@ -149,6 +149,7 @@ export const ExerciseAutocomplete = ({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           role="combobox"
+          aria-haspopup="listbox"
           aria-expanded={showDropdown}
           aria-autocomplete="list"
           aria-controls={listboxId}

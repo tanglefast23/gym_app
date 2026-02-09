@@ -13,8 +13,7 @@ import { formatWeight, formatWeightValue } from '@/lib/calculations';
 import { ScaleIcon } from '@/components/icons/ScaleIcon';
 import { BodyWeightChart } from '@/components/weight/BodyWeightChart';
 import { TimelinePills, type WeightTimeline } from '@/components/weight/TimelinePills';
-import { latestPerDay } from '@/lib/bodyWeight';
-import { buildBodyWeightChartData } from '@/lib/bodyWeightChartData';
+import { latestPerDay, buildBodyWeightChartData } from '@/lib/bodyWeight';
 
 export default function WeightPage() {
   const router = useRouter();

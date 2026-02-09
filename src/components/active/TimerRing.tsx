@@ -7,6 +7,8 @@ interface TimerRingProps {
   remainingMs: number;
   totalMs: number;
   size?: number;
+  /** When false, the timer is paused. Used for accessible labelling. */
+  isRunning?: boolean;
 }
 
 // Use CSS variable values so these respond to theme changes.
@@ -24,6 +26,7 @@ export function TimerRing({
   remainingMs,
   totalMs,
   size = 200,
+  isRunning,
 }: TimerRingProps) {
   const strokeWidth = 4;
   const radius = (size - strokeWidth) / 2;
@@ -97,7 +100,7 @@ export function TimerRing({
       <div
         className="relative z-10 flex flex-col items-center"
         role="timer"
-        aria-label={`Rest timer: ${remainingSec} seconds remaining`}
+        aria-label={isRunning === false ? `Rest timer paused: ${remainingSec} seconds` : `Rest timer: ${remainingSec} seconds remaining`}
       >
         <span
           className="font-timer text-[56px] leading-none text-text-primary"

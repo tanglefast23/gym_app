@@ -661,6 +661,214 @@ export function validateImportBodyWeightEntry(record: unknown, index: number): s
 }
 
 // ---------------------------------------------------------------------------
+// Property stripping helpers — keep only known fields, discard extras
+// ---------------------------------------------------------------------------
+
+/**
+ * Strip unknown properties from a validated exercise record.
+ * Only retains fields defined in the Exercise interface.
+ */
+export function stripExercise(record: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: record.id,
+    name: record.name,
+    visualKey: record.visualKey,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+  };
+}
+
+/**
+ * Strip unknown properties from a validated performed set record.
+ * Only retains fields defined in the PerformedSet interface.
+ */
+function stripPerformedSet(record: Record<string, unknown>): Record<string, unknown> {
+  return {
+    exerciseId: record.exerciseId,
+    exerciseNameSnapshot: record.exerciseNameSnapshot,
+    blockPath: record.blockPath,
+    setIndex: record.setIndex,
+    repsTargetMin: record.repsTargetMin,
+    repsTargetMax: record.repsTargetMax,
+    repsDone: record.repsDone,
+    weightG: record.weightG,
+  };
+}
+
+/**
+ * Strip unknown properties from a validated ExerciseBlockExercise.
+ */
+function stripExerciseBlockExercise(record: Record<string, unknown>): Record<string, unknown> {
+  return {
+    exerciseId: record.exerciseId,
+    repsMin: record.repsMin,
+    repsMax: record.repsMax,
+  };
+}
+
+/**
+ * Strip unknown properties from a validated template block.
+ * Handles both 'exercise' and 'superset' block types.
+ */
+function stripTemplateBlock(record: Record<string, unknown>): Record<string, unknown> {
+  if (record.type === 'exercise') {
+    return {
+      id: record.id,
+      type: record.type,
+      exerciseId: record.exerciseId,
+      sets: record.sets,
+      repsMin: record.repsMin,
+      repsMax: record.repsMax,
+      restBetweenSetsSec: record.restBetweenSetsSec ?? null,
+      transitionRestSec: record.transitionRestSec ?? null,
+    };
+  }
+
+  // superset
+  const exercises = Array.isArray(record.exercises)
+    ? (record.exercises as Record<string, unknown>[]).map(stripExerciseBlockExercise)
+    : record.exercises;
+
+  return {
+    id: record.id,
+    type: record.type,
+    sets: record.sets,
+    exercises,
+    restBetweenExercisesSec: record.restBetweenExercisesSec,
+    restBetweenSupersetsSec: record.restBetweenSupersetsSec,
+    transitionRestSec: record.transitionRestSec ?? null,
+  };
+}
+
+/**
+ * Strip unknown properties from a validated template blocks array.
+ */
+function stripTemplateBlocks(blocks: unknown): unknown[] {
+  if (!Array.isArray(blocks)) return [];
+  return blocks.map((b: Record<string, unknown>) => stripTemplateBlock(b));
+}
+
+/**
+ * Strip unknown properties from a validated template record.
+ * Only retains fields defined in the WorkoutTemplate interface.
+ */
+export function stripTemplate(record: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: record.id,
+    name: record.name,
+    blocks: stripTemplateBlocks(record.blocks),
+    defaultRestBetweenSetsSec: record.defaultRestBetweenSetsSec ?? null,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    isArchived: record.isArchived,
+  };
+}
+
+/**
+ * Strip unknown properties from a validated workout log record.
+ * Only retains fields defined in the WorkoutLog interface.
+ */
+export function stripLog(record: Record<string, unknown>): Record<string, unknown> {
+  const performedSets = Array.isArray(record.performedSets)
+    ? (record.performedSets as Record<string, unknown>[]).map(stripPerformedSet)
+    : record.performedSets;
+
+  return {
+    id: record.id,
+    status: record.status,
+    templateId: record.templateId ?? null,
+    templateName: record.templateName,
+    templateSnapshot: stripTemplateBlocks(record.templateSnapshot),
+    performedSets,
+    startedAt: record.startedAt,
+    endedAt: record.endedAt ?? null,
+    durationSec: record.durationSec,
+    totalVolumeG: record.totalVolumeG,
+  };
+}
+
+/**
+ * Strip unknown properties from a validated exercise history entry.
+ * Only retains fields defined in the ExerciseHistoryEntry interface.
+ */
+export function stripExerciseHistoryEntry(record: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {
+    logId: record.logId,
+    exerciseId: record.exerciseId,
+    exerciseName: record.exerciseName,
+    performedAt: record.performedAt,
+    bestWeightG: record.bestWeightG,
+    totalVolumeG: record.totalVolumeG,
+    totalSets: record.totalSets,
+    totalReps: record.totalReps,
+    estimated1RM_G: record.estimated1RM_G ?? null,
+  };
+  // id is optional (auto-increment)
+  if (record.id !== undefined && record.id !== null) {
+    result.id = record.id;
+  }
+  return result;
+}
+
+/**
+ * Strip unknown properties from a validated achievement record.
+ * Only retains fields defined in the UnlockedAchievement interface.
+ */
+export function stripAchievement(record: Record<string, unknown>): Record<string, unknown> {
+  return {
+    achievementId: record.achievementId,
+    unlockedAt: record.unlockedAt,
+    context: record.context ?? null,
+  };
+}
+
+/**
+ * Strip unknown properties from a validated body weight entry.
+ * Only retains fields defined in the BodyWeightEntry interface.
+ */
+export function stripBodyWeightEntry(record: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: record.id,
+    recordedAt: record.recordedAt,
+    weightG: record.weightG,
+  };
+}
+
+/**
+ * Strip unknown properties from validated settings.
+ * Only retains fields defined in the UserSettings interface.
+ */
+export function stripSettings(record: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  const knownKeys = [
+    'id', 'unitSystem', 'defaultRestBetweenSetsSec', 'defaultTransitionsSec',
+    'weightStepsKg', 'weightStepsLb', 'hapticFeedback', 'soundEnabled',
+    'restTimerSound', 'autoStartRestTimer', 'theme', 'heightCm', 'age', 'sex',
+  ];
+  for (const key of knownKeys) {
+    if (record[key] !== undefined) {
+      result[key] = record[key];
+    }
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Import array length caps
+// ---------------------------------------------------------------------------
+
+const IMPORT_CAPS = {
+  exercises: 1_000,
+  templates: 500,
+  logs: 10_000,
+  exerciseHistory: 50_000,
+  achievements: 100,
+  bodyWeights: 5_000,
+  weightStepsKg: 20,
+  weightStepsLb: 20,
+} as const;
+
+// ---------------------------------------------------------------------------
 // Top-level import validation
 // ---------------------------------------------------------------------------
 
@@ -709,28 +917,67 @@ export function validateImportData(data: unknown): { valid: boolean; errors: str
     return { valid: false, errors };
   }
 
-  // Per-record validation
+  // --- Array length caps (reject oversized payloads before iterating) ---
   const exercises = d.exercises as unknown[];
+  const templates = d.templates as unknown[];
+  const logs = d.logs as unknown[];
+  const historyEntries = d.exerciseHistory as unknown[];
+  const achievements = d.achievements as unknown[];
+
+  if (exercises.length > IMPORT_CAPS.exercises) {
+    errors.push(`Too many exercises (max ${IMPORT_CAPS.exercises.toLocaleString()})`);
+  }
+  if (templates.length > IMPORT_CAPS.templates) {
+    errors.push(`Too many templates (max ${IMPORT_CAPS.templates.toLocaleString()})`);
+  }
+  if (logs.length > IMPORT_CAPS.logs) {
+    errors.push(`Too many logs (max ${IMPORT_CAPS.logs.toLocaleString()})`);
+  }
+  if (historyEntries.length > IMPORT_CAPS.exerciseHistory) {
+    errors.push(`Too many exercise history entries (max ${IMPORT_CAPS.exerciseHistory.toLocaleString()})`);
+  }
+  if (achievements.length > IMPORT_CAPS.achievements) {
+    errors.push(`Too many achievements (max ${IMPORT_CAPS.achievements.toLocaleString()})`);
+  }
+
+  if (d.bodyWeights !== undefined && Array.isArray(d.bodyWeights)) {
+    if ((d.bodyWeights as unknown[]).length > IMPORT_CAPS.bodyWeights) {
+      errors.push(`Too many body weight entries (max ${IMPORT_CAPS.bodyWeights.toLocaleString()})`);
+    }
+  }
+
+  // Check weight steps caps inside settings if present
+  if (d.settings !== undefined && d.settings !== null && isRecord(d.settings)) {
+    if (Array.isArray(d.settings.weightStepsKg) && d.settings.weightStepsKg.length > IMPORT_CAPS.weightStepsKg) {
+      errors.push(`Too many weightStepsKg entries (max ${IMPORT_CAPS.weightStepsKg})`);
+    }
+    if (Array.isArray(d.settings.weightStepsLb) && d.settings.weightStepsLb.length > IMPORT_CAPS.weightStepsLb) {
+      errors.push(`Too many weightStepsLb entries (max ${IMPORT_CAPS.weightStepsLb})`);
+    }
+  }
+
+  // If any cap was exceeded, return early to avoid iterating over huge arrays
+  if (errors.length > 0) {
+    return { valid: false, errors };
+  }
+
+  // Per-record validation
   for (let i = 0; i < exercises.length; i++) {
     errors.push(...validateImportExercise(exercises[i], i));
   }
 
-  const templates = d.templates as unknown[];
   for (let i = 0; i < templates.length; i++) {
     errors.push(...validateImportTemplate(templates[i], i));
   }
 
-  const logs = d.logs as unknown[];
   for (let i = 0; i < logs.length; i++) {
     errors.push(...validateImportLog(logs[i], i));
   }
 
-  const historyEntries = d.exerciseHistory as unknown[];
   for (let i = 0; i < historyEntries.length; i++) {
     errors.push(...validateImportExerciseHistoryEntry(historyEntries[i], i));
   }
 
-  const achievements = d.achievements as unknown[];
   for (let i = 0; i < achievements.length; i++) {
     errors.push(...validateImportUnlockedAchievement(achievements[i], i));
   }
@@ -750,6 +997,34 @@ export function validateImportData(data: unknown): { valid: boolean; errors: str
   // Settings is optional in the schema but if present must be valid
   if (d.settings !== undefined && d.settings !== null) {
     errors.push(...validateImportSettings(d.settings));
+  }
+
+  // --- Strip unknown properties from all validated records ---
+  if (errors.length === 0) {
+    for (let i = 0; i < exercises.length; i++) {
+      exercises[i] = stripExercise(exercises[i] as Record<string, unknown>);
+    }
+    for (let i = 0; i < templates.length; i++) {
+      templates[i] = stripTemplate(templates[i] as Record<string, unknown>);
+    }
+    for (let i = 0; i < logs.length; i++) {
+      logs[i] = stripLog(logs[i] as Record<string, unknown>);
+    }
+    for (let i = 0; i < historyEntries.length; i++) {
+      historyEntries[i] = stripExerciseHistoryEntry(historyEntries[i] as Record<string, unknown>);
+    }
+    for (let i = 0; i < achievements.length; i++) {
+      achievements[i] = stripAchievement(achievements[i] as Record<string, unknown>);
+    }
+    if (Array.isArray(d.bodyWeights)) {
+      const bodyWeights = d.bodyWeights as unknown[];
+      for (let i = 0; i < bodyWeights.length; i++) {
+        bodyWeights[i] = stripBodyWeightEntry(bodyWeights[i] as Record<string, unknown>);
+      }
+    }
+    if (d.settings !== undefined && d.settings !== null) {
+      d.settings = stripSettings(d.settings as Record<string, unknown>);
+    }
   }
 
   return { valid: errors.length === 0, errors };

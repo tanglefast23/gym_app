@@ -2,7 +2,7 @@
 
 import { useRef, useCallback, type RefObject } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { tabs } from '@/components/layout/BottomTabBar';
+import { tabs } from '@/lib/navigation';
 
 const SWIPE_THRESHOLD = 50;
 const SWIPE_MAX_VERTICAL = 100;

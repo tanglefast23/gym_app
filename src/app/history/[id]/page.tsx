@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ArrowLeft, Clock, Layers, TrendingUp, Dumbbell } from 'lucide-react';
+import { ChevronLeft, Clock, Layers, TrendingUp, Dumbbell } from 'lucide-react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { formatDuration, formatWeight, formatWeightValue } from '@/lib/calculations';
@@ -76,8 +76,8 @@ export default function LogDetailPage() {
           title="Loading..."
           centered
           leftAction={
-            <button type="button" onClick={() => router.back()} aria-label="Go back" className="rounded-lg p-2 text-text-secondary transition-colors hover:bg-surface">
-              <ArrowLeft className="h-5 w-5" />
+            <button type="button" onClick={() => router.back()} aria-label="Go back" className="flex items-center justify-center rounded-lg p-2 min-h-[44px] min-w-[44px] text-text-secondary transition-colors hover:bg-surface">
+              <ChevronLeft className="h-5 w-5" />
             </button>
           }
         />
@@ -96,8 +96,8 @@ export default function LogDetailPage() {
           title="Not Found"
           centered
           leftAction={
-            <button type="button" onClick={() => router.back()} aria-label="Go back" className="rounded-lg p-2 text-text-secondary transition-colors hover:bg-surface">
-              <ArrowLeft className="h-5 w-5" />
+            <button type="button" onClick={() => router.back()} aria-label="Go back" className="flex items-center justify-center rounded-lg p-2 min-h-[44px] min-w-[44px] text-text-secondary transition-colors hover:bg-surface">
+              <ChevronLeft className="h-5 w-5" />
             </button>
           }
         />
@@ -115,8 +115,8 @@ export default function LogDetailPage() {
         title={formatDetailDate(log.startedAt)}
         centered
         leftAction={
-          <button type="button" onClick={() => router.back()} aria-label="Go back">
-            <ArrowLeft className="h-5 w-5 text-text-secondary" />
+          <button type="button" onClick={() => router.back()} aria-label="Go back" className="flex items-center justify-center rounded-lg p-2 min-h-[44px] min-w-[44px] text-text-secondary transition-colors hover:bg-surface">
+            <ChevronLeft className="h-5 w-5" />
           </button>
         }
       />

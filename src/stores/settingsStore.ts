@@ -28,6 +28,43 @@ interface SettingsState {
   sex: Sex | null;
 }
 
+/** The SettingsState field names, used to pick/spread only data fields. */
+const SETTINGS_KEYS: readonly (keyof SettingsState)[] = [
+  'unitSystem',
+  'defaultRestBetweenSetsSec',
+  'defaultTransitionsSec',
+  'weightStepsKg',
+  'weightStepsLb',
+  'hapticFeedback',
+  'soundEnabled',
+  'restTimerSound',
+  'autoStartRestTimer',
+  'theme',
+  'heightCm',
+  'age',
+  'sex',
+] as const;
+
+/**
+ * Default values for every SettingsState field, derived from the canonical
+ * DEFAULT_SETTINGS in types/workout.ts. Strips the `id` field so this is
+ * a pure SettingsState.
+ */
+const STATE_DEFAULTS: SettingsState = (() => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { id: _id, ...rest } = DEFAULT_SETTINGS;
+  return rest;
+})();
+
+/** Pick only SettingsState keys from an arbitrary object. */
+function pickSettingsState(source: Record<string, unknown>): SettingsState {
+  const result = {} as Record<string, unknown>;
+  for (const key of SETTINGS_KEYS) {
+    result[key] = source[key as string];
+  }
+  return result as unknown as SettingsState;
+}
+
 interface SettingsActions {
   setUnitSystem: (unit: UnitSystem) => void;
   setDefaultRest: (seconds: number) => void;
@@ -50,20 +87,8 @@ interface SettingsActions {
 export const useSettingsStore = create<SettingsState & SettingsActions>()(
   persist(
     (set) => ({
-      // --- data fields (defaults from DEFAULT_SETTINGS) ---
-      unitSystem: DEFAULT_SETTINGS.unitSystem,
-      defaultRestBetweenSetsSec: DEFAULT_SETTINGS.defaultRestBetweenSetsSec,
-      defaultTransitionsSec: DEFAULT_SETTINGS.defaultTransitionsSec,
-      weightStepsKg: DEFAULT_SETTINGS.weightStepsKg,
-      weightStepsLb: DEFAULT_SETTINGS.weightStepsLb,
-      hapticFeedback: DEFAULT_SETTINGS.hapticFeedback,
-      soundEnabled: DEFAULT_SETTINGS.soundEnabled,
-      restTimerSound: DEFAULT_SETTINGS.restTimerSound,
-      autoStartRestTimer: DEFAULT_SETTINGS.autoStartRestTimer,
-      theme: DEFAULT_SETTINGS.theme,
-      heightCm: DEFAULT_SETTINGS.heightCm,
-      age: DEFAULT_SETTINGS.age,
-      sex: DEFAULT_SETTINGS.sex,
+      // --- data fields (spread from centralized defaults) ---
+      ...STATE_DEFAULTS,
 
       // --- actions ---
       setUnitSystem: (unitSystem) => set({ unitSystem }),
@@ -83,57 +108,29 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       setHeightCm: (heightCm) => set({ heightCm }),
       setAge: (age) => set({ age }),
       setSex: (sex) => set({ sex }),
-      resetToDefaults: () =>
-        set({
-          unitSystem: DEFAULT_SETTINGS.unitSystem,
-          defaultRestBetweenSetsSec: DEFAULT_SETTINGS.defaultRestBetweenSetsSec,
-          defaultTransitionsSec: DEFAULT_SETTINGS.defaultTransitionsSec,
-          weightStepsKg: DEFAULT_SETTINGS.weightStepsKg,
-          weightStepsLb: DEFAULT_SETTINGS.weightStepsLb,
-          hapticFeedback: DEFAULT_SETTINGS.hapticFeedback,
-          soundEnabled: DEFAULT_SETTINGS.soundEnabled,
-          restTimerSound: DEFAULT_SETTINGS.restTimerSound,
-          autoStartRestTimer: DEFAULT_SETTINGS.autoStartRestTimer,
-          theme: DEFAULT_SETTINGS.theme,
-          heightCm: DEFAULT_SETTINGS.heightCm,
-          age: DEFAULT_SETTINGS.age,
-          sex: DEFAULT_SETTINGS.sex,
-        }),
+      resetToDefaults: () => set(STATE_DEFAULTS),
       rehydrateFromImport: (settings: UserSettings) =>
         set({
           unitSystem: settings.unitSystem,
           defaultRestBetweenSetsSec: settings.defaultRestBetweenSetsSec,
           defaultTransitionsSec:
-            settings.defaultTransitionsSec ?? DEFAULT_SETTINGS.defaultTransitionsSec,
+            settings.defaultTransitionsSec ?? STATE_DEFAULTS.defaultTransitionsSec,
           weightStepsKg: settings.weightStepsKg,
           weightStepsLb: settings.weightStepsLb,
           hapticFeedback: settings.hapticFeedback,
-          soundEnabled: settings.soundEnabled ?? DEFAULT_SETTINGS.soundEnabled,
+          soundEnabled: settings.soundEnabled ?? STATE_DEFAULTS.soundEnabled,
           restTimerSound: settings.restTimerSound,
-          autoStartRestTimer: settings.autoStartRestTimer ?? DEFAULT_SETTINGS.autoStartRestTimer,
+          autoStartRestTimer:
+            settings.autoStartRestTimer ?? STATE_DEFAULTS.autoStartRestTimer,
           theme: settings.theme,
-          heightCm: settings.heightCm ?? DEFAULT_SETTINGS.heightCm,
-          age: settings.age ?? DEFAULT_SETTINGS.age,
-          sex: settings.sex ?? DEFAULT_SETTINGS.sex,
+          heightCm: settings.heightCm ?? STATE_DEFAULTS.heightCm,
+          age: settings.age ?? STATE_DEFAULTS.age,
+          sex: settings.sex ?? STATE_DEFAULTS.sex,
         }),
     }),
     {
       name: 'workout-pwa-settings',
-      partialize: (state): SettingsState => ({
-        unitSystem: state.unitSystem,
-        defaultRestBetweenSetsSec: state.defaultRestBetweenSetsSec,
-        defaultTransitionsSec: state.defaultTransitionsSec,
-        weightStepsKg: state.weightStepsKg,
-        weightStepsLb: state.weightStepsLb,
-        hapticFeedback: state.hapticFeedback,
-        soundEnabled: state.soundEnabled,
-        restTimerSound: state.restTimerSound,
-        autoStartRestTimer: state.autoStartRestTimer,
-        theme: state.theme,
-        heightCm: state.heightCm,
-        age: state.age,
-        sex: state.sex,
-      }),
+      partialize: (state) => pickSettingsState(state as unknown as Record<string, unknown>),
     }
   )
 );

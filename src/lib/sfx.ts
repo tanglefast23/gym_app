@@ -5,6 +5,12 @@
 // - Respect the user's "Sound" toggle (and timer sound toggles where relevant)
 // - Preload/unlock audio for iOS Safari so timer beeps can play programmatically
 
+// TODO: Architectural violation — lib layer imports from stores layer.
+// `useSettingsStore` is accessed via `.getState()` (not as a hook), but this still
+// creates a hard dependency from lib -> stores, violating the intended one-way
+// dependency rule (types -> lib -> stores -> hooks -> components -> app).
+// To fix properly, callers should pass `{ soundEnabled, restTimerSound }` explicitly.
+// Blocked on updating all call sites (page files) which are owned by other agents.
 import { useSettingsStore } from '@/stores/settingsStore';
 
 export type SfxKey =
@@ -20,6 +26,11 @@ export type SfxKey =
   | 'success';
 
 type SfxCategory = 'ui' | 'timer' | 'celebration';
+
+interface SfxSoundSettings {
+  soundEnabled: boolean;
+  restTimerSound: boolean;
+}
 
 const SFX: Record<SfxKey, { url: string; category: SfxCategory; volume: number }> =
   {
@@ -50,8 +61,20 @@ function isBrowser(): boolean {
   return typeof window !== 'undefined' && typeof document !== 'undefined';
 }
 
-function isSoundAllowed(key: SfxKey): boolean {
-  const { soundEnabled, restTimerSound } = useSettingsStore.getState();
+/**
+ * Read sound settings from the store. Centralized here so the store access
+ * happens in exactly one place, making the architectural violation easy to
+ * find and replace later.
+ */
+function getSettings(): SfxSoundSettings {
+  return useSettingsStore.getState();
+}
+
+function isSoundAllowed(
+  key: SfxKey,
+  settings?: Partial<SfxSoundSettings>,
+): boolean {
+  const { soundEnabled, restTimerSound } = { ...getSettings(), ...settings };
   if (!soundEnabled) return false;
 
   const category = SFX[key].category;
@@ -122,12 +145,25 @@ export function isSfxKey(value: string): value is SfxKey {
   return (Object.keys(SFX) as string[]).includes(value);
 }
 
+/**
+ * Play a sound effect by key.
+ *
+ * @param key - Which SFX to play.
+ * @param opts.volume - Override the default volume for this SFX.
+ * @param opts.soundEnabled - Override the store's `soundEnabled` setting (avoids store read).
+ * @param opts.restTimerSound - Override the store's `restTimerSound` setting (avoids store read).
+ */
 export function playSfx(
   key: SfxKey,
-  opts?: { volume?: number },
+  opts?: { volume?: number; soundEnabled?: boolean; restTimerSound?: boolean },
 ): void {
   if (!isBrowser()) return;
-  if (!isSoundAllowed(key)) return;
+
+  const settingsOverride: Partial<SfxSoundSettings> = {};
+  if (opts?.soundEnabled !== undefined) settingsOverride.soundEnabled = opts.soundEnabled;
+  if (opts?.restTimerSound !== undefined) settingsOverride.restTimerSound = opts.restTimerSound;
+
+  if (!isSoundAllowed(key, Object.keys(settingsOverride).length > 0 ? settingsOverride : undefined)) return;
 
   try {
     const audio = getOrCreateAudio(key);

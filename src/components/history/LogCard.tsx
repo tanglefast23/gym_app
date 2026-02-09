@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { Clock, Layers, TrendingUp } from 'lucide-react';
 import { formatDuration, formatWeight } from '@/lib/calculations';
 import { hexToRgba } from '@/lib/workoutTypeColors';
@@ -30,22 +30,36 @@ function formatLogDate(isoString: string): string {
  * A card displaying a workout log entry in the history list.
  * Shows template name, date, duration, set count, and volume.
  */
+const PRESS_HINT_MS = 300;
+
 export const LogCard = ({ log, typeColor, onClick, onLongPress }: LogCardProps) => {
   const unitSystem = useSettingsStore((s) => s.unitSystem);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
+  const [isPressing, setIsPressing] = useState(false);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+    if (hintTimerRef.current) {
+      clearTimeout(hintTimerRef.current);
+      hintTimerRef.current = null;
+    }
+    setIsPressing(false);
   }, []);
 
   const startPress = useCallback(() => {
     didLongPress.current = false;
+    hintTimerRef.current = setTimeout(() => {
+      hintTimerRef.current = null;
+      setIsPressing(true);
+    }, PRESS_HINT_MS);
     timerRef.current = setTimeout(() => {
       didLongPress.current = true;
+      setIsPressing(false);
       onLongPress?.();
     }, LONG_PRESS_MS);
   }, [onLongPress]);
@@ -80,7 +94,10 @@ export const LogCard = ({ log, typeColor, onClick, onLongPress }: LogCardProps) 
       onContextMenu={(e) => {
         if (onLongPress) e.preventDefault();
       }}
-      className="mb-3 cursor-pointer rounded-2xl border border-border bg-surface px-4 py-3 transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className={[
+        'mb-3 cursor-pointer rounded-2xl border border-border bg-surface px-4 py-3 transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        isPressing ? 'scale-[0.98]' : '',
+      ].join(' ')}
     >
       {/* Row 1: workout name + date (and optional status) */}
       <div className="flex items-center justify-between gap-2">
