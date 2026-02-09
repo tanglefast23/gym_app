@@ -173,6 +173,7 @@ interface ImportSummary {
   templates: number;
   logs: number;
   achievements: number;
+  bodyWeights: number;
   exportedAt: string;
 }
 
@@ -401,6 +402,7 @@ export default function SettingsPage() {
     logs: number;
     exerciseHistory: number;
     achievements: number;
+    bodyWeights: number;
   } | null>(null);
   const [deleteAllCountdown, setDeleteAllCountdown] = useState(3);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
@@ -719,7 +721,7 @@ export default function SettingsPage() {
             <p className="text-xs text-text-secondary">
               {importSummary.exercises} exercises, {importSummary.templates}{' '}
               templates, {importSummary.logs} logs, {importSummary.achievements}{' '}
-              achievements
+              achievements, {importSummary.bodyWeights} weight entries
             </p>
             <p className="mt-1 text-xs text-text-muted">
               Exported on{' '}
@@ -883,7 +885,7 @@ export default function SettingsPage() {
         title="Delete all data?"
         description={
           deleteAllCounts
-            ? `This will permanently delete ALL your data:\n\n• ${deleteAllCounts.logs} workout logs\n• ${deleteAllCounts.templates} workout templates\n• ${deleteAllCounts.exercises} exercises\n• ${deleteAllCounts.exerciseHistory} history entries\n• ${deleteAllCounts.achievements} achievements\n\nYour settings will be preserved. This cannot be undone.`
+            ? `This will permanently delete ALL your data:\n\n• ${deleteAllCounts.logs} workout logs\n• ${deleteAllCounts.templates} workout templates\n• ${deleteAllCounts.exercises} exercises\n• ${deleteAllCounts.exerciseHistory} history entries\n• ${deleteAllCounts.achievements} achievements\n• ${deleteAllCounts.bodyWeights} weight entries\n\nYour settings will be preserved. This cannot be undone.`
             : 'Loading data counts...'
         }
         confirmText="Continue"

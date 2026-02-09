@@ -639,6 +639,27 @@ export function validateImportSettings(settings: unknown): string[] {
   return errors;
 }
 
+export function validateImportBodyWeightEntry(record: unknown, index: number): string[] {
+  const errors: string[] = [];
+  const prefix = `bodyWeights[${index}]`;
+
+  if (!isRecord(record)) {
+    return [`${prefix}: must be an object`];
+  }
+
+  if (!isNonEmptyString(record.id)) {
+    errors.push(`${prefix}: "id" must be a non-empty string`);
+  }
+  if (!isValidISODate(record.recordedAt)) {
+    errors.push(`${prefix}: "recordedAt" must be a valid ISO date string`);
+  }
+  if (!isInt(record.weightG) || record.weightG < 0 || record.weightG > VALIDATION.MAX_WEIGHT_G) {
+    errors.push(`${prefix}: "weightG" must be an integer between 0 and ${VALIDATION.MAX_WEIGHT_G}`);
+  }
+
+  return errors;
+}
+
 // ---------------------------------------------------------------------------
 // Top-level import validation
 // ---------------------------------------------------------------------------
@@ -712,6 +733,18 @@ export function validateImportData(data: unknown): { valid: boolean; errors: str
   const achievements = d.achievements as unknown[];
   for (let i = 0; i < achievements.length; i++) {
     errors.push(...validateImportUnlockedAchievement(achievements[i], i));
+  }
+
+  // Optional for backwards compatibility with older exports
+  if (d.bodyWeights !== undefined) {
+    if (!Array.isArray(d.bodyWeights)) {
+      errors.push('bodyWeights must be an array');
+    } else {
+      const bodyWeights = d.bodyWeights as unknown[];
+      for (let i = 0; i < bodyWeights.length; i++) {
+        errors.push(...validateImportBodyWeightEntry(bodyWeights[i], i));
+      }
+    }
   }
 
   // Settings is optional in the schema but if present must be valid

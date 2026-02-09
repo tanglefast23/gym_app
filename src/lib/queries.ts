@@ -178,15 +178,17 @@ export async function getDataCounts(): Promise<{
   logs: number;
   exerciseHistory: number;
   achievements: number;
+  bodyWeights: number;
 }> {
-  const [exercises, templates, logs, exerciseHistory, achievements] = await Promise.all([
+  const [exercises, templates, logs, exerciseHistory, achievements, bodyWeights] = await Promise.all([
     db.exercises.count(),
     db.templates.count(),
     db.logs.count(),
     db.exerciseHistory.count(),
     db.achievements.count(),
+    db.bodyWeights.count(),
   ]);
-  return { exercises, templates, logs, exerciseHistory, achievements };
+  return { exercises, templates, logs, exerciseHistory, achievements, bodyWeights };
 }
 
 /**
@@ -202,6 +204,7 @@ export async function deleteAllData(): Promise<void> {
     db.logs.clear(),
     db.exerciseHistory.clear(),
     db.achievements.clear(),
+    db.bodyWeights.clear(),
     db.crashRecovery.clear(),
   ]);
 }

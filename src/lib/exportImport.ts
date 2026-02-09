@@ -102,13 +102,14 @@ function normalizeImportedSettings(raw: unknown): UserSettings {
  * @returns A fully-populated `ExportData` object
  */
 export async function exportAllData(): Promise<ExportData> {
-  const [exercises, templates, logs, exerciseHistory, achievements] =
+  const [exercises, templates, logs, exerciseHistory, achievements, bodyWeights] =
     await Promise.all([
       db.exercises.toArray(),
       db.templates.toArray(),
       db.logs.toArray(),
       db.exerciseHistory.toArray(),
       db.achievements.toArray(),
+      db.bodyWeights.toArray(),
     ]);
 
   return {
@@ -120,6 +121,7 @@ export async function exportAllData(): Promise<ExportData> {
     logs,
     exerciseHistory,
     achievements,
+    bodyWeights,
   };
 }
 
@@ -188,6 +190,7 @@ export async function importData(
         db.logs,
         db.exerciseHistory,
         db.achievements,
+        db.bodyWeights,
         db.settings,
         db.crashRecovery,
       ],
@@ -199,6 +202,7 @@ export async function importData(
           db.logs.clear(),
           db.exerciseHistory.clear(),
           db.achievements.clear(),
+          db.bodyWeights.clear(),
           db.settings.clear(),
           db.crashRecovery.clear(),
         ]);
@@ -218,6 +222,9 @@ export async function importData(
         }
         if (parsed.achievements.length > 0) {
           await db.achievements.bulkAdd(parsed.achievements);
+        }
+        if (parsed.bodyWeights && parsed.bodyWeights.length > 0) {
+          await db.bodyWeights.bulkAdd(parsed.bodyWeights);
         }
         await db.settings.put(normalizedSettings);
       },
@@ -251,6 +258,7 @@ export async function previewImport(file: File): Promise<{
     templates: number;
     logs: number;
     achievements: number;
+    bodyWeights: number;
     exportedAt: string;
   };
 }> {
@@ -273,6 +281,9 @@ export async function previewImport(file: File): Promise<{
     }
 
     const d = data as ExportData;
+    const bodyWeights = Array.isArray((d as unknown as { bodyWeights?: unknown }).bodyWeights)
+      ? (d.bodyWeights ?? []).length
+      : 0;
     return {
       valid: true,
       errors: [],
@@ -281,6 +292,7 @@ export async function previewImport(file: File): Promise<{
         templates: d.templates.length,
         logs: d.logs.length,
         achievements: d.achievements.length,
+        bodyWeights,
         exportedAt: d.exportedAt,
       },
     };

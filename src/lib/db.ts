@@ -5,6 +5,7 @@ import type {
   WorkoutLog,
   ExerciseHistoryEntry,
   UnlockedAchievement,
+  BodyWeightEntry,
   UserSettings,
   CrashRecoveryData,
 } from '@/types/workout';
@@ -15,6 +16,7 @@ export class WorkoutDB extends Dexie {
   logs!: Table<WorkoutLog, string>;
   exerciseHistory!: Table<ExerciseHistoryEntry, number>;
   achievements!: Table<UnlockedAchievement, string>;
+  bodyWeights!: Table<BodyWeightEntry, string>;
   settings!: Table<UserSettings, string>;
   crashRecovery!: Table<CrashRecoveryData, string>;
 
@@ -41,6 +43,19 @@ export class WorkoutDB extends Dexie {
       exerciseHistory:
         '++id, exerciseId, exerciseName, logId, performedAt, [exerciseId+performedAt], [exerciseName+performedAt]',
       achievements: 'achievementId, unlockedAt',
+      settings: 'id',
+      crashRecovery: 'id',
+    });
+
+    // v3: add body weight tracking
+    this.version(3).stores({
+      exercises: 'id, name',
+      templates: 'id, name, isArchived, createdAt',
+      logs: 'id, templateId, startedAt, status, [templateId+startedAt]',
+      exerciseHistory:
+        '++id, exerciseId, exerciseName, logId, performedAt, [exerciseId+performedAt], [exerciseName+performedAt]',
+      achievements: 'achievementId, unlockedAt',
+      bodyWeights: 'id, recordedAt',
       settings: 'id',
       crashRecovery: 'id',
     });

@@ -116,6 +116,13 @@ export interface UnlockedAchievement {
   context: string | null;
 }
 
+// === BODY WEIGHT ===
+export interface BodyWeightEntry {
+  id: string;               // crypto.randomUUID()
+  recordedAt: string;       // ISO timestamp
+  weightG: number;          // integer grams
+}
+
 // === SETTINGS ===
 export type UnitSystem = 'kg' | 'lb';
 export type ThemeMode = 'dark' | 'light' | 'system';
@@ -161,6 +168,8 @@ export interface ExportData {
   logs: WorkoutLog[];
   exerciseHistory: ExerciseHistoryEntry[];
   achievements: UnlockedAchievement[];
+  /** Optional for backward compatibility with older backups. */
+  bodyWeights?: BodyWeightEntry[];
 }
 
 // === STEP ENGINE ===

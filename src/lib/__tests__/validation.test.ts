@@ -521,6 +521,9 @@ describe('validateImportData', () => {
       ],
       exerciseHistory: [],
       achievements: [],
+      bodyWeights: [
+        { id: 'bw-1', recordedAt: '2025-01-01T08:00:00Z', weightG: 80000 },
+      ],
       settings: { id: 'settings', unitSystem: 'kg', defaultRestBetweenSetsSec: 90, weightStepsKg: [1, 2.5, 5], weightStepsLb: [2.5, 5, 10], hapticFeedback: true, soundEnabled: true, restTimerSound: true, theme: 'dark' },
     });
     expect(result.valid).toBe(true);
