@@ -119,6 +119,7 @@ export interface UnlockedAchievement {
 // === SETTINGS ===
 export type UnitSystem = 'kg' | 'lb';
 export type ThemeMode = 'dark' | 'light' | 'system';
+export type Sex = 'male' | 'female';
 
 export interface UserSettings {
   id: 'settings';
@@ -133,6 +134,12 @@ export interface UserSettings {
   restTimerSound: boolean;
   autoStartRestTimer: boolean;
   theme: ThemeMode;
+  /** Height in centimeters, null if not set. */
+  heightCm: number | null;
+  /** Age in years, null if not set. */
+  age: number | null;
+  /** Biological sex, null if not set. */
+  sex: Sex | null;
 }
 
 // === CRASH RECOVERY ===
@@ -211,4 +218,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   restTimerSound: true,
   autoStartRestTimer: true,
   theme: 'dark',
+  heightCm: null,
+  age: null,
+  sex: null,
 };
