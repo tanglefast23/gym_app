@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { Minus, Plus, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 
 interface StepperProps {
   value: number;
@@ -67,8 +67,10 @@ export const Stepper = ({
     'active:scale-95',
   ].join(' ');
 
+  // Keep all circular buttons the same size for visual rhythm.
   const primaryBtn = `${btnBase} h-14 w-14 bg-surface`;
-  const bigBtn = `${btnBase} h-11 w-11 bg-elevated`;
+  const bigBtn = `${btnBase} h-14 w-14 bg-elevated`;
+  const bigGlyph = 'font-mono text-[18px] font-bold leading-none text-text-primary';
 
   return (
     <div className="flex flex-col items-center gap-2" role="group" aria-label={label ?? 'Value stepper'}>
@@ -88,7 +90,9 @@ export const Stepper = ({
             className={`${bigBtn} ${atMin ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'}`}
             aria-label={`Decrease by ${bigStep}`}
           >
-            <ChevronsLeft className="h-4 w-4 text-text-primary" />
+            <span className={bigGlyph} aria-hidden="true">
+              --
+            </span>
           </button>
         ) : null}
 
@@ -117,9 +121,9 @@ export const Stepper = ({
           disabled={atMax}
           className={`${primaryBtn} ${atMax ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'}`}
           aria-label={`Increase by ${step}`}
-        >
-          <Plus className="h-5 w-5 text-text-primary" />
-        </button>
+          >
+            <Plus className="h-5 w-5 text-text-primary" />
+          </button>
 
         {/* Big plus button */}
         {bigStep ? (
@@ -130,7 +134,9 @@ export const Stepper = ({
             className={`${bigBtn} ${atMax ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'}`}
             aria-label={`Increase by ${bigStep}`}
           >
-            <ChevronsRight className="h-4 w-4 text-text-primary" />
+            <span className={bigGlyph} aria-hidden="true">
+              ++
+            </span>
           </button>
         ) : null}
       </div>
