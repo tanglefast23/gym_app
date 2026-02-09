@@ -79,7 +79,16 @@ export const WeightRecap = ({
   const draftWeightG = draftWeight.weightG;
   const draftWeightSource = draftWeight.source;
 
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    const firstUnfilled = findNextUnfilledIndex(exerciseSteps, performedSets, 0);
+    return firstUnfilled >= 0 ? firstUnfilled : 0;
+  });
+
+  /** True when every exercise set was already logged inline (via SetLogSheet). */
+  const allLoggedInline = useMemo(
+    () => findNextUnfilledIndex(exerciseSteps, performedSets, 0) === -1,
+    [exerciseSteps, performedSets],
+  );
 
   // When historical data loads and we're still on default, upgrade to history.
   useEffect(() => {
@@ -371,6 +380,13 @@ export const WeightRecap = ({
       <p className="mt-2 text-center text-sm text-text-secondary">
         {loggedCount}/{totalSets} sets logged
       </p>
+
+      {/* All-sets-logged banner when everything was captured inline */}
+      {allLoggedInline ? (
+        <div className="mt-3 rounded-xl bg-success/10 px-4 py-2.5 text-center text-sm font-medium text-success">
+          All sets logged — review or save
+        </div>
+      ) : null}
 
       {/* Current set card */}
       <RecapSetCard
