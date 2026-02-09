@@ -1,12 +1,21 @@
-const PASTEL_COLORS: readonly string[] = [
-  '#8FE3B1', // mint
-  '#84C7FF', // sky
-  '#B7A3FF', // lavender
-  '#FFB7A8', // peach
-  '#FFE08A', // lemon
-  '#7FE6E0', // aqua
-  '#FF9EDB', // pink
-  '#DCC7A1', // sand
+const WORKOUT_COLORS: readonly string[] = [
+  // Priority pastels (user-specified order)
+  '#A8E6CF', // 1. pastel green
+  '#A8D8EA', // 2. pastel blue
+  '#FFF3B0', // 3. pastel yellow
+  '#FFB3B3', // 4. pastel red
+  '#FFCC99', // 5. pastel orange
+  '#C9B1FF', // 6. pastel purple
+  '#C8D6E5', // 7. pastel silver
+  // Additional distinct pastels
+  '#FFB6C1', // 8. pastel pink
+  '#88E5D9', // 9. pastel teal
+  '#C5E99B', // 10. pastel lime
+  // Regular colors (when pastels would look too similar)
+  '#FF7F7F', // 11. coral
+  '#5B9BD5', // 12. medium blue
+  '#F4C542', // 13. gold
+  '#7EC8A0', // 14. sage
 ] as const;
 
 function hashString(s: string): number {
@@ -21,8 +30,8 @@ function hashString(s: string): number {
 
 export function pastelForWorkoutType(type: string): string {
   const key = type.trim().toLowerCase();
-  const idx = hashString(key) % PASTEL_COLORS.length;
-  return PASTEL_COLORS[idx]!;
+  const idx = hashString(key) % WORKOUT_COLORS.length;
+  return WORKOUT_COLORS[idx]!;
 }
 
 export function hexToRgba(hex: string, alpha: number): string {
