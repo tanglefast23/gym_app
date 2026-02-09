@@ -59,13 +59,13 @@ export function BmiChart({
   healthyRange?: HealthyBmiRange | null;
   height?: number;
 }) {
-  const hasAtLeastTwo = useMemo(() => {
+  const nonNullCount = useMemo(() => {
     let count = 0;
     for (const p of data) {
       if (p.value != null) count++;
-      if (count >= 2) return true;
+      if (count >= 2) break;
     }
-    return false;
+    return count;
   }, [data]);
 
   const domain = useMemo((): [number, number] => {
@@ -81,13 +81,13 @@ export function BmiChart({
     return [Math.max(0, Math.floor((min - pad) * 10) / 10), Math.ceil((max + pad) * 10) / 10];
   }, [data, healthyRange]);
 
-  if (!hasAtLeastTwo) {
+  if (nonNullCount === 0) {
     return (
       <div
         className="flex items-center justify-center text-xs text-text-muted"
         style={{ height }}
       >
-        Add at least 2 weight entries to see a chart
+        Add a weight entry to see BMI
       </div>
     );
   }
@@ -135,8 +135,17 @@ export function BmiChart({
             type="monotone"
             dataKey="value"
             stroke="var(--color-teal, #4ECDC4)"
-            strokeWidth={2}
-            dot={false}
+            strokeWidth={nonNullCount >= 2 ? 2 : 0}
+            dot={
+              nonNullCount >= 2
+                ? false
+                : {
+                    r: 5,
+                    fill: 'var(--color-teal, #4ECDC4)',
+                    stroke: 'var(--text-primary, #FFFFFF)',
+                    strokeWidth: 2,
+                  }
+            }
             activeDot={{
               r: 5,
               fill: 'var(--color-teal, #4ECDC4)',

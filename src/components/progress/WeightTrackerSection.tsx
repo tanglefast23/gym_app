@@ -200,13 +200,10 @@ export function WeightTrackerSection({
   }, [heightCm, bodyWeights, age, sex]);
 
   const bmiHealthyRange = useMemo(() => {
-    // BMI itself requires height + weight.
+    // Always show the adult BMI band. (BMI-for-age percentiles < 20 not implemented.)
     if (bmiMissing.height || bmiMissing.weight) return null;
-    // Healthy BMI thresholds depend on BMI-for-age percentiles for < 20.
-    if (age === null) return null;
-    if (age < 20) return null;
     return { min: 18.5, max: 24.9 };
-  }, [bmiMissing.height, bmiMissing.weight, age]);
+  }, [bmiMissing.height, bmiMissing.weight]);
 
   return (
     <section className="mb-6">
@@ -416,7 +413,7 @@ export function WeightTrackerSection({
       <Card
         padding="md"
         className="mt-3"
-        onClick={() => router.push('/weight')}
+        onClick={() => router.push('/bmi')}
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -470,42 +467,31 @@ export function WeightTrackerSection({
               ) : null}
               .
             </div>
-          ) : bmiHealthyRange === null ? (
+          ) : age === null ? (
             <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-xs text-text-muted">
-              To show the healthy BMI range, add your{' '}
-              {bmiMissing.age ? (
-                <Link
-                  href="/settings?focus=age"
-                  className="font-semibold text-accent underline decoration-dotted underline-offset-2"
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
-                  age
-                </Link>
-              ) : (
-                <span className="font-semibold text-text-secondary">age</span>
-              )}
-              {age !== null && age < 20 ? (
-                <>
-                  {' '}
-                  and{' '}
-                  {bmiMissing.sex ? (
-                    <Link
-                      href="/settings?focus=sex"
-                      className="font-semibold text-accent underline decoration-dotted underline-offset-2"
-                      onClick={(e) => e.stopPropagation()}
-                      onPointerDown={(e) => e.stopPropagation()}
-                    >
-                      sex
-                    </Link>
-                  ) : (
-                    <span className="font-semibold text-text-secondary">sex</span>
-                  )}
-                  . BMI-for-age percentiles (under 20) aren&apos;t supported yet.
-                </>
-              ) : (
-                '.'
-              )}
+              The green band uses the adult BMI range. Set your{' '}
+              <Link
+                href="/settings?focus=age"
+                className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                age
+              </Link>{' '}
+              to confirm it applies.
+            </div>
+          ) : age < 20 ? (
+            <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-xs text-text-muted">
+              BMI-for-age percentiles (under 20) aren&apos;t supported yet. The green band is the adult range. You can also set{' '}
+              <Link
+                href="/settings?focus=sex"
+                className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                sex
+              </Link>
+              .
             </div>
           ) : null}
 
