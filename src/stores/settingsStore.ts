@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import type { UnitSystem, ThemeMode, UserSettings } from '@/types/workout';
+import type { UnitSystem, ThemeMode, Sex, UserSettings } from '@/types/workout';
 import { DEFAULT_SETTINGS } from '@/types/workout';
 
 /**
@@ -23,6 +23,9 @@ interface SettingsState {
   restTimerSound: boolean;
   autoStartRestTimer: boolean;
   theme: ThemeMode;
+  heightCm: number | null;
+  age: number | null;
+  sex: Sex | null;
 }
 
 interface SettingsActions {
@@ -36,6 +39,9 @@ interface SettingsActions {
   toggleRestTimerSound: () => void;
   toggleAutoStartRestTimer: () => void;
   setTheme: (theme: ThemeMode) => void;
+  setHeightCm: (cm: number | null) => void;
+  setAge: (age: number | null) => void;
+  setSex: (sex: Sex | null) => void;
   resetToDefaults: () => void;
   /** Refresh Zustand state from imported UserSettings (e.g. after a backup restore). */
   rehydrateFromImport: (settings: UserSettings) => void;
@@ -55,6 +61,9 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       restTimerSound: DEFAULT_SETTINGS.restTimerSound,
       autoStartRestTimer: DEFAULT_SETTINGS.autoStartRestTimer,
       theme: DEFAULT_SETTINGS.theme,
+      heightCm: DEFAULT_SETTINGS.heightCm,
+      age: DEFAULT_SETTINGS.age,
+      sex: DEFAULT_SETTINGS.sex,
 
       // --- actions ---
       setUnitSystem: (unitSystem) => set({ unitSystem }),
@@ -71,6 +80,9 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       toggleAutoStartRestTimer: () =>
         set((state) => ({ autoStartRestTimer: !state.autoStartRestTimer })),
       setTheme: (theme) => set({ theme }),
+      setHeightCm: (heightCm) => set({ heightCm }),
+      setAge: (age) => set({ age }),
+      setSex: (sex) => set({ sex }),
       resetToDefaults: () =>
         set({
           unitSystem: DEFAULT_SETTINGS.unitSystem,
@@ -83,6 +95,9 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
           restTimerSound: DEFAULT_SETTINGS.restTimerSound,
           autoStartRestTimer: DEFAULT_SETTINGS.autoStartRestTimer,
           theme: DEFAULT_SETTINGS.theme,
+          heightCm: DEFAULT_SETTINGS.heightCm,
+          age: DEFAULT_SETTINGS.age,
+          sex: DEFAULT_SETTINGS.sex,
         }),
       rehydrateFromImport: (settings: UserSettings) =>
         set({
@@ -97,6 +112,9 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
           restTimerSound: settings.restTimerSound,
           autoStartRestTimer: settings.autoStartRestTimer ?? DEFAULT_SETTINGS.autoStartRestTimer,
           theme: settings.theme,
+          heightCm: settings.heightCm ?? DEFAULT_SETTINGS.heightCm,
+          age: settings.age ?? DEFAULT_SETTINGS.age,
+          sex: settings.sex ?? DEFAULT_SETTINGS.sex,
         }),
     }),
     {
@@ -112,6 +130,9 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         restTimerSound: state.restTimerSound,
         autoStartRestTimer: state.autoStartRestTimer,
         theme: state.theme,
+        heightCm: state.heightCm,
+        age: state.age,
+        sex: state.sex,
       }),
     }
   )

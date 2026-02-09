@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Download, Upload, RotateCcw, Trash2, CalendarRange } from 'lucide-react';
+import { ChevronLeft, Download, Upload, RotateCcw, Trash2, CalendarRange, Minus, Plus } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Header } from '@/components/layout/Header';
 import { Button, ConfirmDialog, useToastStore, ToastContainer } from '@/components/ui';
@@ -14,7 +14,7 @@ import {
   previewDeleteByDateRange,
   deleteDataByDateRange,
 } from '@/lib/queries';
-import type { UnitSystem, ThemeMode } from '@/types/workout';
+import type { UnitSystem, ThemeMode, Sex } from '@/types/workout';
 import { VALIDATION } from '@/types/workout';
 
 // ---------------------------------------------------------------------------
@@ -112,6 +112,58 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
+interface InlineStepperProps {
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+  formatValue?: (v: number) => string;
+  ariaLabel: string;
+}
+
+/** Compact +/- stepper that fits inside a SettingRow. */
+function InlineStepper({
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+  formatValue,
+  ariaLabel,
+}: InlineStepperProps) {
+  const atMin = value <= min;
+  const atMax = value >= max;
+
+  const clamp = (v: number) => Math.max(min, Math.min(max, v));
+
+  return (
+    <div className="flex items-center gap-1.5" role="group" aria-label={ariaLabel}>
+      <button
+        type="button"
+        onClick={() => !atMin && onChange(clamp(value - step))}
+        disabled={atMin}
+        className={`flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface transition-all active:scale-95 ${atMin ? 'opacity-40 cursor-not-allowed' : ''}`}
+        aria-label={`Decrease ${ariaLabel}`}
+      >
+        <Minus className="h-4 w-4 text-text-primary" />
+      </button>
+      <span className="min-w-[48px] text-center font-mono text-sm tabular-nums text-text-primary" aria-live="polite">
+        {formatValue ? formatValue(value) : value}
+      </span>
+      <button
+        type="button"
+        onClick={() => !atMax && onChange(clamp(value + step))}
+        disabled={atMax}
+        className={`flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface transition-all active:scale-95 ${atMax ? 'opacity-40 cursor-not-allowed' : ''}`}
+        aria-label={`Increase ${ariaLabel}`}
+      >
+        <Plus className="h-4 w-4 text-text-primary" />
+      </button>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Import preview summary shape
 // ---------------------------------------------------------------------------
@@ -137,6 +189,11 @@ const themeOptions: { value: ThemeMode; label: string }[] = [
   { value: 'light', label: 'Light' },
   { value: 'dark', label: 'Dark' },
   { value: 'system', label: 'Auto' },
+];
+
+const sexOptions: { value: Sex; label: string }[] = [
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
 ];
 
 function localDateStartISO(date: string): string {
@@ -175,6 +232,12 @@ export default function SettingsPage() {
   const toggleAutoStartRestTimer = useSettingsStore((s) => s.toggleAutoStartRestTimer);
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
+  const heightCm = useSettingsStore((s) => s.heightCm);
+  const setHeightCm = useSettingsStore((s) => s.setHeightCm);
+  const age = useSettingsStore((s) => s.age);
+  const setAge = useSettingsStore((s) => s.setAge);
+  const sex = useSettingsStore((s) => s.sex);
+  const setSex = useSettingsStore((s) => s.setSex);
   const resetDefaults = useSettingsStore((s) => s.resetToDefaults);
 
   // Import flow state
@@ -288,6 +351,44 @@ export default function SettingsPage() {
     setShowResetConfirm(false);
     addToast('Settings reset to defaults', 'info');
   }, [resetDefaults, addToast]);
+
+  // ---- Bio helpers ----
+
+  // Height: stored as cm. For imperial, convert to/from ft+in.
+  const isImperial = unitSystem === 'lb';
+  const heightFt = heightCm !== null ? Math.floor(heightCm / 30.48) : 5;
+  const heightIn = heightCm !== null ? Math.round((heightCm - heightFt * 30.48) / 2.54) : 7;
+
+  const handleHeightCmChange = useCallback(
+    (cm: number) => setHeightCm(cm),
+    [setHeightCm],
+  );
+
+  const handleHeightFtChange = useCallback(
+    (ft: number) => {
+      const inches = heightCm !== null ? Math.round((heightCm - Math.floor(heightCm / 30.48) * 30.48) / 2.54) : 7;
+      setHeightCm(Math.round(ft * 30.48 + inches * 2.54));
+    },
+    [heightCm, setHeightCm],
+  );
+
+  const handleHeightInChange = useCallback(
+    (inches: number) => {
+      const feet = heightCm !== null ? Math.floor(heightCm / 30.48) : 5;
+      setHeightCm(Math.round(feet * 30.48 + inches * 2.54));
+    },
+    [heightCm, setHeightCm],
+  );
+
+  const handleAgeChange = useCallback(
+    (v: number) => setAge(v),
+    [setAge],
+  );
+
+  const handleSexChange = useCallback(
+    (v: Sex) => setSex(v),
+    [setSex],
+  );
 
   // ---- Data Management State ----
 
@@ -430,6 +531,65 @@ export default function SettingsPage() {
       />
 
       <div className="px-5 pt-4 pb-8">
+        {/* ---- Personal Bio ---- */}
+        <SectionTitle>Personal Bio</SectionTitle>
+
+        <SettingRow label="Sex">
+          <SegmentedControl
+            options={sexOptions}
+            value={sex ?? ('' as Sex)}
+            onChange={handleSexChange}
+          />
+        </SettingRow>
+
+        <SettingRow label="Age" description="Years">
+          <InlineStepper
+            value={age ?? 25}
+            onChange={handleAgeChange}
+            min={13}
+            max={120}
+            ariaLabel="age"
+          />
+        </SettingRow>
+
+        {isImperial ? (
+          <SettingRow label="Height" description="Feet & inches">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <InlineStepper
+                  value={heightFt}
+                  onChange={handleHeightFtChange}
+                  min={3}
+                  max={8}
+                  formatValue={(v) => `${v}′`}
+                  ariaLabel="height feet"
+                />
+              </div>
+              <div className="flex items-center gap-1">
+                <InlineStepper
+                  value={heightIn}
+                  onChange={handleHeightInChange}
+                  min={0}
+                  max={11}
+                  formatValue={(v) => `${v}″`}
+                  ariaLabel="height inches"
+                />
+              </div>
+            </div>
+          </SettingRow>
+        ) : (
+          <SettingRow label="Height" description="Centimeters">
+            <InlineStepper
+              value={heightCm ?? 170}
+              onChange={handleHeightCmChange}
+              min={100}
+              max={250}
+              formatValue={(v) => `${v} cm`}
+              ariaLabel="height in centimeters"
+            />
+          </SettingRow>
+        )}
+
         {/* ---- Units & Preferences ---- */}
         <SectionTitle>Units &amp; Preferences</SectionTitle>
 

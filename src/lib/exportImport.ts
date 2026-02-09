@@ -22,6 +22,9 @@ function getSettingsSnapshot(): UserSettings {
     restTimerSound: s.restTimerSound,
     autoStartRestTimer: s.autoStartRestTimer,
     theme: s.theme,
+    heightCm: s.heightCm,
+    age: s.age,
+    sex: s.sex,
   };
 }
 
