@@ -1,13 +1,15 @@
 'use client';
 
 import { useCallback, useState, useEffect, useRef } from 'react';
-import { GripVertical, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { ExerciseAutocomplete } from './ExerciseAutocomplete';
 import { NumberStepper, AMRAP_SENTINEL } from '@/components/ui';
 import { VALIDATION } from '@/types/workout';
 import type { ExerciseBlock } from '@/types/workout';
 
 interface ExerciseBlockEditorProps {
+  /** 1-based index for display in the header. */
+  blockNumber: number;
   block: ExerciseBlock;
   onChange: (updated: ExerciseBlock) => void;
   onRemove: () => void;
@@ -24,6 +26,7 @@ interface ExerciseBlockEditorProps {
  * instead of native number inputs.
  */
 export const ExerciseBlockEditor = ({
+  blockNumber,
   block,
   onChange,
   onRemove,
@@ -105,10 +108,13 @@ export const ExerciseBlockEditor = ({
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <GripVertical className="h-5 w-5 text-text-muted" aria-hidden="true" />
-          <span className="text-sm font-medium text-text-secondary">
-            Exercise
-          </span>
+          <div
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-elevated text-xs font-bold text-text-secondary"
+            aria-hidden="true"
+          >
+            {blockNumber}
+          </div>
+          <span className="text-sm font-medium text-text-secondary">Exercise</span>
         </div>
         <button
           type="button"

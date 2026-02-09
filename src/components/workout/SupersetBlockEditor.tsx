@@ -1,13 +1,15 @@
 'use client';
 
 import { useCallback, useRef } from 'react';
-import { GripVertical, Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
 import { ExerciseAutocomplete } from './ExerciseAutocomplete';
 import { Button, NumberStepper, AMRAP_SENTINEL } from '@/components/ui';
 import { VALIDATION } from '@/types/workout';
 import type { SupersetBlock, ExerciseBlockExercise } from '@/types/workout';
 
 interface SupersetBlockEditorProps {
+  /** 1-based index for display in the header. */
+  blockNumber: number;
   block: SupersetBlock;
   onChange: (updated: SupersetBlock) => void;
   onRemove: () => void;
@@ -28,6 +30,7 @@ interface SupersetBlockEditorProps {
  * Uses mobile-friendly NumberStepper components for all numeric inputs.
  */
 export const SupersetBlockEditor = ({
+  blockNumber,
   block,
   onChange,
   onRemove,
@@ -136,7 +139,12 @@ export const SupersetBlockEditor = ({
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <GripVertical className="h-5 w-5 text-text-muted" aria-hidden="true" />
+          <div
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-elevated text-xs font-bold text-text-secondary"
+            aria-hidden="true"
+          >
+            {blockNumber}
+          </div>
           <span className="rounded-full bg-accent/20 px-2 py-1 text-xs font-medium text-accent">
             Superset
           </span>

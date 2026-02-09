@@ -341,76 +341,66 @@ export function WorkoutEditor({
         {/* Block list with timeline rail */}
         <div>
           {blocks.map((block, index) => (
-            <div key={block.id} className="flex gap-3">
-              {/* Numbered indicator + connecting line */}
-              <div className="flex flex-col items-center pt-5">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-elevated text-xs font-bold text-text-secondary">
-                  {index + 1}
-                </div>
-                {index < blocks.length - 1 ? (
-                  <div className="mt-1 w-px flex-1 bg-border/50" />
-                ) : null}
-              </div>
-              {/* Block content */}
-              <div className={`min-w-0 flex-1${index < blocks.length - 1 ? ' pb-4' : ''}`}>
-                {block.type === 'exercise' ? (
-                  <ExerciseBlockEditor
-                    block={block}
-                    onChange={(updated) => updateBlock(index, updated)}
-                    onRemove={() => removeBlock(index)}
-                    exerciseName={nameMap[block.id] ?? ''}
-                    onExerciseNameChange={handleExerciseNameChange}
-                  />
-                ) : (
-                  <SupersetBlockEditor
-                    block={block}
-                    onChange={(updated) => updateBlock(index, updated)}
-                    onRemove={() => removeBlock(index)}
-                    exerciseNames={block.exercises.map(
-                      (_, exIdx) => nameMap[`${block.id}:${exIdx}`] ?? '',
-                    )}
-                    onExerciseNameChange={handleSupersetExerciseNameChange}
-                  />
-                )}
+            <div key={block.id} className={index < blocks.length - 1 ? 'pb-4' : ''}>
+              {block.type === 'exercise' ? (
+                <ExerciseBlockEditor
+                  blockNumber={index + 1}
+                  block={block}
+                  onChange={(updated) => updateBlock(index, updated)}
+                  onRemove={() => removeBlock(index)}
+                  exerciseName={nameMap[block.id] ?? ''}
+                  onExerciseNameChange={handleExerciseNameChange}
+                />
+              ) : (
+                <SupersetBlockEditor
+                  blockNumber={index + 1}
+                  block={block}
+                  onChange={(updated) => updateBlock(index, updated)}
+                  onRemove={() => removeBlock(index)}
+                  exerciseNames={block.exercises.map(
+                    (_, exIdx) => nameMap[`${block.id}:${exIdx}`] ?? '',
+                  )}
+                  onExerciseNameChange={handleSupersetExerciseNameChange}
+                />
+              )}
 
-                {/* Transition rest between this block and the next */}
-                {index < blocks.length - 1 ? (
-                  <div className="mt-3 rounded-2xl border border-border bg-surface/60 p-4">
-                    <NumberStepper
-                      label="Rest between exercises"
-                      value={block.transitionRestSec ?? defaultTransitionsSec}
-                      onChange={(rest) =>
-                        updateBlock(index, { ...block, transitionRestSec: rest })
-                      }
-                      min={VALIDATION.MIN_REST_SEC}
-                      max={VALIDATION.MAX_REST_SEC}
-                      step={5}
-                      size="sm"
-                      suffix="s"
-                      ariaLabel="Rest between exercises in seconds"
-                    />
-                    <div className="mt-2 flex items-center justify-between gap-3">
-                      <p className="text-xs text-text-muted">
-                        {block.transitionRestSec === null
-                          ? `Using default transitions (${defaultTransitionsSec}s)`
-                          : 'Custom transition rest'}
-                      </p>
-                      {block.transitionRestSec !== null ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateBlock(index, { ...block, transitionRestSec: null })
-                          }
-                          className="min-h-[32px] rounded-full border border-border bg-surface px-3 text-xs font-semibold text-text-secondary transition-colors hover:bg-elevated"
-                          aria-label="Use default transitions rest time"
-                        >
-                          Use default
-                        </button>
-                      ) : null}
-                    </div>
+              {/* Transition rest between this block and the next */}
+              {index < blocks.length - 1 ? (
+                <div className="mt-3 rounded-2xl border border-border bg-surface/60 p-4">
+                  <NumberStepper
+                    label="Rest between exercises"
+                    value={block.transitionRestSec ?? defaultTransitionsSec}
+                    onChange={(rest) =>
+                      updateBlock(index, { ...block, transitionRestSec: rest })
+                    }
+                    min={VALIDATION.MIN_REST_SEC}
+                    max={VALIDATION.MAX_REST_SEC}
+                    step={5}
+                    size="sm"
+                    suffix="s"
+                    ariaLabel="Rest between exercises in seconds"
+                  />
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <p className="text-xs text-text-muted">
+                      {block.transitionRestSec === null
+                        ? `Using default transitions (${defaultTransitionsSec}s)`
+                        : 'Custom transition rest'}
+                    </p>
+                    {block.transitionRestSec !== null ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateBlock(index, { ...block, transitionRestSec: null })
+                        }
+                        className="min-h-[32px] rounded-full border border-border bg-surface px-3 text-xs font-semibold text-text-secondary transition-colors hover:bg-elevated"
+                        aria-label="Use default transitions rest time"
+                      >
+                        Use default
+                      </button>
+                    ) : null}
                   </div>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
             </div>
           ))}
         </div>
