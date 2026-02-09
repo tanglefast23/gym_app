@@ -32,12 +32,13 @@ export const WorkoutCard = ({
   colorIndex,
   onClick,
 }: WorkoutCardProps) => {
-  const exerciseCount = countExercises(template.blocks);
+  const exerciseIds = getDistinctExerciseIds(template.blocks);
+  const exerciseCount = exerciseIds.length;
   const lastPerformedLabel = formatLastPerformed(lastPerformed);
   const coverSrc = `/visuals/covers/cover-${pickCoverIndex(template.id, colorIndex)}.svg`;
   const exerciseNames = exerciseNameMap
-    ? getExerciseNamesList(template.blocks, exerciseNameMap)
-    : { names: [], remaining: 0 };
+    ? getExerciseNamesList(exerciseIds, exerciseNameMap)
+    : [];
 
   return (
     <Card
@@ -75,21 +76,16 @@ export const WorkoutCard = ({
       </div>
 
       {/* Exercise preview pills */}
-      {exerciseNames.names.length > 0 ? (
+      {exerciseNames.length > 0 ? (
         <div className="exercise-pills mt-3 flex flex-wrap gap-1.5">
-          {exerciseNames.names.map((name) => (
+          {exerciseNames.map(({ id, name }) => (
             <span
-              key={name}
+              key={id}
               className="exercise-tag rounded-full bg-elevated px-2.5 py-0.5 text-xs text-text-secondary"
             >
               {name}
             </span>
           ))}
-          {exerciseNames.remaining > 0 ? (
-            <span className="exercise-tag rounded-full bg-elevated px-2.5 py-0.5 text-xs text-text-muted">
-              +{exerciseNames.remaining}
-            </span>
-          ) : null}
         </div>
       ) : null}
 
@@ -106,40 +102,43 @@ export const WorkoutCard = ({
 // ---------------------------------------------------------------------------
 
 /**
- * Extract exercise names as an array for rendering as pill badges.
- * Returns up to 4 names and a count of remaining exercises.
+ * Extract distinct exercise IDs in order of appearance.
  */
-function getExerciseNamesList(
+function getDistinctExerciseIds(
   blocks: TemplateBlock[],
-  nameMap: Map<string, string>,
-): { names: string[]; remaining: number } {
-  const names: string[] = [];
+): string[] {
+  const seen = new Set<string>();
+  const ids: string[] = [];
+
   for (const block of blocks) {
     if (block.type === 'exercise') {
-      const name = nameMap.get(block.exerciseId);
-      if (name) names.push(name);
+      if (!block.exerciseId) continue;
+      if (seen.has(block.exerciseId)) continue;
+      seen.add(block.exerciseId);
+      ids.push(block.exerciseId);
     } else {
       for (const ex of block.exercises) {
-        const name = nameMap.get(ex.exerciseId);
-        if (name) names.push(name);
+        if (!ex.exerciseId) continue;
+        if (seen.has(ex.exerciseId)) continue;
+        seen.add(ex.exerciseId);
+        ids.push(ex.exerciseId);
       }
     }
   }
 
-  const preview = names.slice(0, 4);
-  const total = countExercises(blocks);
-  return { names: preview, remaining: total - preview.length };
+  return ids;
 }
 
-/**
- * Count the total number of distinct exercises across all template blocks.
- * A superset contributes the number of exercises it contains.
- */
-function countExercises(blocks: TemplateBlock[]): number {
-  return blocks.reduce((count, block) => {
-    if (block.type === 'exercise') return count + 1;
-    return count + block.exercises.length;
-  }, 0);
+function getExerciseNamesList(
+  exerciseIds: string[],
+  nameMap: Map<string, string>,
+): Array<{ id: string; name: string }> {
+  const names: Array<{ id: string; name: string }> = [];
+  for (const id of exerciseIds) {
+    const name = nameMap.get(id);
+    if (name) names.push({ id, name });
+  }
+  return names;
 }
 
 function pickCoverIndex(
