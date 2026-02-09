@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { Settings } from 'lucide-react';
@@ -146,16 +146,14 @@ function computePersonalRecords(all: ExerciseHistoryEntry[]): ExercisePR[] {
 // Page Component
 // ---------------------------------------------------------------------------
 
-export default function ProgressPage() {
-  const unitSystem = useSettingsStore((s) => s.unitSystem);
+/** Handles ?focus=today-weight deep-link. Wrapped in Suspense by the page. */
+function FocusTodayWeight() {
   const searchParams = useSearchParams();
 
-  // Allow deep-links into the "Today's weight" editor (used by BMI prompts).
   useEffect(() => {
     const focus = searchParams.get('focus');
     if (focus !== 'today-weight') return;
 
-    // Scroll and then open the inline editor.
     requestAnimationFrame(() => {
       document.getElementById('today-weight')?.scrollIntoView({
         behavior: 'smooth',
@@ -164,6 +162,12 @@ export default function ProgressPage() {
       window.dispatchEvent(new Event('workout-pwa:focus-today-weight'));
     });
   }, [searchParams]);
+
+  return null;
+}
+
+export default function ProgressPage() {
+  const unitSystem = useSettingsStore((s) => s.unitSystem);
 
   // -- Queries --
   const durationStats = useLiveQuery(() => computeDurationStats(), []);
@@ -210,6 +214,9 @@ export default function ProgressPage() {
 
   return (
     <AppShell>
+      <Suspense fallback={null}>
+        <FocusTodayWeight />
+      </Suspense>
       <ToastContainer />
       <Header
         title="Progress"
