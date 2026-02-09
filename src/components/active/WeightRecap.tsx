@@ -322,6 +322,12 @@ export const WeightRecap = ({
     onComplete();
   }, [saveDraft, onComplete]);
 
+  /** Lock in edits during final review without changing the current position. */
+  const handleUpdate = useCallback(() => {
+    saveDraft();
+    playSfx('success');
+  }, [saveDraft]);
+
   /** Handle save partial: save draft, play SFX, then call onSavePartial after delay. */
   const handleSavePartial = useCallback(() => {
     saveDraft();
@@ -420,6 +426,7 @@ export const WeightRecap = ({
         isSaving={isSaving ?? false}
         saveNudge={saveNudge}
         savingPartial={savingPartial}
+        onUpdate={handleUpdate}
         onPrevious={handlePrevious}
         onNext={handleNext}
         onComplete={handleComplete}
@@ -431,7 +438,18 @@ export const WeightRecap = ({
 
       {/* Workout progress timeline */}
       <div className="mt-6">
-        <WorkoutTimeline steps={exerciseSteps} currentStepIndex={currentIndex} />
+        <WorkoutTimeline
+          steps={exerciseSteps}
+          currentStepIndex={currentIndex}
+          onSelectStepIndex={
+            allSetsLogged
+              ? (nextIndex) => {
+                  setCurrentIndex(nextIndex);
+                  initializeDraft(nextIndex);
+                }
+              : undefined
+          }
+        />
       </div>
     </div>
   );

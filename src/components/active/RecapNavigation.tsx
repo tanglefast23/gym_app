@@ -22,6 +22,8 @@ interface RecapNavigationProps {
   saveNudge: boolean;
   /** Whether the partial-save feedback is showing. */
   savingPartial: boolean;
+  /** Called to apply edits to the current set during final review. */
+  onUpdate: () => void;
   /** Called to navigate to the previous set. */
   onPrevious: () => void;
   /** Called to navigate to the next set. */
@@ -49,6 +51,7 @@ export const RecapNavigation = ({
   isSaving,
   saveNudge,
   savingPartial,
+  onUpdate,
   onPrevious,
   onNext,
   onComplete,
@@ -61,16 +64,28 @@ export const RecapNavigation = ({
     <>
       {/* Primary navigation */}
       <div className="mt-4 flex items-center gap-3">
-        <Button
-          variant="secondary"
-          size="lg"
-          onClick={onPrevious}
-          disabled={currentIndex === 0}
-          className="flex-1"
-        >
-          <ChevronLeft className="h-5 w-5" />
-          Previous
-        </Button>
+        {allSetsLogged ? (
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={onUpdate}
+            disabled={isSaving}
+            className="flex-1"
+          >
+            Update
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={onPrevious}
+            disabled={currentIndex === 0}
+            className="flex-1"
+          >
+            <ChevronLeft className="h-5 w-5" />
+            Previous
+          </Button>
+        )}
 
         {!allSetsLogged && currentIndex < totalSets - 1 ? (
           <Button

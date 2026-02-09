@@ -80,16 +80,27 @@ function findActiveNodeIndex(
   return 0;
 }
 
+function nextIndexWithinNode(node: TimelineNode, currentStepIndex: number): number {
+  if (node.stepIndices.length === 0) return 0;
+  if (node.stepIndices.length === 1) return node.stepIndices[0];
+  const pos = node.stepIndices.indexOf(currentStepIndex);
+  if (pos < 0) return node.stepIndices[0];
+  return node.stepIndices[(pos + 1) % node.stepIndices.length];
+}
+
 /* ── Component ─────────────────────────────────────────────────────── */
 
 interface WorkoutTimelineProps {
   steps: WorkoutStep[];
   currentStepIndex: number;
+  /** Called when a timeline node is tapped (used for jumping/cycling). */
+  onSelectStepIndex?: (stepIndex: number) => void;
 }
 
 export const WorkoutTimeline = ({
   steps,
   currentStepIndex,
+  onSelectStepIndex,
 }: WorkoutTimelineProps) => {
   const nodes = useMemo(() => computeNodes(steps), [steps]);
   const activeIdx = useMemo(
@@ -110,6 +121,8 @@ export const WorkoutTimeline = ({
         // Line color: use the color of the node it leads INTO
         const lineColor = upcoming ? undefined : color.bg;
 
+        const isInteractive = !!onSelectStepIndex;
+
         return (
           <div key={node.label} className="flex items-center">
             {/* Connecting line between nodes */}
@@ -123,10 +136,27 @@ export const WorkoutTimeline = ({
             ) : null}
 
             {/* Node circle with label */}
-            <div
+            <button
+              type="button"
+              onClick={
+                !isInteractive
+                  ? undefined
+                  : () => {
+                      const target =
+                        idx === activeIdx
+                          ? nextIndexWithinNode(node, currentStepIndex)
+                          : (node.stepIndices[0] ?? 0);
+                      onSelectStepIndex?.(target);
+                    }
+              }
+              aria-label={isInteractive ? `Jump to ${node.label}` : undefined}
+              aria-disabled={!isInteractive}
+              tabIndex={isInteractive ? 0 : -1}
               className={[
                 'flex h-[48px] min-w-[48px] items-center justify-center rounded-full px-2 text-[19px] font-bold leading-none',
                 upcoming ? 'border border-border text-text-muted' : '',
+                isInteractive ? 'cursor-pointer active:scale-[0.98] transition-transform' : '',
+                !isInteractive ? 'cursor-default' : '',
               ].join(' ')}
               style={
                 current
@@ -141,7 +171,7 @@ export const WorkoutTimeline = ({
               }
             >
               {node.label}
-            </div>
+            </button>
           </div>
         );
       })}
