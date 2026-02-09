@@ -172,7 +172,11 @@ export const NumberStepper = ({
     'select-none',
   ].join(' ');
 
-  const iconClass = isSmall ? 'h-4 w-4 text-white' : 'h-6 w-6 text-white';
+  // In light mode, `bg-elevated` matches the page background, so white icons become invisible.
+  // `text-text-primary` adapts to theme (dark in light mode, white in dark mode).
+  const iconClass = isSmall
+    ? 'h-4 w-4 text-text-primary'
+    : 'h-6 w-6 text-text-primary';
   const valueTextClass = isSmall
     ? 'font-timer text-[28px] text-text-primary'
     : 'font-timer text-5xl text-text-primary';
