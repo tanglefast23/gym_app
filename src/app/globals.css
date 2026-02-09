@@ -29,7 +29,7 @@
   --background: #FFF9F5;
   --foreground: #1F1F23;
   --surface: #FFFFFF;
-  --elevated: #FFFFFF;
+  --elevated: #FFF9F5;
   --accent: #F97316;
   --accent-light: #FB923C;
   --success: #10B981;
@@ -38,7 +38,7 @@
   --text-primary: #1F1F23;
   --text-secondary: #52525B;
   --text-muted: #A1A1AA;
-  --border-color: #E5E5E5;
+  --border-color: #F0E6DE;
   /* Playful gradient colors for light mode */
   --gradient-start: #FFF1EB;
   --gradient-end: #FCE7F3;
@@ -578,13 +578,13 @@ body.workout-active {
 
 /* ─── Light Mode Playful Accents ─── */
 
-/* Cards and surfaces get subtle shadows in light mode */
+/* Cards and surfaces get subtle warm shadows in light mode (Pencil: blur:8 #00000006) */
 .light .bg-surface {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.024), 0 1px 3px rgba(0, 0, 0, 0.016);
 }
 
 .light .bg-elevated {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 /* Theme-aware input styling */
@@ -660,19 +660,20 @@ body.workout-active {
 }
 
 /* ─── Color-Coded Workout Card Shadows (Home Page) ─── */
+/* Pencil: card1=#F9731615 orange, card2=#A855F715 purple, card3=#4ECDC415 teal */
 .light .space-y-3 > .animate-fade-in-up:nth-child(3n+1) .rounded-2xl.border {
-  box-shadow: 0 2px 12px rgba(249, 115, 22, 0.12);
-  border-color: rgba(249, 115, 22, 0.15);
+  box-shadow: 0 2px 12px rgba(249, 115, 22, 0.15);
+  border-color: rgba(249, 115, 22, 0.18);
 }
 
 .light .space-y-3 > .animate-fade-in-up:nth-child(3n+2) .rounded-2xl.border {
-  box-shadow: 0 2px 12px rgba(168, 85, 247, 0.12);
-  border-color: rgba(168, 85, 247, 0.15);
+  box-shadow: 0 2px 12px rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.18);
 }
 
 .light .space-y-3 > .animate-fade-in-up:nth-child(3n+3) .rounded-2xl.border {
-  box-shadow: 0 2px 12px rgba(78, 205, 196, 0.12);
-  border-color: rgba(78, 205, 196, 0.15);
+  box-shadow: 0 2px 12px rgba(78, 205, 196, 0.15);
+  border-color: rgba(78, 205, 196, 0.18);
 }
 
 /* ─── Workout Complete Stat Card Colors ─── */
@@ -745,16 +746,16 @@ body.workout-active {
 
 /* Exercise count pill */
 .light .exercise-count {
-  background: rgba(249, 115, 22, 0.1);
+  background: #FFF1EB;
   color: #F97316;
   font-weight: 600;
 }
 
 /* Exercise name pill tags */
 .light .exercise-tag {
-  background: rgba(0, 0, 0, 0.04) !important;
+  background: #FFF5EE !important;
   color: #52525B !important;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(249, 115, 22, 0.08);
 }
 
 /* ─── Light Mode Progress Stat Cards ─── */
@@ -806,23 +807,27 @@ body.workout-active {
 
 /* ─── Light Mode Achievement Badges ─── */
 
-/* Colored icon backgrounds for achievement cards */
+/* Colored icon backgrounds for achievement cards (Pencil: gradient squares) */
 .light .w-\[140px\] img,
 .light .w-\[140px\] span[role="img"] {
-  background: linear-gradient(135deg, #FFEDD5 0%, #FED7AA 100%);
-  border-radius: 16px;
+  background: linear-gradient(135deg, #FBBF24 0%, #F97316 100%);
+  border-radius: 12px;
   padding: 8px;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.12);
 }
 
-/* Alternating colors for achievement icons */
+/* Alternating colors: teal→cyan for 2nd badge */
 .light .w-\[140px\]:nth-child(3n+2) img,
 .light .w-\[140px\]:nth-child(3n+2) span[role="img"] {
-  background: linear-gradient(135deg, #CCFBF1 0%, #99F6E4 100%);
+  background: linear-gradient(135deg, #4ECDC4 0%, #22D3EE 100%);
+  box-shadow: 0 4px 12px rgba(78, 205, 196, 0.12);
 }
 
+/* Alternating colors: purple for 3rd badge */
 .light .w-\[140px\]:nth-child(3n+3) img,
 .light .w-\[140px\]:nth-child(3n+3) span[role="img"] {
-  background: linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%);
+  background: linear-gradient(135deg, #A855F7 0%, #C084FC 100%);
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.12);
 }
 
 /* ─── Light Mode Empty State ─── */
@@ -841,10 +846,15 @@ body.workout-active {
   background-clip: text;
 }
 
-/* PR card stat cells in light mode */
+/* PR card stat cells in light mode — warm beige matching Pencil #FFF9F5 */
 .light .grid-cols-3 .rounded-xl.bg-elevated {
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  background: #FFF9F5 !important;
+  border: 1px solid rgba(249, 115, 22, 0.06);
+}
+
+/* Est. 1RM cell gets subtle orange gradient (Pencil: #F9731610 → #F9731605) */
+.light .grid-cols-3 .rounded-xl.bg-elevated:nth-child(2) {
+  background: linear-gradient(180deg, rgba(249, 115, 22, 0.06) 0%, rgba(249, 115, 22, 0.02) 100%) !important;
 }
 
 /* ─── Light Mode Touchable Outlines ─── */
