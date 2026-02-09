@@ -3,12 +3,13 @@
 import { useRef, useCallback } from 'react';
 import { Clock, Layers, TrendingUp } from 'lucide-react';
 import { formatDuration, formatWeight } from '@/lib/calculations';
-import { hexToRgba, pastelForWorkoutType } from '@/lib/workoutTypeColors';
+import { hexToRgba } from '@/lib/workoutTypeColors';
 import { useSettingsStore } from '@/stores/settingsStore';
 import type { WorkoutLog } from '@/types/workout';
 
 interface LogCardProps {
   log: WorkoutLog;
+  typeColor: string;
   onClick: () => void;
   onLongPress?: () => void;
 }
@@ -29,11 +30,10 @@ function formatLogDate(isoString: string): string {
  * A card displaying a workout log entry in the history list.
  * Shows template name, date, duration, set count, and volume.
  */
-export const LogCard = ({ log, onClick, onLongPress }: LogCardProps) => {
+export const LogCard = ({ log, typeColor, onClick, onLongPress }: LogCardProps) => {
   const unitSystem = useSettingsStore((s) => s.unitSystem);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
-  const typeColor = pastelForWorkoutType(log.templateName);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {

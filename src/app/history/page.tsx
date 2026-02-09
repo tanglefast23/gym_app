@@ -7,7 +7,7 @@ import { Settings, CalendarDays, History as HistoryIcon } from 'lucide-react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { deleteLog } from '@/lib/queries';
-import { hexToRgba, pastelForWorkoutType } from '@/lib/workoutTypeColors';
+import { hexToRgba, buildColorMap } from '@/lib/workoutTypeColors';
 import { AppShell } from '@/components/layout';
 import { Header } from '@/components/layout/Header';
 import { BottomSheet, EmptyState, ConfirmDialog, useToastStore } from '@/components/ui';
@@ -162,6 +162,24 @@ export default function HistoryPage() {
     [allLogs],
   );
 
+  // Build color map: assign colors in order of first appearance (earliest log first).
+  const templateColorMap = useMemo(() => {
+    const logs = allLogs ?? [];
+    // Track the earliest log date per template name.
+    const earliest = new Map<string, string>();
+    for (const log of logs) {
+      const prev = earliest.get(log.templateName);
+      if (!prev || log.startedAt < prev) {
+        earliest.set(log.templateName, log.startedAt);
+      }
+    }
+    // Sort by earliest appearance, then alphabetically as tiebreaker.
+    const ordered = Array.from(earliest.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]))
+      .map(([name]) => name);
+    return buildColorMap(ordered);
+  }, [allLogs]);
+
   const workoutTypeOptions = useMemo(() => {
     const logs = allLogs ?? [];
     const counts = new Map<string, { count: number; lastAt: string }>();
@@ -178,13 +196,13 @@ export default function HistoryPage() {
     }
 
     return Array.from(counts.entries())
-      .map(([name, meta]) => ({ name, ...meta, color: pastelForWorkoutType(name) }))
+      .map(([name, meta]) => ({ name, ...meta, color: templateColorMap.get(name) ?? '#C8D6E5' }))
       .sort((a, b) => {
         if (b.count !== a.count) return b.count - a.count;
         if (b.lastAt !== a.lastAt) return b.lastAt.localeCompare(a.lastAt);
         return a.name.localeCompare(b.name);
       });
-  }, [allLogs]);
+  }, [allLogs, templateColorMap]);
 
   const resolvedMonthKey = useMemo(() => {
     if (selectedMonthKey) return selectedMonthKey;
@@ -405,6 +423,7 @@ export default function HistoryPage() {
                       <LogCard
                         key={log.id}
                         log={log}
+                        typeColor={templateColorMap.get(log.templateName) ?? '#C8D6E5'}
                         onClick={() => handleLogClick(log.id)}
                         onLongPress={() => handleLongPress(log)}
                       />
@@ -487,7 +506,7 @@ export default function HistoryPage() {
                             // 1 session = solid color, 2 = halves, 3 = thirds.
                             // If more than 3 sessions exist, we still show the first 3 colors.
                             const segmentColors = hasWorkout
-                              ? logs.slice(0, 3).map((l) => pastelForWorkoutType(l.templateName))
+                              ? logs.slice(0, 3).map((l) => templateColorMap.get(l.templateName) ?? '#C8D6E5')
                               : [];
 
                             cells.push(

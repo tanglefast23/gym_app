@@ -1,4 +1,4 @@
-const WORKOUT_COLORS: readonly string[] = [
+export const WORKOUT_COLORS: readonly string[] = [
   // Priority pastels (user-specified order)
   '#A8E6CF', // 1. pastel green
   '#A8D8EA', // 2. pastel blue
@@ -9,28 +9,34 @@ const WORKOUT_COLORS: readonly string[] = [
   '#C8D6E5', // 7. pastel silver
   // Additional distinct pastels
   '#88E5D9', // 8. pastel teal
-  '#C5E99B', // 10. pastel lime
+  '#C5E99B', // 9. pastel lime
   // Regular colors (when pastels would look too similar)
-  '#FF7F7F', // 11. coral
-  '#5B9BD5', // 12. medium blue
-  '#F4C542', // 13. gold
-  '#7EC8A0', // 14. sage
+  '#FF7F7F', // 10. coral
+  '#5B9BD5', // 11. medium blue
+  '#F4C542', // 12. gold
+  '#7EC8A0', // 13. sage
 ] as const;
 
-function hashString(s: string): number {
-  // Simple deterministic 32-bit hash (FNV-1a-ish).
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
+/** Pick a color by index, cycling through the palette when it overflows. */
+export function colorForIndex(index: number): string {
+  return WORKOUT_COLORS[index % WORKOUT_COLORS.length]!;
 }
 
-export function pastelForWorkoutType(type: string): string {
-  const key = type.trim().toLowerCase();
-  const idx = hashString(key) % WORKOUT_COLORS.length;
-  return WORKOUT_COLORS[idx]!;
+/**
+ * Build a Map<templateName, color> from an ordered list of template names.
+ * The first name gets color 0 (pastel green), second gets color 1 (pastel blue), etc.
+ * Duplicates are ignored (first occurrence wins).
+ */
+export function buildColorMap(orderedNames: string[]): Map<string, string> {
+  const map = new Map<string, string>();
+  let idx = 0;
+  for (const name of orderedNames) {
+    if (!map.has(name)) {
+      map.set(name, colorForIndex(idx));
+      idx++;
+    }
+  }
+  return map;
 }
 
 export function hexToRgba(hex: string, alpha: number): string {
