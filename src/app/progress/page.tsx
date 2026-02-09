@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Link from 'next/link';
 import { Settings } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { db } from '@/lib/db';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { AppShell } from '@/components/layout';
@@ -147,6 +148,22 @@ function computePersonalRecords(all: ExerciseHistoryEntry[]): ExercisePR[] {
 
 export default function ProgressPage() {
   const unitSystem = useSettingsStore((s) => s.unitSystem);
+  const searchParams = useSearchParams();
+
+  // Allow deep-links into the "Today's weight" editor (used by BMI prompts).
+  useEffect(() => {
+    const focus = searchParams.get('focus');
+    if (focus !== 'today-weight') return;
+
+    // Scroll and then open the inline editor.
+    requestAnimationFrame(() => {
+      document.getElementById('today-weight')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+      window.dispatchEvent(new Event('workout-pwa:focus-today-weight'));
+    });
+  }, [searchParams]);
 
   // -- Queries --
   const durationStats = useLiveQuery(() => computeDurationStats(), []);

@@ -37,35 +37,46 @@ export function buildBmiChartData(
       }
     }
 
-    const points: BmiChartPoint[] = [];
+    const pointsAsc: BmiChartPoint[] = [];
+    let nonNullInWindow = 0;
+
+    // Oldest -> newest
     for (let i = 11; i >= 0; i--) {
       const d = new Date(today);
       d.setMonth(d.getMonth() - i);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const e = monthMap.get(key);
-      points.push({
+      if (e) nonNullInWindow += 1;
+      pointsAsc.push({
         label: `${String(d.getMonth() + 1)}/${String(d.getFullYear()).slice(-2)}`,
         value: e ? computeBmi(e.weightG, heightCm) : null,
       });
     }
-    return points;
+
+    // If we only have one point, show it on the far-left by reversing the x-axis.
+    return nonNullInWindow <= 1 ? pointsAsc.slice().reverse() : pointsAsc;
   }
 
   // week: last 7 days
   // month: last 30 days
   const days = timeline === 'month' ? 30 : 7;
   const values = new Map(byDay.map((x) => [x.dateKey, x.entry]));
-  const points: BmiChartPoint[] = [];
+  const pointsAsc: BmiChartPoint[] = [];
+  let nonNullInWindow = 0;
+
+  // Oldest -> newest.
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const e = values.get(k);
-    points.push({
+    if (e) nonNullInWindow += 1;
+    pointsAsc.push({
       label: `${d.getMonth() + 1}/${d.getDate()}`,
       value: e ? computeBmi(e.weightG, heightCm) : null,
     });
   }
-  return points;
-}
 
+  // If we only have one point, show it on the far-left by reversing the x-axis.
+  return nonNullInWindow <= 1 ? pointsAsc.slice().reverse() : pointsAsc;
+}

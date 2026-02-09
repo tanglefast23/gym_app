@@ -24,8 +24,7 @@ describe('buildBmiChartData', () => {
     );
 
     expect(data).toHaveLength(7);
-    // Today should be the last point
-    expect(data[data.length - 1].value).toBe(24.7);
+    // With a single point, the chart is reversed so the dot appears on the far-left.
+    expect(data[0].value).toBe(24.7);
   });
 });
-

@@ -35,8 +35,6 @@ export function WeightTrackerSection({
   const router = useRouter();
   const addToast = useToastStore((s) => s.addToast);
   const heightCm = useSettingsStore((s) => s.heightCm);
-  const age = useSettingsStore((s) => s.age);
-  const sex = useSettingsStore((s) => s.sex);
 
   const bodyWeights = useLiveQuery(
     () => db.bodyWeights.orderBy('recordedAt').toArray(),
@@ -194,10 +192,8 @@ export function WeightTrackerSection({
     return {
       height: heightCm === null,
       weight: (bodyWeights ?? []).length === 0,
-      age: age === null,
-      sex: sex === null,
     };
-  }, [heightCm, bodyWeights, age, sex]);
+  }, [heightCm, bodyWeights]);
 
   const bmiHealthyRange = useMemo(() => {
     // Always show the adult BMI band. (BMI-for-age percentiles < 20 not implemented.)
@@ -465,32 +461,6 @@ export function WeightTrackerSection({
                   weight
                 </button>
               ) : null}
-              .
-            </div>
-          ) : age === null ? (
-            <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-xs text-text-muted">
-              The green band uses the adult BMI range. Set your{' '}
-              <Link
-                href="/settings?focus=age"
-                className="font-semibold text-accent underline decoration-dotted underline-offset-2"
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                age
-              </Link>{' '}
-              to confirm it applies.
-            </div>
-          ) : age < 20 ? (
-            <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-xs text-text-muted">
-              BMI-for-age percentiles (under 20) aren&apos;t supported yet. The green band is the adult range. You can also set{' '}
-              <Link
-                href="/settings?focus=sex"
-                className="font-semibold text-accent underline decoration-dotted underline-offset-2"
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                sex
-              </Link>
               .
             </div>
           ) : null}

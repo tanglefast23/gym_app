@@ -27,8 +27,6 @@ export default function BmiPage() {
   const router = useRouter();
   const unitSystem = useSettingsStore((s) => s.unitSystem);
   const heightCm = useSettingsStore((s) => s.heightCm);
-  const age = useSettingsStore((s) => s.age);
-  const sex = useSettingsStore((s) => s.sex);
   const [timeline, setTimeline] = useState<WeightTimeline>('week');
 
   const bodyWeights = useLiveQuery(
@@ -102,8 +100,6 @@ export default function BmiPage() {
               {heightCm != null ? (
                 <p className="mt-1 text-[11px] text-text-muted">
                   Height: {Math.round(heightCm)} cm
-                  {age != null ? ` · Age: ${age}` : ''}
-                  {sex != null ? ` · Sex: ${sex}` : ''}
                 </p>
               ) : null}
             </div>
@@ -126,7 +122,7 @@ export default function BmiPage() {
                 {needsHeight && needsWeight ? ' and ' : null}
                 {needsWeight ? (
                   <Link
-                    href="/weight"
+                    href="/progress?focus=today-weight"
                     className="font-semibold text-accent underline decoration-dotted underline-offset-2"
                   >
                     weight
@@ -134,30 +130,6 @@ export default function BmiPage() {
                 ) : (
                   <span className="font-semibold text-text-secondary">weight</span>
                 )}
-                .
-              </div>
-            ) : null}
-
-            {age == null ? (
-              <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-xs text-text-muted">
-                The green band uses the adult BMI range. Set your{' '}
-                <Link
-                  href="/settings?focus=age"
-                  className="font-semibold text-accent underline decoration-dotted underline-offset-2"
-                >
-                  age
-                </Link>{' '}
-                to confirm it applies.
-              </div>
-            ) : age < 20 ? (
-              <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-xs text-text-muted">
-                BMI-for-age percentiles (under 20) aren&apos;t supported yet. The green band is the adult range. You can also set{' '}
-                <Link
-                  href="/settings?focus=sex"
-                  className="font-semibold text-accent underline decoration-dotted underline-offset-2"
-                >
-                  sex
-                </Link>
                 .
               </div>
             ) : null}
@@ -226,4 +198,3 @@ export default function BmiPage() {
     </AppShell>
   );
 }
-
