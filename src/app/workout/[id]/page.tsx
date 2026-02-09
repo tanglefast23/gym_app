@@ -24,6 +24,7 @@ import {
   WorkoutComplete,
   WorkoutTimeline,
   SetLogSheet,
+  clearExerciseHistoryCache,
 } from '@/components/active';
 import type { NewAchievementInfo } from '@/components/active';
 import {
@@ -220,6 +221,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   useEffect(() => {
     if (template && !isActive && !hasStartedRef.current) {
       hasStartedRef.current = true;
+      clearExerciseHistoryCache();
       startWorkout(
         template.id,
         template.name,
@@ -583,6 +585,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
           onComplete={handleSaveWorkout}
           onSavePartial={handleSaveWorkout}
           onDiscard={handleDiscard}
+          isSaving={isSaving}
         />
         <ToastContainer />
       </div>

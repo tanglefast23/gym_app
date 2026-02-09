@@ -1,4 +1,4 @@
-export { ExerciseDisplay } from './ExerciseDisplay';
+export { ExerciseDisplay, clearExerciseHistoryCache } from './ExerciseDisplay';
 export { TimerRing } from './TimerRing';
 export { RestTimer } from './RestTimer';
 export { SetLogSheet } from './SetLogSheet';

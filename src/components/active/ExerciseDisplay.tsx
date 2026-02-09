@@ -47,6 +47,11 @@ function computeWeightSuggestion(
 // Module-level cache — persists across remounts within the same workout session.
 const exerciseHistoryCache = new Map<string, PerformedSet[]>();
 
+/** Clear the history cache so the next workout fetches fresh data. */
+export function clearExerciseHistoryCache(): void {
+  exerciseHistoryCache.clear();
+}
+
 export const ExerciseDisplay = ({
   exerciseName,
   exerciseId,
