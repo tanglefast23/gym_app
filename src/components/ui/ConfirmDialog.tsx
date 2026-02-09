@@ -34,8 +34,27 @@ export const ConfirmDialog = ({
   const isBrowser = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const overlayRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const confirmBtnRef = useRef<HTMLButtonElement>(null);
 
   useFocusTrap(panelRef, isOpen && isBrowser, onClose);
+
+  // Auto-focus the confirm button when the dialog opens.
+  // Runs after useFocusTrap's requestAnimationFrame initial focus,
+  // so we use a nested rAF to override and land on the primary action.
+  useEffect(() => {
+    if (!isOpen || !isBrowser) return;
+
+    let innerRaf: number;
+    const outerRaf = requestAnimationFrame(() => {
+      innerRaf = requestAnimationFrame(() => {
+        confirmBtnRef.current?.focus();
+      });
+    });
+    return () => {
+      cancelAnimationFrame(outerRaf);
+      cancelAnimationFrame(innerRaf);
+    };
+  }, [isOpen, isBrowser]);
 
   useEffect(() => {
     if (isOpen) {
@@ -107,6 +126,7 @@ export const ConfirmDialog = ({
             Cancel
           </Button>
           <Button
+            ref={confirmBtnRef}
             variant={variant === 'danger' ? 'danger' : 'primary'}
             onClick={handleConfirm}
             fullWidth

@@ -14,10 +14,12 @@ export function TimelinePills({
   value,
   onChange,
   vertical = true,
+  ariaLabel = 'Weight timeline',
 }: {
   value: WeightTimeline;
   onChange: (v: WeightTimeline) => void;
   vertical?: boolean;
+  ariaLabel?: string;
 }) {
   return (
     <div
@@ -26,7 +28,7 @@ export function TimelinePills({
         vertical ? 'flex-col gap-1' : 'flex-row gap-1',
       ].join(' ')}
       role="tablist"
-      aria-label="Weight timeline"
+      aria-label={ariaLabel}
     >
       {OPTIONS.map((opt) => (
         <button

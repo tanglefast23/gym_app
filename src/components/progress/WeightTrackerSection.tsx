@@ -78,6 +78,18 @@ export function WeightTrackerSection({
     };
   }, []);
 
+  // Allow other sections to deep-link into the "Today's weight" editor.
+  useEffect(() => {
+    const handler = () => {
+      setShowLoggedCheck(false);
+      setIsEditingWeight(true);
+      // Let the input mount before focusing.
+      setTimeout(() => weightInputRef.current?.focus(), 0);
+    };
+    window.addEventListener('workout-pwa:focus-today-weight', handler);
+    return () => window.removeEventListener('workout-pwa:focus-today-weight', handler);
+  }, []);
+
   const handleAdjustDraft = useCallback(
     (delta: number) => {
       if (showLoggedCheck) setShowLoggedCheck(false);
@@ -188,6 +200,7 @@ export function WeightTrackerSection({
 
       {/* Today's weight input */}
       <Card
+        id="today-weight"
         padding="md"
         className="mb-3"
         onClick={() => router.push('/weight')}
@@ -361,4 +374,3 @@ export function WeightTrackerSection({
     </section>
   );
 }
-

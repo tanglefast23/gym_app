@@ -1,12 +1,30 @@
 import { db } from '@/lib/db';
-import type { UnlockedAchievement, WorkoutLog } from '@/types/workout';
+import type { ExerciseHistoryEntry, UnlockedAchievement, WorkoutLog } from '@/types/workout';
+
+/**
+ * Data pre-fetched in parallel before running achievement checks.
+ * Avoids N sequential IndexedDB round-trips by batching all queries upfront.
+ */
+interface PrefetchedData {
+  /** Total number of workout logs in the DB. */
+  totalLogs: number;
+  /** Number of workout logs started within the last 7 days. */
+  recentLogsCount: number;
+  /**
+   * Exercise history entries for exercises that appear in the current workout log,
+   * grouped by exerciseId for O(1) lookup.
+   */
+  exerciseHistoryByExercise: Map<string, ExerciseHistoryEntry[]>;
+  /** Set of achievement IDs that have already been unlocked. */
+  existingAchievementIds: Set<string>;
+}
 
 interface AchievementDefinition {
   id: string;
   name: string;
   description: string;
   icon: string;
-  check: (log: WorkoutLog) => Promise<{ earned: boolean; context: string | null }>;
+  check: (log: WorkoutLog, data: PrefetchedData) => { earned: boolean; context: string | null };
 }
 
 export const ACHIEVEMENTS: AchievementDefinition[] = [
@@ -15,9 +33,8 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     name: 'First Rep',
     description: 'Complete your first workout',
     icon: '\u{1F4AA}',
-    check: async () => {
-      const count = await db.logs.count();
-      return { earned: count === 1, context: null };
+    check: (_log, data) => {
+      return { earned: data.totalLogs === 1, context: null };
     },
   },
   {
@@ -25,10 +42,11 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     name: 'Consistency',
     description: '3 workouts in a week',
     icon: '\u{1F525}',
-    check: async () => {
-      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const recentLogs = await db.logs.where('startedAt').above(weekAgo).count();
-      return { earned: recentLogs >= 3, context: `${recentLogs} workouts this week` };
+    check: (_log, data) => {
+      return {
+        earned: data.recentLogsCount >= 3,
+        context: `${data.recentLogsCount} workouts this week`,
+      };
     },
   },
   {
@@ -36,9 +54,8 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     name: 'Iron Will',
     description: '10 total workouts',
     icon: '\u{1F3CB}\uFE0F',
-    check: async () => {
-      const count = await db.logs.count();
-      return { earned: count >= 10, context: `${count} total workouts` };
+    check: (_log, data) => {
+      return { earned: data.totalLogs >= 10, context: `${data.totalLogs} total workouts` };
     },
   },
   {
@@ -46,12 +63,9 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     name: 'PR Breaker',
     description: 'New highest estimated 1RM on any exercise',
     icon: '\u{1F3C6}',
-    check: async (log) => {
+    check: (log, data) => {
       // Compute best estimated 1RM in THIS log per exerciseId, then compare
       // to the previous best in history.
-      //
-      // Performance: Fetch history for all involved exercises in a single indexed
-      // query (anyOf) instead of N queries (one per exerciseId).
       const bestByExercise = new Map<string, { best1RM: number; name: string }>();
 
       for (const set of log.performedSets) {
@@ -68,20 +82,18 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
         }
       }
 
-      const exerciseIds = [...bestByExercise.keys()];
-      if (exerciseIds.length === 0) return { earned: false, context: null };
+      if (bestByExercise.size === 0) return { earned: false, context: null };
 
-      const history = await db.exerciseHistory
-        .where('exerciseId')
-        .anyOf(exerciseIds)
-        .toArray();
-
+      // Build previous-best map from prefetched history
       const previousBestByExercise = new Map<string, number>();
-      for (const h of history) {
-        if (h.logId === log.id) continue;
-        if (h.estimated1RM_G === null) continue;
-        const prev = previousBestByExercise.get(h.exerciseId) ?? 0;
-        if (h.estimated1RM_G > prev) previousBestByExercise.set(h.exerciseId, h.estimated1RM_G);
+      for (const [exerciseId] of bestByExercise) {
+        const history = data.exerciseHistoryByExercise.get(exerciseId) ?? [];
+        for (const h of history) {
+          if (h.logId === log.id) continue;
+          if (h.estimated1RM_G === null) continue;
+          const prev = previousBestByExercise.get(h.exerciseId) ?? 0;
+          if (h.estimated1RM_G > prev) previousBestByExercise.set(h.exerciseId, h.estimated1RM_G);
+        }
       }
 
       for (const [exerciseId, { best1RM, name }] of bestByExercise) {
@@ -99,7 +111,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     name: 'Volume King',
     description: 'New highest session volume for an exercise',
     icon: '\u{1F451}',
-    check: async (log) => {
+    check: (log, data) => {
       const exerciseVolumes = new Map<string, { volume: number; name: string }>();
 
       for (const set of log.performedSets) {
@@ -111,19 +123,17 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
         exerciseVolumes.set(set.exerciseId, existing);
       }
 
-      const exerciseIds = [...exerciseVolumes.keys()];
-      if (exerciseIds.length === 0) return { earned: false, context: null };
+      if (exerciseVolumes.size === 0) return { earned: false, context: null };
 
-      const history = await db.exerciseHistory
-        .where('exerciseId')
-        .anyOf(exerciseIds)
-        .toArray();
-
+      // Build previous-best volume map from prefetched history
       const previousBestByExercise = new Map<string, number>();
-      for (const h of history) {
-        if (h.logId === log.id) continue;
-        const prev = previousBestByExercise.get(h.exerciseId) ?? 0;
-        if (h.totalVolumeG > prev) previousBestByExercise.set(h.exerciseId, h.totalVolumeG);
+      for (const [exerciseId] of exerciseVolumes) {
+        const history = data.exerciseHistoryByExercise.get(exerciseId) ?? [];
+        for (const h of history) {
+          if (h.logId === log.id) continue;
+          const prev = previousBestByExercise.get(h.exerciseId) ?? 0;
+          if (h.totalVolumeG > prev) previousBestByExercise.set(h.exerciseId, h.totalVolumeG);
+        }
       }
 
       for (const [exerciseId, { volume, name }] of exerciseVolumes) {
@@ -141,7 +151,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     name: 'Superset Master',
     description: 'Complete a workout containing supersets',
     icon: '\u{26A1}',
-    check: async (log) => {
+    check: (log) => {
       const hasSupersets = log.templateSnapshot.some((b) => b.type === 'superset');
       return { earned: hasSupersets, context: null };
     },
@@ -151,12 +161,51 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     name: 'Century',
     description: '100 total workouts',
     icon: '\u{1F4AF}',
-    check: async () => {
-      const count = await db.logs.count();
-      return { earned: count >= 100, context: `${count} total workouts!` };
+    check: (_log, data) => {
+      return { earned: data.totalLogs >= 100, context: `${data.totalLogs} total workouts!` };
     },
   },
 ];
+
+/**
+ * Pre-fetch all data needed by achievement checks in parallel.
+ *
+ * This replaces ~8 sequential IndexedDB queries with ~4 parallel ones,
+ * reducing total wall-clock time from O(n * latency) to O(latency).
+ */
+async function prefetchAchievementData(log: WorkoutLog): Promise<PrefetchedData> {
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Collect unique exerciseIds from the workout log for targeted history fetch
+  const exerciseIds = [...new Set(log.performedSets.map((s) => s.exerciseId))];
+
+  const [totalLogs, recentLogsCount, historyRows, existingAchievements] = await Promise.all([
+    db.logs.count(),
+    db.logs.where('startedAt').above(weekAgo).count(),
+    exerciseIds.length > 0
+      ? db.exerciseHistory.where('exerciseId').anyOf(exerciseIds).toArray()
+      : Promise.resolve([]),
+    db.achievements.toArray(),
+  ]);
+
+  // Group history entries by exerciseId for O(1) lookup
+  const exerciseHistoryByExercise = new Map<string, ExerciseHistoryEntry[]>();
+  for (const entry of historyRows) {
+    const bucket = exerciseHistoryByExercise.get(entry.exerciseId);
+    if (bucket) {
+      bucket.push(entry);
+    } else {
+      exerciseHistoryByExercise.set(entry.exerciseId, [entry]);
+    }
+  }
+
+  return {
+    totalLogs,
+    recentLogsCount,
+    exerciseHistoryByExercise,
+    existingAchievementIds: new Set(existingAchievements.map((a) => a.achievementId)),
+  };
+}
 
 /**
  * Check all achievement definitions against a newly saved workout log.
@@ -165,15 +214,14 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
  * newly unlocked achievements (persisted to the database).
  */
 export async function checkAchievements(log: WorkoutLog): Promise<UnlockedAchievement[]> {
-  const existing = await db.achievements.toArray();
-  const existingIds = new Set(existing.map((a) => a.achievementId));
+  const data = await prefetchAchievementData(log);
 
   const newlyUnlocked: UnlockedAchievement[] = [];
 
   for (const achievement of ACHIEVEMENTS) {
-    if (existingIds.has(achievement.id)) continue;
+    if (data.existingAchievementIds.has(achievement.id)) continue;
 
-    const result = await achievement.check(log);
+    const result = achievement.check(log, data);
     if (result.earned) {
       const unlock: UnlockedAchievement = {
         achievementId: achievement.id,

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useCallback, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Download, Upload, RotateCcw, Trash2, CalendarRange, Minus, Plus } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Header } from '@/components/layout/Header';
-import { Button, ConfirmDialog, useToastStore, ToastContainer } from '@/components/ui';
+import { Button, ConfirmDialog, useToastStore, ToastContainer, StorageWarning } from '@/components/ui';
+import { useStorageQuota } from '@/hooks';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { downloadExport, importData, previewImport } from '@/lib/exportImport';
 import {
@@ -173,6 +174,7 @@ interface ImportSummary {
   logs: number;
   achievements: number;
   bodyWeights: number;
+  bpms: number;
   exportedAt: string;
 }
 
@@ -196,6 +198,11 @@ const sexOptions: { value: Sex; label: string }[] = [
   { value: 'female', label: 'Female' },
 ];
 
+/** Format bytes as a human-readable MB string. */
+function formatMB(bytes: number): string {
+  return (bytes / (1024 * 1024)).toFixed(1);
+}
+
 function localDateStartISO(date: string): string {
   return new Date(`${date}T00:00:00`).toISOString();
 }
@@ -209,9 +216,35 @@ function localDateEndISO(date: string): string {
 // ---------------------------------------------------------------------------
 
 export default function SettingsPage() {
+  return (
+    <Suspense>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+function SettingsContent() {
   const router = useRouter();
   const addToast = useToastStore((s) => s.addToast);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchParams = useSearchParams();
+  const [focusHighlight, setFocusHighlight] = useState<'sex' | 'age' | 'height' | null>(null);
+
+  useEffect(() => {
+    const focus = searchParams.get('focus');
+    if (focus !== 'sex' && focus !== 'age' && focus !== 'height') return;
+
+    setFocusHighlight(focus);
+    // Scroll the target row into view after the page paints.
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`settings-focus-${focus}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    const t = setTimeout(() => setFocusHighlight(null), 2200);
+    return () => clearTimeout(t);
+  }, [searchParams]);
 
   // Settings store selectors (Zustand v5 pattern -- never call without selector)
   const unitSystem = useSettingsStore((s) => s.unitSystem);
@@ -239,6 +272,9 @@ export default function SettingsPage() {
   const sex = useSettingsStore((s) => s.sex);
   const setSex = useSettingsStore((s) => s.setSex);
   const resetDefaults = useSettingsStore((s) => s.resetToDefaults);
+
+  // Storage quota
+  const { usageBytes, quotaBytes } = useStorageQuota();
 
   // Import flow state
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -374,6 +410,7 @@ export default function SettingsPage() {
     exerciseHistory: number;
     achievements: number;
     bodyWeights: number;
+    bpms: number;
   } | null>(null);
   const [deleteAllCountdown, setDeleteAllCountdown] = useState(3);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
@@ -508,63 +545,105 @@ export default function SettingsPage() {
       />
 
       <div className="px-5 pt-4 pb-8">
+        <StorageWarning />
+
         {/* ---- Personal Bio ---- */}
         <SectionTitle>Personal Bio</SectionTitle>
 
-        <SettingRow label="Sex">
-          <SegmentedControl
-            options={sexOptions}
-            value={sex ?? ('' as Sex)}
-            onChange={handleSexChange}
-          />
-        </SettingRow>
-
-        <SettingRow label="Age" description="Years">
-          <InlineStepper
-            value={age ?? 25}
-            onChange={handleAgeChange}
-            min={13}
-            max={120}
-            ariaLabel="age"
-          />
-        </SettingRow>
-
-        {isImperial ? (
-          <SettingRow label="Height" description="Feet & inches">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <InlineStepper
-                  value={heightFt}
-                  onChange={handleHeightFtChange}
-                  min={3}
-                  max={8}
-                  formatValue={(v) => `${v}′`}
-                  ariaLabel="height feet"
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <InlineStepper
-                  value={heightIn}
-                  onChange={handleHeightInChange}
-                  min={0}
-                  max={11}
-                  formatValue={(v) => `${v}″`}
-                  ariaLabel="height inches"
-                />
-              </div>
-            </div>
-          </SettingRow>
-        ) : (
-          <SettingRow label="Height" description="Centimeters">
-            <InlineStepper
-              value={heightCm ?? 170}
-              onChange={handleHeightCmChange}
-              min={100}
-              max={250}
-              formatValue={(v) => `${v} cm`}
-              ariaLabel="height in centimeters"
+        <div
+          id="settings-focus-sex"
+          className={[
+            'scroll-mt-24 -mx-2 rounded-2xl px-2 py-1 transition-shadow',
+            focusHighlight === 'sex'
+              ? 'ring-2 ring-accent/50 ring-offset-2 ring-offset-background shadow-[0_0_0_4px_rgba(251,191,36,0.08)]'
+              : '',
+          ].join(' ')}
+        >
+          <SettingRow label="Sex">
+            <SegmentedControl
+              options={sexOptions}
+              value={sex ?? ('' as Sex)}
+              onChange={handleSexChange}
             />
           </SettingRow>
+        </div>
+
+        <div
+          id="settings-focus-age"
+          className={[
+            'scroll-mt-24 -mx-2 rounded-2xl px-2 py-1 transition-shadow',
+            focusHighlight === 'age'
+              ? 'ring-2 ring-accent/50 ring-offset-2 ring-offset-background shadow-[0_0_0_4px_rgba(251,191,36,0.08)]'
+              : '',
+          ].join(' ')}
+        >
+          <SettingRow label="Age" description="Years">
+            <InlineStepper
+              value={age ?? 25}
+              onChange={handleAgeChange}
+              min={13}
+              max={120}
+              ariaLabel="age"
+            />
+          </SettingRow>
+        </div>
+
+        {isImperial ? (
+          <div
+            id="settings-focus-height"
+            className={[
+              'scroll-mt-24 -mx-2 rounded-2xl px-2 py-1 transition-shadow',
+              focusHighlight === 'height'
+                ? 'ring-2 ring-accent/50 ring-offset-2 ring-offset-background shadow-[0_0_0_4px_rgba(251,191,36,0.08)]'
+                : '',
+            ].join(' ')}
+          >
+            <SettingRow label="Height" description="Feet & inches">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  <InlineStepper
+                    value={heightFt}
+                    onChange={handleHeightFtChange}
+                    min={3}
+                    max={8}
+                    formatValue={(v) => `${v}′`}
+                    ariaLabel="height feet"
+                  />
+                </div>
+                <div className="flex items-center gap-1">
+                  <InlineStepper
+                    value={heightIn}
+                    onChange={handleHeightInChange}
+                    min={0}
+                    max={11}
+                    formatValue={(v) => `${v}″`}
+                    ariaLabel="height inches"
+                  />
+                </div>
+              </div>
+            </SettingRow>
+          </div>
+        ) : (
+          <div
+            id="settings-focus-height"
+            className={[
+              'scroll-mt-24 -mx-2 rounded-2xl px-2 py-1 transition-shadow',
+              focusHighlight === 'height'
+                ? 'ring-2 ring-accent/50 ring-offset-2 ring-offset-background shadow-[0_0_0_4px_rgba(251,191,36,0.08)]'
+                : '',
+            ].join(' ')}
+          >
+            <SettingRow label="Height" description="Centimeters">
+              <InlineStepper
+                value={heightCm ?? 170}
+                onChange={handleHeightCmChange}
+                min={100}
+                max={250}
+                formatValue={(v) => `${v} cm`}
+                ariaLabel="height in centimeters"
+              />
+            </SettingRow>
+          </div>
         )}
 
         {/* ---- Units & Preferences ---- */}
@@ -694,7 +773,7 @@ export default function SettingsPage() {
             <p className="text-xs text-text-secondary">
               {importSummary.exercises} exercises, {importSummary.templates}{' '}
               templates, {importSummary.logs} logs, {importSummary.achievements}{' '}
-              achievements, {importSummary.bodyWeights} weight entries
+              achievements, {importSummary.bodyWeights} weight entries, {importSummary.bpms} bpm entries
             </p>
             <p className="mt-1 text-xs text-text-muted">
               Exported on{' '}
@@ -716,6 +795,12 @@ export default function SettingsPage() {
 
         {/* ---- Data Management ---- */}
         <SectionTitle>Data Management</SectionTitle>
+
+        {usageBytes !== null && quotaBytes !== null ? (
+          <p className="mb-3 text-sm text-text-secondary">
+            Storage: {formatMB(usageBytes)} MB / {formatMB(quotaBytes)} MB used
+          </p>
+        ) : null}
 
         <div className="space-y-3">
           <Button
@@ -858,7 +943,7 @@ export default function SettingsPage() {
         title="Delete all data?"
         description={
           deleteAllCounts
-            ? `This will permanently delete ALL your data:\n\n• ${deleteAllCounts.logs} workout logs\n• ${deleteAllCounts.templates} workout templates\n• ${deleteAllCounts.exercises} exercises\n• ${deleteAllCounts.exerciseHistory} history entries\n• ${deleteAllCounts.achievements} achievements\n• ${deleteAllCounts.bodyWeights} weight entries\n\nYour settings will be preserved. This cannot be undone.`
+            ? `This will permanently delete ALL your data:\n\n• ${deleteAllCounts.logs} workout logs\n• ${deleteAllCounts.templates} workout templates\n• ${deleteAllCounts.exercises} exercises\n• ${deleteAllCounts.exerciseHistory} history entries\n• ${deleteAllCounts.achievements} achievements\n• ${deleteAllCounts.bodyWeights} weight entries\n• ${deleteAllCounts.bpms} bpm entries\n\nYour settings will be preserved. This cannot be undone.`
             : 'Loading data counts...'
         }
         confirmText="Continue"

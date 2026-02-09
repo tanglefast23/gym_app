@@ -11,3 +11,4 @@ export { Stepper } from './Stepper';
 export { NumberStepper, AMRAP_SENTINEL } from './NumberStepper';
 export { ClickSoundProvider } from './ClickSoundProvider';
 export { ThemeProvider } from './ThemeProvider';
+export { StorageWarning } from './StorageWarning';

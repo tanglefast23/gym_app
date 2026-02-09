@@ -121,6 +121,18 @@ export const NumberStepper = ({
     clearLongPress();
   }, [clearLongPress]);
 
+  /** Keyboard equivalent for long-press AMRAP toggle: Shift+Enter or Shift+Space. */
+  const handlePlusKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!onAmrapToggle) return;
+      if (e.shiftKey && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        onAmrapToggle();
+      }
+    },
+    [onAmrapToggle],
+  );
+
   // --- Value editing ---
 
   const handleValueClick = useCallback(() => {
@@ -234,13 +246,20 @@ export const NumberStepper = ({
           onPointerDown={onAmrapToggle ? handlePlusPointerDown : undefined}
           onPointerUp={onAmrapToggle ? handlePlusPointerUp : undefined}
           onPointerLeave={onAmrapToggle ? handlePlusPointerLeave : undefined}
+          onKeyDown={onAmrapToggle ? handlePlusKeyDown : undefined}
           onClick={onAmrapToggle ? undefined : handleIncrement}
           disabled={!amrap && atMax && !onAmrapToggle}
           className={`${btnBase} ${!amrap && atMax && !onAmrapToggle ? 'opacity-30 cursor-not-allowed' : ''}`}
-          aria-label={`${onAmrapToggle ? 'Hold to toggle AMRAP. ' : ''}Increase ${ariaLabel ?? label ?? 'value'}`}
+          aria-label={`Increase ${ariaLabel ?? label ?? 'value'}`}
+          aria-describedby={onAmrapToggle ? 'amrap-hint' : undefined}
         >
           <Plus className={iconClass} />
         </button>
+        {onAmrapToggle ? (
+          <span id="amrap-hint" className="sr-only">
+            Shift+Enter to toggle AMRAP
+          </span>
+        ) : null}
       </div>
     </div>
   );

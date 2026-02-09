@@ -229,6 +229,13 @@ export const useActiveWorkoutStore = create<
           await db.logs.add(log);
           await db.crashRecovery.delete('recovery');
 
+          // Denormalize lastPerformedAt onto the template for fast home-page reads.
+          if (templateId) {
+            await db.templates.update(templateId, {
+              lastPerformedAt: new Date().toISOString(),
+            });
+          }
+
           return log;
         } catch (error: unknown) {
           const message =

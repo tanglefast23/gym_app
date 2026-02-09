@@ -5,6 +5,7 @@ import { type ReactNode, type CSSProperties } from 'react';
 type CardPadding = 'sm' | 'md' | 'lg';
 
 interface CardProps {
+  id?: string;
   children: ReactNode;
   className?: string;
   onClick?: () => void;
@@ -19,6 +20,7 @@ const paddingClasses: Record<CardPadding, string> = {
 };
 
 export const Card = ({
+  id,
   children,
   className = '',
   onClick,
@@ -36,6 +38,7 @@ export const Card = ({
 
   return (
     <div
+      id={id}
       className={classes}
       style={style}
       onClick={onClick}

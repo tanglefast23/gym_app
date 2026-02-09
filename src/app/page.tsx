@@ -23,28 +23,6 @@ import { buildColorMap, colorForIndex, WORKOUT_COLORS } from '@/lib/workoutTypeC
 /** Minimum number of templates before the search bar is shown. */
 const SEARCH_THRESHOLD = 5;
 
-interface LogSummary {
-  templateId: string | null;
-  startedAt: string;
-  templateName: string;
-}
-
-function buildLastPerformedMap(
-  logs: LogSummary[],
-): Map<string, string> {
-  const map = new Map<string, string>();
-
-  for (const log of logs) {
-    if (!log.templateId) continue;
-    const existing = map.get(log.templateId);
-    if (!existing || log.startedAt > existing) {
-      map.set(log.templateId, log.startedAt);
-    }
-  }
-
-  return map;
-}
-
 /**
  * Checks if a recovery record is still valid (less than 4 hours old).
  */
@@ -196,20 +174,6 @@ export default function HomePage() {
     [],
   );
 
-  const allLogs = useLiveQuery(
-    () =>
-      db.logs
-        .orderBy('startedAt')
-        .toArray((logs) =>
-          logs.map((l) => ({
-            templateId: l.templateId,
-            startedAt: l.startedAt,
-            templateName: l.templateName,
-          })),
-        ),
-    [],
-  );
-
   const allExercises = useLiveQuery(
     () => db.exercises.toArray(),
     [],
@@ -221,26 +185,19 @@ export default function HomePage() {
     return new Map(allExercises.map((e) => [e.id, e.name]));
   }, [allExercises]);
 
-  const lastPerformedMap = useMemo(
-    () => buildLastPerformedMap(allLogs ?? []),
-    [allLogs],
-  );
-
-  // Match History's workout-name -> color assignment (earliest appearance wins).
+  // Assign colors by sorting templates with lastPerformedAt (most-recent first),
+  // so the most-used workouts get the first palette slots.
   const templateColorMap = useMemo(() => {
-    const logs = allLogs ?? [];
-    const earliest = new Map<string, string>();
-    for (const log of logs) {
-      const prev = earliest.get(log.templateName);
-      if (!prev || log.startedAt < prev) {
-        earliest.set(log.templateName, log.startedAt);
-      }
-    }
-    const ordered = Array.from(earliest.entries())
-      .sort((a, b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]))
-      .map(([name]) => name);
-    return buildColorMap(ordered);
-  }, [allLogs]);
+    const templates = allTemplates ?? [];
+    const performed = templates
+      .filter((t) => t.lastPerformedAt)
+      .sort((a, b) =>
+        (b.lastPerformedAt ?? '').localeCompare(a.lastPerformedAt ?? '') ||
+        a.name.localeCompare(b.name),
+      )
+      .map((t) => t.name);
+    return buildColorMap(performed);
+  }, [allTemplates]);
 
   function fallbackColorForTemplate(template: WorkoutTemplate): string {
     // Deterministic per-template fallback for never-performed workouts.
@@ -266,8 +223,7 @@ export default function HomePage() {
   const showSearch =
     allTemplates !== undefined && allTemplates.length >= SEARCH_THRESHOLD;
   const validRecovery = isRecoveryValid(recovery) ? recovery : null;
-  const isLoading =
-    allTemplates === undefined || allLogs === undefined;
+  const isLoading = allTemplates === undefined;
 
   // -- Handlers --
   const handleResume = useCallback(() => {
@@ -409,7 +365,7 @@ export default function HomePage() {
               >
                 <WorkoutCard
                   template={template}
-                  lastPerformed={lastPerformedMap.get(template.id) ?? null}
+                  lastPerformed={template.lastPerformedAt ?? null}
                   exerciseNameMap={exerciseNameMap}
                   typeColor={
                     templateColorMap.get(template.name) ??

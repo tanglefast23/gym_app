@@ -42,6 +42,9 @@ function computeWeightSuggestion(
   return { avgG, suggestedG };
 }
 
+// Module-level cache — persists across remounts within the same workout session.
+const exerciseHistoryCache = new Map<string, PerformedSet[]>();
+
 export const ExerciseDisplay = ({
   exerciseName,
   exerciseId,
@@ -81,9 +84,18 @@ export const ExerciseDisplay = ({
 
   useEffect(() => {
     if (!exerciseId) return;
+
+    // Check cache first — avoids redundant IndexedDB queries on remount
+    const cached = exerciseHistoryCache.get(exerciseId);
+    if (cached) {
+      setWeightHint(computeWeightSuggestion(cached, unitSystem));
+      return;
+    }
+
     let cancelled = false;
     getLastPerformedSets(exerciseId).then((sets) => {
       if (cancelled) return;
+      exerciseHistoryCache.set(exerciseId, sets);
       setWeightHint(computeWeightSuggestion(sets, unitSystem));
     }).catch(() => {});
     return () => { cancelled = true; };

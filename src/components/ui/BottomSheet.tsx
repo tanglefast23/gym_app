@@ -75,6 +75,7 @@ export const BottomSheet = ({
     >
       <div
         ref={sheetRef}
+        tabIndex={-1}
         className={[
           'fixed bottom-0 left-0 right-0',
           'rounded-t-[24px] bg-elevated',
@@ -82,6 +83,7 @@ export const BottomSheet = ({
           'transition-transform duration-300',
           'max-h-[85vh] overflow-y-auto',
           'translate-y-full',
+          'focus:outline-none',
         ].join(' ')}
         onClick={handleSheetClick}
       >

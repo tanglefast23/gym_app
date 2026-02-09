@@ -389,6 +389,25 @@ export function WorkoutEditor({
                       suffix="s"
                       ariaLabel="Rest between exercises in seconds"
                     />
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <p className="text-xs text-text-muted">
+                        {block.transitionRestSec === null
+                          ? `Using default transitions (${defaultTransitionsSec}s)`
+                          : 'Custom transition rest'}
+                      </p>
+                      {block.transitionRestSec !== null ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateBlock(index, { ...block, transitionRestSec: null })
+                          }
+                          className="min-h-[32px] rounded-full border border-border bg-surface px-3 text-xs font-semibold text-text-secondary transition-colors hover:bg-elevated"
+                          aria-label="Use default transitions rest time"
+                        >
+                          Use default
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
               </div>

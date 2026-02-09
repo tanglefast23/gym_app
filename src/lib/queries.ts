@@ -75,6 +75,69 @@ export async function getLastPerformedSets(exerciseId: string): Promise<Performe
 }
 
 /**
+ * Batch-fetch the last performed sets for multiple exercises in a single query.
+ *
+ * Instead of calling `getLastPerformedSets` N times (one IndexedDB round-trip
+ * per exerciseId), this function:
+ * 1. Fetches all exercise history entries matching the given IDs in one query.
+ * 2. Groups entries by exerciseId, keeping only the most recent per exercise.
+ * 3. Loads each unique logId once, then extracts the matching performed sets.
+ *
+ * Returns a `Map<string, PerformedSet[]>` keyed by exerciseId.
+ */
+export async function getLastPerformedSetsForMultiple(
+  exerciseIds: string[],
+): Promise<Map<string, PerformedSet[]>> {
+  const result = new Map<string, PerformedSet[]>();
+  if (exerciseIds.length === 0) return result;
+
+  // Single IndexedDB query for all exercise history entries matching any of the IDs.
+  const allEntries = await db.exerciseHistory
+    .where('exerciseId')
+    .anyOf(exerciseIds)
+    .toArray();
+
+  if (allEntries.length === 0) return result;
+
+  // Group by exerciseId, keeping only the entry with the latest performedAt.
+  const latestByExercise = new Map<string, { logId: string; performedAt: string }>();
+  for (const entry of allEntries) {
+    const existing = latestByExercise.get(entry.exerciseId);
+    if (!existing || entry.performedAt > existing.performedAt) {
+      latestByExercise.set(entry.exerciseId, {
+        logId: entry.logId,
+        performedAt: entry.performedAt,
+      });
+    }
+  }
+
+  // Collect unique logIds to fetch (multiple exercises may share a log).
+  const uniqueLogIds = new Set<string>();
+  for (const { logId } of latestByExercise.values()) {
+    uniqueLogIds.add(logId);
+  }
+
+  // Fetch all required logs in a single batch.
+  const logs = await db.logs.bulkGet([...uniqueLogIds]);
+  const logMap = new Map<string, WorkoutLog>();
+  for (const log of logs) {
+    if (log) logMap.set(log.id, log);
+  }
+
+  // Extract performed sets for each exerciseId from the corresponding log.
+  for (const [exerciseId, { logId }] of latestByExercise) {
+    const log = logMap.get(logId);
+    if (!log) continue;
+    const sets = log.performedSets.filter((s) => s.exerciseId === exerciseId);
+    if (sets.length > 0) {
+      result.set(exerciseId, sets);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Delete a single workout log and its related exercise history entries.
  */
 export async function deleteLog(logId: string): Promise<void> {
@@ -101,16 +164,18 @@ export async function getDataCounts(): Promise<{
   exerciseHistory: number;
   achievements: number;
   bodyWeights: number;
+  bpms: number;
 }> {
-  const [exercises, templates, logs, exerciseHistory, achievements, bodyWeights] = await Promise.all([
+  const [exercises, templates, logs, exerciseHistory, achievements, bodyWeights, bpms] = await Promise.all([
     db.exercises.count(),
     db.templates.count(),
     db.logs.count(),
     db.exerciseHistory.count(),
     db.achievements.count(),
     db.bodyWeights.count(),
+    db.bpms.count(),
   ]);
-  return { exercises, templates, logs, exerciseHistory, achievements, bodyWeights };
+  return { exercises, templates, logs, exerciseHistory, achievements, bodyWeights, bpms };
 }
 
 /**
@@ -124,7 +189,7 @@ export async function getDataCounts(): Promise<{
 export async function deleteAllData(): Promise<void> {
   await db.transaction(
     'rw',
-    [db.exercises, db.templates, db.logs, db.exerciseHistory, db.achievements, db.bodyWeights, db.crashRecovery],
+    [db.exercises, db.templates, db.logs, db.exerciseHistory, db.achievements, db.bodyWeights, db.bpms, db.crashRecovery],
     async () => {
       await Promise.all([
         db.exercises.clear(),
@@ -133,6 +198,7 @@ export async function deleteAllData(): Promise<void> {
         db.exerciseHistory.clear(),
         db.achievements.clear(),
         db.bodyWeights.clear(),
+        db.bpms.clear(),
         db.crashRecovery.clear(),
       ]);
     },

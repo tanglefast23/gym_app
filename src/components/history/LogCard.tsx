@@ -79,10 +79,15 @@ export const LogCard = ({ log, typeColor, onClick, onLongPress }: LogCardProps) 
       onClick={handleClick}
       role="button"
       tabIndex={0}
+      aria-describedby={onLongPress ? `log-delete-hint-${log.id}` : undefined}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onClick();
+        }
+        if (e.key === 'Delete' && onLongPress) {
+          e.preventDefault();
+          onLongPress();
         }
       }}
       onTouchStart={startPress}
@@ -131,6 +136,12 @@ export const LogCard = ({ log, typeColor, onClick, onLongPress }: LogCardProps) 
           {formatWeight(log.totalVolumeG, unitSystem)}
         </span>
       </div>
+
+      {onLongPress ? (
+        <span id={`log-delete-hint-${log.id}`} className="sr-only">
+          Press Delete key to delete this workout log
+        </span>
+      ) : null}
     </div>
   );
 };

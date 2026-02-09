@@ -6,6 +6,7 @@ import type {
   ExerciseHistoryEntry,
   UnlockedAchievement,
   BodyWeightEntry,
+  BpmEntry,
   UserSettings,
   CrashRecoveryData,
 } from '@/types/workout';
@@ -17,6 +18,7 @@ export class WorkoutDB extends Dexie {
   exerciseHistory!: Table<ExerciseHistoryEntry, number>;
   achievements!: Table<UnlockedAchievement, string>;
   bodyWeights!: Table<BodyWeightEntry, string>;
+  bpms!: Table<BpmEntry, string>;
   settings!: Table<UserSettings, string>;
   crashRecovery!: Table<CrashRecoveryData, string>;
 
@@ -56,6 +58,57 @@ export class WorkoutDB extends Dexie {
         '++id, exerciseId, exerciseName, logId, performedAt, [exerciseId+performedAt], [exerciseName+performedAt]',
       achievements: 'achievementId, unlockedAt',
       bodyWeights: 'id, recordedAt',
+      settings: 'id',
+      crashRecovery: 'id',
+    });
+
+    // v4: denormalize lastPerformedAt onto templates to avoid loading all logs on the home page.
+    // No new index needed — the field is read alongside the template row.
+    this.version(4)
+      .stores({
+        exercises: 'id, name',
+        templates: 'id, name, isArchived, createdAt',
+        logs: 'id, templateId, startedAt, status, [templateId+startedAt]',
+        exerciseHistory:
+          '++id, exerciseId, exerciseName, logId, performedAt, [exerciseId+performedAt], [exerciseName+performedAt]',
+        achievements: 'achievementId, unlockedAt',
+        bodyWeights: 'id, recordedAt',
+        settings: 'id',
+        crashRecovery: 'id',
+      })
+      .upgrade(async (tx) => {
+        const logs = await tx.table('logs').toArray();
+        // Build a map of templateId -> latest startedAt
+        const latestByTemplate = new Map<string, string>();
+        for (const log of logs) {
+          const tid = log.templateId as string | null;
+          if (!tid) continue;
+          const startedAt = log.startedAt as string;
+          const existing = latestByTemplate.get(tid);
+          if (!existing || startedAt > existing) {
+            latestByTemplate.set(tid, startedAt);
+          }
+        }
+        // Update each template that has logs
+        const templates = tx.table('templates');
+        await templates.toCollection().modify((template) => {
+          const lastPerformed = latestByTemplate.get(template.id as string);
+          if (lastPerformed) {
+            template.lastPerformedAt = lastPerformed;
+          }
+        });
+      });
+
+    // v5: add heart rate (BPM) tracking
+    this.version(5).stores({
+      exercises: 'id, name',
+      templates: 'id, name, isArchived, createdAt',
+      logs: 'id, templateId, startedAt, status, [templateId+startedAt]',
+      exerciseHistory:
+        '++id, exerciseId, exerciseName, logId, performedAt, [exerciseId+performedAt], [exerciseName+performedAt]',
+      achievements: 'achievementId, unlockedAt',
+      bodyWeights: 'id, recordedAt',
+      bpms: 'id, recordedAt',
       settings: 'id',
       crashRecovery: 'id',
     });

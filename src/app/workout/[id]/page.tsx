@@ -1,17 +1,21 @@
 'use client';
 
-import { useEffect, useCallback, useState, useMemo, useRef } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { X, Loader2 } from 'lucide-react';
+import { X } from 'lucide-react';
 import { db } from '@/lib/db';
 import { writeExerciseHistory } from '@/lib/queries';
 import { checkAchievements, ACHIEVEMENTS } from '@/lib/achievements';
 import { playSfx } from '@/lib/sfx';
-import { calculateEpley1RM } from '@/lib/calculations';
+import {
+  detectPersonalRecords,
+  type PersonalRecordSummary,
+} from '@/lib/personalRecords';
 import { useActiveWorkoutStore } from '@/stores/activeWorkoutStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useTimer, useWakeLock, useHaptics } from '@/hooks';
+import { useActiveWorkoutDerived } from '@/hooks/useActiveWorkoutDerived';
 import {
   ExerciseDisplay,
   RestTimer,
@@ -21,144 +25,18 @@ import {
 } from '@/components/active';
 import type { NewAchievementInfo } from '@/components/active';
 import {
-  Button,
+  LoadingSpinner,
+  NotFoundScreen,
+} from '@/components/active/WorkoutFallbacks';
+import {
   ConfirmDialog,
   ToastContainer,
   useToastStore,
   AchievementUnlockOverlay,
 } from '@/components/ui';
-import type { WorkoutLog, WorkoutStep } from '@/types/workout';
 
 const COUNTDOWN_THRESHOLD_MS = 5000;
 const COUNTDOWN_BEEP_INTERVAL_MS = 900; // ~1x per second (with margin for tick jitter)
-
-// -----------------------------------------------------------------------------
-// Helper: build a "next up" label from the rest of the step list
-// -----------------------------------------------------------------------------
-
-/**
- * Scans forward from the current rest step to find the next exercise step
- * and returns a human-readable preview string.
- */
-function buildNextUpLabel(
-  allSteps: WorkoutStep[],
-  currentIndex: number,
-  nameMap: Map<string, string>,
-): string {
-  for (let i = currentIndex + 1; i < allSteps.length; i++) {
-    const step = allSteps[i];
-    if (step.type === 'exercise') {
-      const name =
-        nameMap.get(step.exerciseId ?? '') ??
-        step.exerciseName ??
-        'Exercise';
-      const set = (step.setIndex ?? 0) + 1;
-      return `Next: ${name} - Set ${set}`;
-    }
-  }
-  return 'Workout complete!';
-}
-
-type PersonalRecordSummary = {
-  oneRm: Array<{ exerciseId: string; name: string }>;
-  volume: Array<{ exerciseId: string; name: string }>;
-};
-
-async function detectPersonalRecords(log: WorkoutLog): Promise<PersonalRecordSummary> {
-  const byExercise = new Map<
-    string,
-    { name: string; volumeG: number; best1rmG: number | null }
-  >();
-
-  for (const set of log.performedSets) {
-    const prev = byExercise.get(set.exerciseId) ?? {
-      name: set.exerciseNameSnapshot,
-      volumeG: 0,
-      best1rmG: null as number | null,
-    };
-
-    prev.volumeG += set.weightG * set.repsDone;
-
-    const e1rm = calculateEpley1RM(set.weightG, set.repsDone);
-    if (e1rm !== null) {
-      prev.best1rmG = prev.best1rmG === null ? e1rm : Math.max(prev.best1rmG, e1rm);
-    }
-
-    byExercise.set(set.exerciseId, prev);
-  }
-
-  const exerciseIds = [...byExercise.keys()];
-  if (exerciseIds.length === 0) return { oneRm: [], volume: [] };
-
-  const history = await db.exerciseHistory
-    .where('exerciseId')
-    .anyOf(exerciseIds)
-    .toArray();
-
-  const prevBest1rmByExercise = new Map<string, number>();
-  const prevBestVolumeByExercise = new Map<string, number>();
-
-  for (const h of history) {
-    if (h.logId === log.id) continue;
-
-    if (h.estimated1RM_G !== null) {
-      const prev = prevBest1rmByExercise.get(h.exerciseId) ?? 0;
-      if (h.estimated1RM_G > prev) prevBest1rmByExercise.set(h.exerciseId, h.estimated1RM_G);
-    }
-
-    const prevVol = prevBestVolumeByExercise.get(h.exerciseId) ?? 0;
-    if (h.totalVolumeG > prevVol) prevBestVolumeByExercise.set(h.exerciseId, h.totalVolumeG);
-  }
-
-  const oneRm: PersonalRecordSummary['oneRm'] = [];
-  const volume: PersonalRecordSummary['volume'] = [];
-
-  for (const [exerciseId, info] of byExercise) {
-    const prevBest1rm = prevBest1rmByExercise.get(exerciseId) ?? 0;
-    if (info.best1rmG !== null && info.best1rmG > prevBest1rm && prevBest1rm > 0) {
-      oneRm.push({ exerciseId, name: info.name });
-    }
-
-    const prevBestVol = prevBestVolumeByExercise.get(exerciseId) ?? 0;
-    if (info.volumeG > prevBestVol && prevBestVol > 0) {
-      volume.push({ exerciseId, name: info.name });
-    }
-  }
-
-  return { oneRm, volume };
-}
-
-// -----------------------------------------------------------------------------
-// Loading spinner shown while the template is being fetched from Dexie
-// -----------------------------------------------------------------------------
-
-function LoadingSpinner(): React.JSX.Element {
-  return (
-    <div className="flex min-h-dvh items-center justify-center bg-background">
-      <Loader2 className="h-8 w-8 animate-spin text-accent" />
-    </div>
-  );
-}
-
-function NotFoundScreen({ onBack }: { onBack: () => void }): React.JSX.Element {
-  return (
-    <div className="flex min-h-dvh items-center justify-center bg-background px-6 text-center">
-      <div>
-        <h1 className="text-xl font-semibold text-text-primary">
-          Workout not found
-        </h1>
-        <p className="mt-2 text-sm text-text-secondary">
-          This workout template may have been deleted.
-        </p>
-        <div className="mt-6 flex justify-center">
-          <Button variant="primary" onClick={onBack}>
-            Back to Home
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // -----------------------------------------------------------------------------
 // Page component
@@ -242,6 +120,26 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   const haptics = useHaptics();
 
   // ---------------------------------------------------------------------------
+  // Derived data (step progress, exercise name, next-up label, etc.)
+  // ---------------------------------------------------------------------------
+
+  const currentStep = steps[currentStepIndex] ?? null;
+
+  const {
+    stepProgressText,
+    currentExerciseName,
+    currentExerciseVisualKey,
+    nextUpLabel,
+    exerciseSteps,
+    ariaStepAnnouncement,
+  } = useActiveWorkoutDerived(
+    steps,
+    currentStepIndex,
+    exerciseNameMap,
+    exerciseVisualMap,
+  );
+
+  // ---------------------------------------------------------------------------
   // Timer + Sound Effects
   // ---------------------------------------------------------------------------
 
@@ -292,12 +190,6 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
       }
     };
   }, []);
-
-  // ---------------------------------------------------------------------------
-  // Current step
-  // ---------------------------------------------------------------------------
-
-  const currentStep: WorkoutStep | null = steps[currentStepIndex] ?? null;
 
   // ---------------------------------------------------------------------------
   // Initialize workout when template loads
@@ -549,7 +441,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     router.push('/');
   }, [resetStore, router]);
 
-  /** Discard workout entirely — no data saved. */
+  /** Discard workout entirely -- no data saved. */
   const handleDiscard = useCallback(async () => {
     await db.crashRecovery.delete('recovery').catch(() => {});
     resetStore();
@@ -559,59 +451,6 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     sessionStorage.removeItem('active-workout');
     router.push('/');
   }, [resetStore, router]);
-
-  // ---------------------------------------------------------------------------
-  // Exercise steps for recap (memoised filter)
-  // ---------------------------------------------------------------------------
-
-  const exerciseSteps = useMemo(
-    () => steps.filter((s) => s.type === 'exercise'),
-    [steps],
-  );
-
-  // ---------------------------------------------------------------------------
-  // Step progress display
-  // ---------------------------------------------------------------------------
-
-  const stepProgressText = useMemo(() => {
-    // Show progress as "current exercise step / total exercise steps"
-    const exerciseOnly = steps.filter((s) => s.type === 'exercise');
-    const total = exerciseOnly.length;
-    let currentExIdx = 0;
-    for (let i = 0; i <= currentStepIndex && i < steps.length; i++) {
-      if (steps[i].type === 'exercise') {
-        currentExIdx++;
-      }
-    }
-    return `${Math.min(currentExIdx, total)} / ${total}`;
-  }, [steps, currentStepIndex]);
-
-  // ---------------------------------------------------------------------------
-  // Resolve the exercise name for the current step
-  // ---------------------------------------------------------------------------
-
-  const currentExerciseName = useMemo(() => {
-    if (!currentStep || currentStep.type !== 'exercise') return '';
-    return (
-      exerciseNameMap.get(currentStep.exerciseId ?? '') ??
-      currentStep.exerciseName ??
-      'Exercise'
-    );
-  }, [currentStep, exerciseNameMap]);
-
-  const currentExerciseVisualKey = useMemo(() => {
-    if (!currentStep || currentStep.type !== 'exercise') return undefined;
-    return exerciseVisualMap.get(currentStep.exerciseId ?? '') ?? currentStep.visualKey;
-  }, [currentStep, exerciseVisualMap]);
-
-  // ---------------------------------------------------------------------------
-  // Next-up label for rest timer
-  // ---------------------------------------------------------------------------
-
-  const nextUpLabel = useMemo(
-    () => buildNextUpLabel(steps, currentStepIndex, exerciseNameMap),
-    [steps, currentStepIndex, exerciseNameMap],
-  );
 
   // ---------------------------------------------------------------------------
   // Render
@@ -671,6 +510,15 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   // Active workout
   return (
     <div className="flex min-h-dvh flex-col bg-background safe-bottom">
+      {/* Visually-hidden live region for screen reader step announcements */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="sr-only"
+      >
+        {ariaStepAnnouncement}
+      </div>
+
       {/* Top bar: X button to quit + progress */}
       <div className="flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] py-3">
         <button
@@ -713,6 +561,16 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
               remainingMs={timer.remainingMs}
               totalMs={(currentStep.restDurationSec ?? 90) * 1000}
               isSuperset={currentStep.type === 'superset-rest'}
+              ringLabel={
+                currentStep.type === 'superset-rest'
+                  ? 'REST'
+                  : currentStep.type === 'rest' &&
+                      !currentStep.isSuperset &&
+                      steps[currentStepIndex + 1] &&
+                      steps[currentStepIndex + 1]!.blockIndex !== currentStep.blockIndex
+                    ? 'TRANSITION'
+                    : 'REST'
+              }
               isRunning={timer.isRunning}
               nextUpLabel={nextUpLabel}
               finishFlash={timerFinishFlash}

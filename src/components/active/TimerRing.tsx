@@ -9,6 +9,8 @@ interface TimerRingProps {
   size?: number;
   /** When false, the timer is paused. Used for accessible labelling. */
   isRunning?: boolean;
+  /** Visual label shown under the countdown (e.g. "REST", "TRANSITION"). */
+  label?: string;
 }
 
 // Use CSS variable values so these respond to theme changes.
@@ -27,6 +29,7 @@ export function TimerRing({
   totalMs,
   size = 200,
   isRunning,
+  label = 'REST',
 }: TimerRingProps) {
   const strokeWidth = 4;
   const radius = (size - strokeWidth) / 2;
@@ -44,6 +47,12 @@ export function TimerRing({
     () => formatTime(remainingSec),
     [remainingSec],
   );
+
+  const labelText = (label || 'REST').toUpperCase();
+  const ariaPrefix =
+    labelText === 'REST'
+      ? 'Rest'
+      : `${labelText.slice(0, 1)}${labelText.slice(1).toLowerCase()}`;
 
   return (
     <div
@@ -100,7 +109,11 @@ export function TimerRing({
       <div
         className="relative z-10 flex flex-col items-center"
         role="timer"
-        aria-label={isRunning === false ? `Rest timer paused: ${remainingSec} seconds` : `Rest timer: ${remainingSec} seconds remaining`}
+        aria-label={
+          isRunning === false
+            ? `${ariaPrefix} timer paused: ${remainingSec} seconds`
+            : `${ariaPrefix} timer: ${remainingSec} seconds remaining`
+        }
       >
         <span
           className="font-timer text-[56px] leading-none text-text-primary"
@@ -109,7 +122,7 @@ export function TimerRing({
           {timeDisplay}
         </span>
         <span className="mt-1 text-sm font-semibold uppercase tracking-[2px] text-text-secondary" aria-hidden="true">
-          REST
+          {labelText}
         </span>
       </div>
     </div>

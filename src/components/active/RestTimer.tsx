@@ -21,6 +21,8 @@ interface RestTimerProps {
   isRunning?: boolean;
   nextUpLabel?: string;
   nextUpInfo?: NextUpInfo;
+  /** Label shown inside the ring (defaults to "REST"). */
+  ringLabel?: string;
   /** Brief "finished" flash when the timer hits 0 (before auto-advance). */
   finishFlash?: boolean;
   onSkip: () => void;
@@ -47,6 +49,7 @@ export function RestTimer({
   isRunning = true,
   nextUpLabel,
   nextUpInfo,
+  ringLabel,
   finishFlash = false,
   onSkip,
   onAdjust,
@@ -117,7 +120,13 @@ export function RestTimer({
       ) : null}
 
       {/* Timer ring (includes REST label inside) */}
-      <TimerRing remainingMs={isRunning ? remainingMs : totalMs} totalMs={totalMs} size={200} isRunning={isRunning} />
+      <TimerRing
+        remainingMs={isRunning ? remainingMs : totalMs}
+        totalMs={totalMs}
+        size={200}
+        isRunning={isRunning}
+        label={ringLabel}
+      />
 
       {/* Control buttons */}
       {isRunning ? (
