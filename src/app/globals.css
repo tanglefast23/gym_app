@@ -847,6 +847,16 @@ body.workout-active {
   border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
+/* ─── Light Mode Touchable Outlines ─── */
+/* Make tappable controls feel interactive by tinting their default outlines. */
+.light :where(button, a, input, select, textarea, [role="button"]).border-border {
+  border-color: rgba(249, 115, 22, 0.22);
+}
+
+.light :where(button, a, input, select, textarea, [role="button"]).border-border:hover {
+  border-color: rgba(249, 115, 22, 0.32);
+}
+
 /* ─── Light Mode Workout Complete ─── */
 /* Trophy/celebration icon gradient background */
 .light .animate-hero-scale-in .rounded-full {
