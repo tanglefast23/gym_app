@@ -79,6 +79,8 @@ export const WeightRecap = ({
   const draftWeightG = draftWeight.weightG;
   const draftWeightSource = draftWeight.source;
 
+  type UpdatedField = 'weight' | 'reps' | null;
+
   const [currentIndex, setCurrentIndex] = useState(() => {
     const firstUnfilled = findNextUnfilledIndex(exerciseSteps, performedSets, 0);
     return firstUnfilled >= 0 ? firstUnfilled : 0;
@@ -136,16 +138,23 @@ export const WeightRecap = ({
   const [savingPartial, setSavingPartial] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [saveNudge, setSaveNudge] = useState(false);
+  const [updateFeedback, setUpdateFeedback] = useState(false);
+  const [updateHighlight, setUpdateHighlight] = useState<UpdatedField>(null);
+  const [lastEditedField, setLastEditedField] = useState<UpdatedField>(null);
 
   const applyTimeoutRef = useRef<number | null>(null);
   const sameWeightTimeoutRef = useRef<number | null>(null);
   const saveNudgeTimeoutRef = useRef<number | null>(null);
+  const updateTimeoutRef = useRef<number | null>(null);
+  const updateHighlightTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
       if (applyTimeoutRef.current !== null) clearTimeout(applyTimeoutRef.current);
       if (sameWeightTimeoutRef.current !== null) clearTimeout(sameWeightTimeoutRef.current);
       if (saveNudgeTimeoutRef.current !== null) clearTimeout(saveNudgeTimeoutRef.current);
+      if (updateTimeoutRef.current !== null) clearTimeout(updateTimeoutRef.current);
+      if (updateHighlightTimeoutRef.current !== null) clearTimeout(updateHighlightTimeoutRef.current);
     };
   }, []);
 
@@ -214,10 +223,12 @@ export const WeightRecap = ({
 
       if (nextUnfilled >= 0) {
         setCurrentIndex(nextUnfilled);
+        setLastEditedField(null);
         initializeDraft(nextUnfilled);
       } else {
         const lastIndex = exerciseSteps.length - 1;
         setCurrentIndex(lastIndex);
+        setLastEditedField(null);
 
         if (justFilled.has(lastIndex)) {
           setDraftReps(draftReps);
@@ -237,6 +248,7 @@ export const WeightRecap = ({
   }, [
     currentStep, currentIndex, exerciseSteps, draftReps, draftWeightG,
     exerciseNameMap, onUpsertSet, initializeDraft, setDraftReps, setDraftWeight,
+    setLastEditedField,
   ]);
 
   /** Copy weight from the previous set of this exercise. */
@@ -248,6 +260,7 @@ export const WeightRecap = ({
       currentIndex,
     );
     if (prevWeight !== null) {
+      setLastEditedField('weight');
       setDraftWeight({ weightG: prevWeight, source: 'user' });
       playSfx('success');
       setSameWeightFeedback(true);
@@ -257,17 +270,26 @@ export const WeightRecap = ({
         setSameWeightFeedback(false);
       }, 800);
     }
-  }, [currentStep, performedSets, currentIndex, setDraftWeight]);
+  }, [currentStep, performedSets, currentIndex, setDraftWeight, setLastEditedField]);
 
   /** Handle weight change from stepper (value in display units). */
   const handleWeightChange = useCallback(
     (displayValue: number) => {
+      setLastEditedField('weight');
       setDraftWeight({
         weightG: displayToGrams(displayValue, unitSystem),
         source: 'user',
       });
     },
     [unitSystem, setDraftWeight],
+  );
+
+  const handleRepsChange = useCallback(
+    (reps: number) => {
+      setLastEditedField('reps');
+      setDraftReps(reps);
+    },
+    [setDraftReps],
   );
 
   /** Move to next set or complete. Skips over already-logged sets. */
@@ -287,6 +309,7 @@ export const WeightRecap = ({
 
       const nextIndex = nextUnfilled >= 0 ? nextUnfilled : totalSets - 1;
       setCurrentIndex(nextIndex);
+      setLastEditedField(null);
       const nextStep = exerciseSteps[nextIndex];
 
       if (
@@ -312,6 +335,7 @@ export const WeightRecap = ({
       saveDraft();
       const prevIndex = currentIndex - 1;
       setCurrentIndex(prevIndex);
+      setLastEditedField(null);
       initializeDraft(prevIndex);
     }
   }, [saveDraft, currentIndex, initializeDraft]);
@@ -324,9 +348,36 @@ export const WeightRecap = ({
 
   /** Lock in edits during final review without changing the current position. */
   const handleUpdate = useCallback(() => {
+    const existing = performedSetsRef.current[currentIndex];
+    const changedWeight = existing ? existing.weightG !== draftWeightG : false;
+    const changedReps = existing ? existing.repsDone !== draftReps : false;
+
+    let field: UpdatedField = null;
+    if (changedWeight || changedReps) {
+      if (changedWeight && !changedReps) field = 'weight';
+      else if (!changedWeight && changedReps) field = 'reps';
+      else field = lastEditedField ?? 'weight';
+    }
+
     saveDraft();
     playSfx('success');
-  }, [saveDraft]);
+
+    if (field) {
+      setUpdateHighlight(field);
+      if (updateHighlightTimeoutRef.current !== null) clearTimeout(updateHighlightTimeoutRef.current);
+      updateHighlightTimeoutRef.current = window.setTimeout(() => {
+        updateHighlightTimeoutRef.current = null;
+        setUpdateHighlight(null);
+      }, 520);
+    }
+
+    setUpdateFeedback(true);
+    if (updateTimeoutRef.current !== null) clearTimeout(updateTimeoutRef.current);
+    updateTimeoutRef.current = window.setTimeout(() => {
+      updateTimeoutRef.current = null;
+      setUpdateFeedback(false);
+    }, 650);
+  }, [currentIndex, draftReps, draftWeightG, lastEditedField, saveDraft]);
 
   /** Handle save partial: save draft, play SFX, then call onSavePartial after delay. */
   const handleSavePartial = useCallback(() => {
@@ -405,7 +456,7 @@ export const WeightRecap = ({
         unitSystem={unitSystem}
         onWeightChange={handleWeightChange}
         draftReps={draftReps}
-        onRepsChange={setDraftReps}
+        onRepsChange={handleRepsChange}
         isFinalReview={isFinalReview}
         hasPreviousSetWeight={hasPreviousSetWeight}
         onApplySameWeight={applySameWeight}
@@ -414,6 +465,7 @@ export const WeightRecap = ({
         isFinalSet={isFinalSet}
         onApplyToRemaining={applyToRemaining}
         applyFeedback={applyFeedback}
+        updateHighlight={updateHighlight}
       />
 
       {/* Navigation + save/discard actions */}
@@ -427,6 +479,7 @@ export const WeightRecap = ({
         saveNudge={saveNudge}
         savingPartial={savingPartial}
         onUpdate={handleUpdate}
+        updateFeedback={updateFeedback}
         onPrevious={handlePrevious}
         onNext={handleNext}
         onComplete={handleComplete}
@@ -445,6 +498,7 @@ export const WeightRecap = ({
             allSetsLogged
               ? (nextIndex) => {
                   setCurrentIndex(nextIndex);
+                  setLastEditedField(null);
                   initializeDraft(nextIndex);
                 }
               : undefined

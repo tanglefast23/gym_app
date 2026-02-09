@@ -13,6 +13,8 @@ interface StepperProps {
   max?: number;
   label?: string;
   formatValue?: (v: number) => string;
+  /** Optional className for the value text (used for brief highlight animations). */
+  valueClassName?: string;
 }
 
 export const Stepper = ({
@@ -24,6 +26,7 @@ export const Stepper = ({
   max,
   label,
   formatValue,
+  valueClassName,
 }: StepperProps) => {
   const atMin = min !== undefined && value <= min;
   const atMax = max !== undefined && value >= max;
@@ -109,7 +112,7 @@ export const Stepper = ({
 
         {/* Value display */}
         <div className="min-w-[80px] text-center" aria-live="polite" aria-atomic="true">
-          <span className="font-mono text-2xl text-text-primary">
+          <span className={['inline-block font-mono text-2xl text-text-primary', valueClassName ?? ''].join(' ')}>
             {displayValue}
           </span>
         </div>

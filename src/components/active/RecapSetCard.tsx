@@ -47,6 +47,8 @@ interface RecapSetCardProps {
   onApplyToRemaining: () => void;
   /** Visual feedback for "Apply to remaining" button. */
   applyFeedback: boolean;
+  /** Which field should briefly highlight (e.g. after tapping Update). */
+  updateHighlight?: 'weight' | 'reps' | null;
 }
 
 /* ── Component ─────────────────────────────────────────────────────── */
@@ -70,6 +72,7 @@ export const RecapSetCard = ({
   isFinalSet,
   onApplyToRemaining,
   applyFeedback,
+  updateHighlight = null,
 }: RecapSetCardProps) => {
   return (
     <div className="mt-6 flex-1">
@@ -99,6 +102,7 @@ export const RecapSetCard = ({
                 unitSystem,
               )
             }
+            valueClassName={updateHighlight === 'weight' ? 'animate-value-pop' : ''}
           />
         </div>
 
@@ -111,6 +115,7 @@ export const RecapSetCard = ({
             min={0}
             max={999}
             label="Reps"
+            valueClassName={updateHighlight === 'reps' ? 'animate-value-pop' : ''}
           />
         </div>
 
