@@ -3,6 +3,7 @@ import type {
   Exercise,
   WorkoutTemplate,
   WorkoutLog,
+  LogSnapshot,
   ExerciseHistoryEntry,
   UnlockedAchievement,
   BodyWeightEntry,
@@ -14,6 +15,7 @@ export class WorkoutDB extends Dexie {
   exercises!: Table<Exercise, string>;
   templates!: Table<WorkoutTemplate, string>;
   logs!: Table<WorkoutLog, string>;
+  logSnapshots!: Table<LogSnapshot, string>;
   exerciseHistory!: Table<ExerciseHistoryEntry, number>;
   achievements!: Table<UnlockedAchievement, string>;
   bodyWeights!: Table<BodyWeightEntry, string>;
@@ -93,6 +95,37 @@ export class WorkoutDB extends Dexie {
           const lastPerformed = latestByTemplate.get(template.id as string);
           if (lastPerformed) {
             template.lastPerformedAt = lastPerformed;
+          }
+        });
+      });
+
+    // v5: extract templateSnapshot from logs into a separate logSnapshots table.
+    // This avoids deserializing the (potentially large) snapshot blob on every
+    // history/progress query — those pages never use templateSnapshot.
+    this.version(5)
+      .stores({
+        exercises: 'id, name',
+        templates: 'id, name, isArchived, createdAt',
+        logs: 'id, templateId, startedAt, status, [templateId+startedAt]',
+        logSnapshots: 'logId',
+        exerciseHistory:
+          '++id, exerciseId, exerciseName, logId, performedAt, [exerciseId+performedAt], [exerciseName+performedAt]',
+        achievements: 'achievementId, unlockedAt',
+        bodyWeights: 'id, recordedAt',
+        settings: 'id',
+        crashRecovery: 'id',
+      })
+      .upgrade(async (tx) => {
+        const logsTable = tx.table('logs');
+        const snapshots = tx.table('logSnapshots');
+
+        await logsTable.toCollection().modify(async (log) => {
+          if (Array.isArray(log.templateSnapshot)) {
+            await snapshots.add({
+              logId: log.id as string,
+              templateSnapshot: log.templateSnapshot,
+            });
+            delete log.templateSnapshot;
           }
         });
       });

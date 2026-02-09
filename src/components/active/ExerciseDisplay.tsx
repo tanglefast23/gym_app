@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { Check, TrendingUp } from 'lucide-react';
 import { Button, AMRAP_SENTINEL } from '@/components/ui';
 import { useHaptics } from '@/hooks';
@@ -22,6 +22,8 @@ interface ExerciseDisplayProps {
   supersetExerciseIndex?: number;
   supersetTotalExercises?: number;
   onDone: () => void;
+  /** Called when the weight hint is computed so the parent can use it for prefill. */
+  onWeightHintReady?: (avgG: number) => void;
 }
 
 /** Compute average weight and a suggested bump from previous sets. */
@@ -57,6 +59,7 @@ export const ExerciseDisplay = ({
   supersetExerciseIndex,
   supersetTotalExercises,
   onDone,
+  onWeightHintReady,
 }: ExerciseDisplayProps) => {
   const haptics = useHaptics();
   const unitSystem = useSettingsStore((s) => s.unitSystem);
@@ -85,10 +88,16 @@ export const ExerciseDisplay = ({
   useEffect(() => {
     if (!exerciseId) return;
 
+    const applyHint = (sets: PerformedSet[]): void => {
+      const hint = computeWeightSuggestion(sets, unitSystem);
+      setWeightHint(hint);
+      if (hint) onWeightHintReady?.(hint.avgG);
+    };
+
     // Check cache first — avoids redundant IndexedDB queries on remount
     const cached = exerciseHistoryCache.get(exerciseId);
     if (cached) {
-      setWeightHint(computeWeightSuggestion(cached, unitSystem));
+      applyHint(cached);
       return;
     }
 
@@ -96,19 +105,29 @@ export const ExerciseDisplay = ({
     getLastPerformedSets(exerciseId).then((sets) => {
       if (cancelled) return;
       exerciseHistoryCache.set(exerciseId, sets);
-      setWeightHint(computeWeightSuggestion(sets, unitSystem));
+      applyHint(sets);
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [exerciseId, unitSystem]);
+  }, [exerciseId, unitSystem, onWeightHintReady]);
 
   const [doneFeedback, setDoneFeedback] = useState(false);
+  const doneTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (doneTimeoutRef.current !== null) {
+        clearTimeout(doneTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleDone = useCallback(() => {
     if (doneFeedback) return;
     haptics.press();
     setDoneFeedback(true);
     // Tiny "registered" beat before advancing to the next step.
-    window.setTimeout(() => {
+    doneTimeoutRef.current = window.setTimeout(() => {
+      doneTimeoutRef.current = null;
       setDoneFeedback(false);
       onDone();
     }, 110);

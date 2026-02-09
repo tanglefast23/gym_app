@@ -152,7 +152,7 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
     description: 'Complete a workout containing supersets',
     icon: '\u{26A1}',
     check: (log) => {
-      const hasSupersets = log.templateSnapshot.some((b) => b.type === 'superset');
+      const hasSupersets = (log.templateSnapshot ?? []).some((b) => b.type === 'superset');
       return { earned: hasSupersets, context: null };
     },
   },

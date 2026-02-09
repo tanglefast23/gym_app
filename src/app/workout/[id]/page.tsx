@@ -12,6 +12,7 @@ import {
   detectPersonalRecords,
   type PersonalRecordSummary,
 } from '@/lib/personalRecords';
+import { displayToGrams } from '@/lib/calculations';
 import { useActiveWorkoutStore } from '@/stores/activeWorkoutStore';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { useTimer, useWakeLock, useHaptics } from '@/hooks';
@@ -22,6 +23,7 @@ import {
   WeightRecap,
   WorkoutComplete,
   WorkoutTimeline,
+  SetLogSheet,
 } from '@/components/active';
 import type { NewAchievementInfo } from '@/components/active';
 import {
@@ -34,6 +36,8 @@ import {
   useToastStore,
   AchievementUnlockOverlay,
 } from '@/components/ui';
+import type { PerformedSet } from '@/types/workout';
+import { VALIDATION } from '@/types/workout';
 
 const COUNTDOWN_THRESHOLD_MS = 5000;
 const COUNTDOWN_BEEP_INTERVAL_MS = 900; // ~1x per second (with margin for tick jitter)
@@ -109,6 +113,9 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   const autoStartRestTimer = useSettingsStore(
     (s) => s.autoStartRestTimer,
   );
+  const unitSystem = useSettingsStore((s) => s.unitSystem);
+  const weightStepsKg = useSettingsStore((s) => s.weightStepsKg);
+  const weightStepsLb = useSettingsStore((s) => s.weightStepsLb);
 
   // Toast
   const addToast = useToastStore((s) => s.addToast);
@@ -125,6 +132,14 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
 
   const currentStep = steps[currentStepIndex] ?? null;
 
+  // ---------------------------------------------------------------------------
+  // SetLogSheet state (inline weight logging)
+  // ---------------------------------------------------------------------------
+
+  const [showSetLogSheet, setShowSetLogSheet] = useState(false);
+  /** Stores the latest weight hint from ExerciseDisplay for SetLogSheet prefill. */
+  const [weightHintG, setWeightHintG] = useState<number | null>(null);
+
   const {
     stepProgressText,
     currentExerciseName,
@@ -138,6 +153,11 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     exerciseNameMap,
     exerciseVisualMap,
   );
+
+  /** Index of the current step within the exercise-only steps array. */
+  const currentExerciseStepIndex = currentStep
+    ? exerciseSteps.indexOf(currentStep)
+    : -1;
 
   // ---------------------------------------------------------------------------
   // Timer + Sound Effects
@@ -271,13 +291,16 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     }
   }, [steps, currentStepIndex, setTimerEndTime, timer]);
 
-  const handleExerciseDone = useCallback(() => {
-    haptics.tap();
+  /** Advance to the next step and auto-start the rest timer if applicable. */
+  const advanceAndStartTimer = useCallback(() => {
     advanceStep();
 
-    // If the next step is a rest step, auto-start the timer (if enabled)
     if (autoStartRestTimer) {
-      const nextStep = steps[currentStepIndex + 1];
+      // Read the post-advance state directly from the store -- the closure's
+      // `currentStepIndex` is still the pre-advance value.
+      const { steps: currentSteps, currentStepIndex: newIdx } =
+        useActiveWorkoutStore.getState();
+      const nextStep = currentSteps[newIdx];
       if (
         nextStep &&
         (nextStep.type === 'rest' || nextStep.type === 'superset-rest') &&
@@ -288,7 +311,52 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
         timer.start(nextStep.restDurationSec);
       }
     }
-  }, [haptics, advanceStep, autoStartRestTimer, steps, currentStepIndex, setTimerEndTime, timer]);
+  }, [advanceStep, autoStartRestTimer, setTimerEndTime, timer]);
+
+  const handleExerciseDone = useCallback(() => {
+    if (showSetLogSheet) return; // sheet already open — ignore (double-tap guard)
+    if (currentStep?.type !== 'exercise') return; // not on an exercise step
+    haptics.tap();
+    setShowSetLogSheet(true);
+  }, [showSetLogSheet, currentStep, haptics]);
+
+  /** Called when the user presses "Save & Rest" in the SetLogSheet. */
+  const handleSetLogSave = useCallback((weightG: number, repsDone: number) => {
+    // Defensive validation — the Stepper clamps values, but guard against bypass.
+    const safeWeight = Number.isFinite(weightG)
+      ? Math.max(0, Math.min(weightG, VALIDATION.MAX_WEIGHT_G))
+      : 0;
+    const safeReps = Number.isInteger(repsDone)
+      ? Math.max(0, Math.min(repsDone, VALIDATION.MAX_REPS))
+      : 0;
+
+    if (currentExerciseStepIndex >= 0 && currentStep) {
+      const performedSet: PerformedSet = {
+        exerciseId: currentStep.exerciseId ?? '',
+        exerciseNameSnapshot: currentExerciseName,
+        blockPath: `block-${currentStep.blockIndex}`,
+        setIndex: currentStep.setIndex ?? 0,
+        repsTargetMin: currentStep.repsMin ?? 0,
+        repsTargetMax: currentStep.repsMax ?? 0,
+        repsDone: safeReps,
+        weightG: safeWeight,
+      };
+      upsertSet(currentExerciseStepIndex, performedSet);
+    }
+    setShowSetLogSheet(false);
+    advanceAndStartTimer();
+  }, [currentStep, currentExerciseName, currentExerciseStepIndex, upsertSet, advanceAndStartTimer]);
+
+  /** Called when the user presses "Skip" in the SetLogSheet. */
+  const handleSetLogSkip = useCallback(() => {
+    setShowSetLogSheet(false);
+    advanceAndStartTimer();
+  }, [advanceAndStartTimer]);
+
+  /** Capture weight hint from ExerciseDisplay for SetLogSheet prefill. */
+  const handleWeightHintReady = useCallback((avgG: number) => {
+    setWeightHintG(avgG);
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Detect 'complete' step -> transition to recap phase
@@ -453,6 +521,20 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   }, [resetStore, router]);
 
   // ---------------------------------------------------------------------------
+  // SetLogSheet prefill values
+  // ---------------------------------------------------------------------------
+
+  const weightStepValues = unitSystem === 'kg' ? weightStepsKg : weightStepsLb;
+  const weightStep = weightStepValues[0] ?? (unitSystem === 'kg' ? 2.5 : 5);
+
+  /**
+   * Prefill weight for SetLogSheet: use the weight hint from ExerciseDisplay
+   * (avgG from previous session), or fall back to a sensible default.
+   */
+  const prefillWeightG = weightHintG
+    ?? displayToGrams(unitSystem === 'kg' ? 20 : 45, unitSystem);
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
@@ -550,6 +632,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
               supersetExerciseIndex={currentStep.supersetExerciseIndex}
               supersetTotalExercises={currentStep.supersetTotalExercises}
               onDone={handleExerciseDone}
+              onWeightHintReady={handleWeightHintReady}
             />
           </div>
         ) : null}
@@ -584,6 +667,20 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
 
       {/* Workout progress timeline */}
       <WorkoutTimeline steps={steps} currentStepIndex={currentStepIndex} />
+
+      {/* Inline set logging sheet (appears after pressing DONE) */}
+      <SetLogSheet
+        isOpen={showSetLogSheet}
+        onSaveAndRest={handleSetLogSave}
+        onSkip={handleSetLogSkip}
+        exerciseName={currentExerciseName}
+        setNumber={(currentStep?.setIndex ?? 0) + 1}
+        totalSets={currentStep?.totalSets ?? 1}
+        prefillWeightG={prefillWeightG}
+        prefillReps={currentStep?.repsMax ?? 8}
+        unitSystem={unitSystem}
+        weightStep={weightStep}
+      />
 
       {/* Quit confirmation dialog */}
       <ConfirmDialog

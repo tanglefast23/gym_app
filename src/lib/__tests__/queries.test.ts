@@ -9,6 +9,7 @@ const {
   mockExercises,
   mockTemplates,
   mockLogs,
+  mockLogSnapshots,
   mockExerciseHistory,
   mockAchievements,
   mockBodyWeights,
@@ -29,6 +30,12 @@ const {
     delete: vi.fn(),
     clear: vi.fn(),
     where: vi.fn(),
+    bulkDelete: vi.fn(),
+  },
+  mockLogSnapshots: {
+    get: vi.fn(),
+    delete: vi.fn(),
+    clear: vi.fn(),
     bulkDelete: vi.fn(),
   },
   mockExerciseHistory: {
@@ -57,6 +64,7 @@ vi.mock('@/lib/db', () => ({
     exercises: mockExercises,
     templates: mockTemplates,
     logs: mockLogs,
+    logSnapshots: mockLogSnapshots,
     exerciseHistory: mockExerciseHistory,
     achievements: mockAchievements,
     bodyWeights: mockBodyWeights,
@@ -72,6 +80,7 @@ import {
   getDataCounts,
   deleteAllData,
   deleteDataByDateRange,
+  getLogSnapshot,
 } from '../queries';
 
 // ---------------------------------------------------------------------------
@@ -329,7 +338,16 @@ describe('getLastPerformedSets', () => {
 // ---------------------------------------------------------------------------
 
 describe('deleteLog', () => {
-  it('deletes the log and its associated history entries', async () => {
+  beforeEach(() => {
+    mockTransaction.mockImplementation(async (_mode: string, _tables: unknown[], cb: () => Promise<void>) => {
+      await cb();
+    });
+    mockLogs.delete.mockResolvedValue(undefined);
+    mockLogSnapshots.delete.mockResolvedValue(undefined);
+    mockExerciseHistory.bulkDelete.mockResolvedValue(undefined);
+  });
+
+  it('deletes the log, its snapshot, and associated history entries', async () => {
     const historyEntries: ExerciseHistoryEntry[] = [
       {
         id: 1,
@@ -362,12 +380,12 @@ describe('deleteLog', () => {
         toArray: vi.fn().mockResolvedValue(historyEntries),
       }),
     });
-    mockLogs.delete.mockResolvedValue(undefined);
-    mockExerciseHistory.bulkDelete.mockResolvedValue(undefined);
 
     await deleteLog('log-1');
 
+    expect(mockTransaction).toHaveBeenCalledOnce();
     expect(mockLogs.delete).toHaveBeenCalledWith('log-1');
+    expect(mockLogSnapshots.delete).toHaveBeenCalledWith('log-1');
     expect(mockExerciseHistory.bulkDelete).toHaveBeenCalledWith([1, 2]);
   });
 
@@ -392,11 +410,11 @@ describe('deleteLog', () => {
         toArray: vi.fn().mockResolvedValue(historyEntries),
       }),
     });
-    mockLogs.delete.mockResolvedValue(undefined);
 
     await deleteLog('log-1');
 
     expect(mockLogs.delete).toHaveBeenCalledWith('log-1');
+    expect(mockLogSnapshots.delete).toHaveBeenCalledWith('log-1');
     // bulkDelete should NOT be called since no IDs
     expect(mockExerciseHistory.bulkDelete).not.toHaveBeenCalled();
   });
@@ -407,11 +425,11 @@ describe('deleteLog', () => {
         toArray: vi.fn().mockResolvedValue([]),
       }),
     });
-    mockLogs.delete.mockResolvedValue(undefined);
 
     await deleteLog('log-1');
 
     expect(mockLogs.delete).toHaveBeenCalledWith('log-1');
+    expect(mockLogSnapshots.delete).toHaveBeenCalledWith('log-1');
     expect(mockExerciseHistory.bulkDelete).not.toHaveBeenCalled();
   });
 });
@@ -467,7 +485,7 @@ describe('getDataCounts', () => {
 // ---------------------------------------------------------------------------
 
 describe('deleteAllData', () => {
-  it('calls transaction and clears all tables', async () => {
+  it('calls transaction and clears all tables including logSnapshots', async () => {
     // The transaction mock should execute the callback immediately
     mockTransaction.mockImplementation(async (_mode: string, _tables: unknown[], cb: () => Promise<void>) => {
       await cb();
@@ -476,6 +494,7 @@ describe('deleteAllData', () => {
     mockExercises.clear.mockResolvedValue(undefined);
     mockTemplates.clear.mockResolvedValue(undefined);
     mockLogs.clear.mockResolvedValue(undefined);
+    mockLogSnapshots.clear.mockResolvedValue(undefined);
     mockExerciseHistory.clear.mockResolvedValue(undefined);
     mockAchievements.clear.mockResolvedValue(undefined);
     mockBodyWeights.clear.mockResolvedValue(undefined);
@@ -487,6 +506,7 @@ describe('deleteAllData', () => {
     expect(mockExercises.clear).toHaveBeenCalledOnce();
     expect(mockTemplates.clear).toHaveBeenCalledOnce();
     expect(mockLogs.clear).toHaveBeenCalledOnce();
+    expect(mockLogSnapshots.clear).toHaveBeenCalledOnce();
     expect(mockExerciseHistory.clear).toHaveBeenCalledOnce();
     expect(mockAchievements.clear).toHaveBeenCalledOnce();
     expect(mockBodyWeights.clear).toHaveBeenCalledOnce();
@@ -501,6 +521,7 @@ describe('deleteAllData', () => {
     mockExercises.clear.mockResolvedValue(undefined);
     mockTemplates.clear.mockResolvedValue(undefined);
     mockLogs.clear.mockResolvedValue(undefined);
+    mockLogSnapshots.clear.mockResolvedValue(undefined);
     mockExerciseHistory.clear.mockResolvedValue(undefined);
     mockAchievements.clear.mockResolvedValue(undefined);
     mockBodyWeights.clear.mockResolvedValue(undefined);
@@ -517,7 +538,7 @@ describe('deleteAllData', () => {
 // ---------------------------------------------------------------------------
 
 describe('deleteDataByDateRange', () => {
-  it('deletes only logs and history within the date range', async () => {
+  it('deletes logs, snapshots, and history within the date range', async () => {
     const logsInRange: WorkoutLog[] = [
       makeLog({ id: 'log-1', startedAt: '2025-06-01T10:00:00Z' }),
       makeLog({ id: 'log-2', startedAt: '2025-06-05T10:00:00Z' }),
@@ -567,6 +588,7 @@ describe('deleteDataByDateRange', () => {
     });
 
     mockLogs.bulkDelete.mockResolvedValue(undefined);
+    mockLogSnapshots.bulkDelete.mockResolvedValue(undefined);
     mockExerciseHistory.bulkDelete.mockResolvedValue(undefined);
 
     const result = await deleteDataByDateRange(
@@ -577,6 +599,7 @@ describe('deleteDataByDateRange', () => {
     expect(result.deletedLogs).toBe(2);
     expect(result.deletedHistory).toBe(2);
     expect(mockLogs.bulkDelete).toHaveBeenCalledWith(['log-1', 'log-2']);
+    expect(mockLogSnapshots.bulkDelete).toHaveBeenCalledWith(['log-1', 'log-2']);
     expect(mockExerciseHistory.bulkDelete).toHaveBeenCalledWith([10, 11]);
   });
 
@@ -598,6 +621,7 @@ describe('deleteDataByDateRange', () => {
     });
 
     mockLogs.bulkDelete.mockResolvedValue(undefined);
+    mockLogSnapshots.bulkDelete.mockResolvedValue(undefined);
     mockExerciseHistory.bulkDelete.mockResolvedValue(undefined);
 
     const result = await deleteDataByDateRange(
@@ -627,11 +651,33 @@ describe('deleteDataByDateRange', () => {
     });
 
     mockLogs.bulkDelete.mockResolvedValue(undefined);
+    mockLogSnapshots.bulkDelete.mockResolvedValue(undefined);
     mockExerciseHistory.bulkDelete.mockResolvedValue(undefined);
 
     await deleteDataByDateRange('2025-06-01T00:00:00Z', '2025-06-07T00:00:00Z');
 
     expect(mockTransaction).toHaveBeenCalledOnce();
     expect(mockTransaction.mock.calls[0][0]).toBe('rw');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getLogSnapshot
+// ---------------------------------------------------------------------------
+
+describe('getLogSnapshot', () => {
+  it('returns the template snapshot when it exists', async () => {
+    const snapshot = [{ id: 'b-1', type: 'exercise', exerciseId: 'ex-bench', sets: 3, repsMin: 8, repsMax: 12, restBetweenSetsSec: null, transitionRestSec: null }];
+    mockLogSnapshots.get.mockResolvedValue({ logId: 'log-1', templateSnapshot: snapshot });
+
+    const result = await getLogSnapshot('log-1');
+    expect(result).toEqual(snapshot);
+  });
+
+  it('returns null when no snapshot exists', async () => {
+    mockLogSnapshots.get.mockResolvedValue(undefined);
+
+    const result = await getLogSnapshot('log-nonexistent');
+    expect(result).toBeNull();
   });
 });

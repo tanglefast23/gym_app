@@ -72,8 +72,7 @@ export function useActiveWorkoutDerived(
   );
 
   const stepProgressText = useMemo(() => {
-    const exerciseOnly = steps.filter((s) => s.type === 'exercise');
-    const total = exerciseOnly.length;
+    const total = exerciseSteps.length;
     let currentExIdx = 0;
     for (let i = 0; i <= currentStepIndex && i < steps.length; i++) {
       if (steps[i].type === 'exercise') {
@@ -81,7 +80,7 @@ export function useActiveWorkoutDerived(
       }
     }
     return `${Math.min(currentExIdx, total)} / ${total}`;
-  }, [steps, currentStepIndex]);
+  }, [steps, currentStepIndex, exerciseSteps.length]);
 
   const currentExerciseName = useMemo(() => {
     if (!currentStep || currentStep.type !== 'exercise') return '';

@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { calculateEpley1RM } from '@/lib/calculations';
-import type { WorkoutLog, ExerciseHistoryEntry, PerformedSet } from '@/types/workout';
+import type { WorkoutLog, ExerciseHistoryEntry, PerformedSet, TemplateBlock } from '@/types/workout';
 
 /**
  * Write denormalized exercise history entries after a workout log is saved.
@@ -138,7 +138,7 @@ export async function getLastPerformedSetsForMultiple(
 }
 
 /**
- * Delete a single workout log and its related exercise history entries.
+ * Delete a single workout log, its snapshot, and its related exercise history entries.
  */
 export async function deleteLog(logId: string): Promise<void> {
   const historyEntries = await db.exerciseHistory
@@ -150,10 +150,13 @@ export async function deleteLog(logId: string): Promise<void> {
     .filter((h) => h.id !== undefined)
     .map((h) => h.id as number);
 
-  await Promise.all([
-    db.logs.delete(logId),
-    historyIds.length > 0 ? db.exerciseHistory.bulkDelete(historyIds) : Promise.resolve(),
-  ]);
+  await db.transaction('rw', [db.logs, db.logSnapshots, db.exerciseHistory], async () => {
+    await Promise.all([
+      db.logs.delete(logId),
+      db.logSnapshots.delete(logId),
+      historyIds.length > 0 ? db.exerciseHistory.bulkDelete(historyIds) : Promise.resolve(),
+    ]);
+  });
 }
 
 /** Get data counts for all tables (useful for "Delete All Data" confirmation). */
@@ -187,12 +190,13 @@ export async function getDataCounts(): Promise<{
 export async function deleteAllData(): Promise<void> {
   await db.transaction(
     'rw',
-    [db.exercises, db.templates, db.logs, db.exerciseHistory, db.achievements, db.bodyWeights, db.crashRecovery],
+    [db.exercises, db.templates, db.logs, db.logSnapshots, db.exerciseHistory, db.achievements, db.bodyWeights, db.crashRecovery],
     async () => {
       await Promise.all([
         db.exercises.clear(),
         db.templates.clear(),
         db.logs.clear(),
+        db.logSnapshots.clear(),
         db.exerciseHistory.clear(),
         db.achievements.clear(),
         db.bodyWeights.clear(),
@@ -254,14 +258,24 @@ export async function deleteDataByDateRange(
 
   await db.transaction(
     'rw',
-    [db.logs, db.exerciseHistory],
+    [db.logs, db.logSnapshots, db.exerciseHistory],
     async () => {
       await Promise.all([
         db.logs.bulkDelete([...logIds]),
+        db.logSnapshots.bulkDelete([...logIds]),
         db.exerciseHistory.bulkDelete(historyIds),
       ]);
     },
   );
 
   return { deletedLogs: logIds.size, deletedHistory: historyIds.length };
+}
+
+/**
+ * Fetch the template snapshot for a specific log on demand.
+ * Returns `null` if no snapshot exists (e.g. pre-migration edge case).
+ */
+export async function getLogSnapshot(logId: string): Promise<TemplateBlock[] | null> {
+  const row = await db.logSnapshots.get(logId);
+  return row?.templateSnapshot ?? null;
 }

@@ -3,7 +3,7 @@ import { validateImportData } from '@/lib/validation';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { DEFAULT_SETTINGS } from '@/types/workout';
 import { VALIDATION } from '@/types/workout';
-import type { ExportData, UserSettings } from '@/types/workout';
+import type { ExportData, LogSnapshot, UserSettings } from '@/types/workout';
 
 /** Maximum allowed import file size in bytes (10 MB). */
 const MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024;
@@ -24,6 +24,7 @@ function getSettingsSnapshot(): UserSettings {
     theme: s.theme,
     heightCm: s.heightCm,
     age: s.age,
+    ageUpdatedAt: s.ageUpdatedAt,
     sex: s.sex,
   };
 }
@@ -91,6 +92,32 @@ function normalizeImportedSettings(raw: unknown): UserSettings {
     next.theme = r.theme;
   }
 
+  if (r.heightCm === null || r.heightCm === undefined) {
+    // allow missing (backward compat) and explicit null
+    next.heightCm = null;
+  } else if (typeof r.heightCm === 'number' && Number.isFinite(r.heightCm) && r.heightCm > 0) {
+    next.heightCm = Math.round(r.heightCm * 10) / 10;
+  }
+
+  if (r.age === null || r.age === undefined) {
+    next.age = null;
+  } else if (typeof r.age === 'number' && Number.isFinite(r.age) && r.age >= 0 && r.age <= 130) {
+    next.age = Math.floor(r.age);
+  }
+
+  if (r.sex === null || r.sex === undefined) {
+    next.sex = null;
+  } else if (r.sex === 'male' || r.sex === 'female') {
+    next.sex = r.sex;
+  }
+
+  if (r.ageUpdatedAt === null || r.ageUpdatedAt === undefined) {
+    next.ageUpdatedAt = null;
+  } else if (typeof r.ageUpdatedAt === 'string') {
+    const d = new Date(r.ageUpdatedAt);
+    next.ageUpdatedAt = Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+
   return next;
 }
 
@@ -102,15 +129,23 @@ function normalizeImportedSettings(raw: unknown): UserSettings {
  * @returns A fully-populated `ExportData` object
  */
 export async function exportAllData(): Promise<ExportData> {
-  const [exercises, templates, logs, exerciseHistory, achievements, bodyWeights] =
+  const [exercises, templates, logs, logSnapshots, exerciseHistory, achievements, bodyWeights] =
     await Promise.all([
       db.exercises.toArray(),
       db.templates.toArray(),
       db.logs.toArray(),
+      db.logSnapshots.toArray(),
       db.exerciseHistory.toArray(),
       db.achievements.toArray(),
       db.bodyWeights.toArray(),
     ]);
+
+  // Re-join snapshots onto logs for backward-compatible export format
+  const snapshotMap = new Map(logSnapshots.map((s) => [s.logId, s.templateSnapshot]));
+  const logsWithSnapshots = logs.map((log) => ({
+    ...log,
+    templateSnapshot: log.templateSnapshot ?? snapshotMap.get(log.id) ?? [],
+  }));
 
   return {
     schemaVersion: 1,
@@ -118,7 +153,7 @@ export async function exportAllData(): Promise<ExportData> {
     settings: getSettingsSnapshot(),
     exercises,
     templates,
-    logs,
+    logs: logsWithSnapshots,
     exerciseHistory,
     achievements,
     bodyWeights,
@@ -211,6 +246,17 @@ export async function importData(
       (parsed as unknown as { settings?: unknown }).settings,
     );
 
+    // Split templateSnapshot from logs into the separate logSnapshots table.
+    // This handles both old exports (inline snapshots) and new exports (re-joined snapshots).
+    const snapshots: LogSnapshot[] = [];
+    const leanLogs = parsed.logs.map((log) => {
+      const { templateSnapshot, ...rest } = log;
+      if (Array.isArray(templateSnapshot)) {
+        snapshots.push({ logId: log.id, templateSnapshot });
+      }
+      return rest;
+    });
+
     // Clear all tables and replace inside a single transaction
     await db.transaction(
       'rw',
@@ -218,6 +264,7 @@ export async function importData(
         db.exercises,
         db.templates,
         db.logs,
+        db.logSnapshots,
         db.exerciseHistory,
         db.achievements,
         db.bodyWeights,
@@ -230,6 +277,7 @@ export async function importData(
           db.exercises.clear(),
           db.templates.clear(),
           db.logs.clear(),
+          db.logSnapshots.clear(),
           db.exerciseHistory.clear(),
           db.achievements.clear(),
           db.bodyWeights.clear(),
@@ -244,8 +292,11 @@ export async function importData(
         if (parsed.templates.length > 0) {
           await db.templates.bulkAdd(parsed.templates);
         }
-        if (parsed.logs.length > 0) {
-          await db.logs.bulkAdd(parsed.logs);
+        if (leanLogs.length > 0) {
+          await db.logs.bulkAdd(leanLogs);
+        }
+        if (snapshots.length > 0) {
+          await db.logSnapshots.bulkAdd(snapshots);
         }
         if (parsed.exerciseHistory.length > 0) {
           await db.exerciseHistory.bulkAdd(parsed.exerciseHistory);

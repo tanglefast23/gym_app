@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ExportData, UserSettings } from '@/types/workout';
+import type { ExportData, UserSettings, ExerciseBlock } from '@/types/workout';
 import { DEFAULT_SETTINGS } from '@/types/workout';
 
 // ---------------------------------------------------------------------------
@@ -10,6 +10,7 @@ const {
   mockExercises,
   mockTemplates,
   mockLogs,
+  mockLogSnapshots,
   mockExerciseHistory,
   mockAchievements,
   mockBodyWeights,
@@ -29,6 +30,11 @@ const {
     bulkAdd: vi.fn(),
   },
   mockLogs: {
+    toArray: vi.fn(),
+    clear: vi.fn(),
+    bulkAdd: vi.fn(),
+  },
+  mockLogSnapshots: {
     toArray: vi.fn(),
     clear: vi.fn(),
     bulkAdd: vi.fn(),
@@ -64,6 +70,7 @@ vi.mock('@/lib/db', () => ({
     exercises: mockExercises,
     templates: mockTemplates,
     logs: mockLogs,
+    logSnapshots: mockLogSnapshots,
     exerciseHistory: mockExerciseHistory,
     achievements: mockAchievements,
     bodyWeights: mockBodyWeights,
@@ -145,6 +152,7 @@ beforeEach(() => {
   mockExercises.toArray.mockResolvedValue([]);
   mockTemplates.toArray.mockResolvedValue([]);
   mockLogs.toArray.mockResolvedValue([]);
+  mockLogSnapshots.toArray.mockResolvedValue([]);
   mockExerciseHistory.toArray.mockResolvedValue([]);
   mockAchievements.toArray.mockResolvedValue([]);
   mockBodyWeights.toArray.mockResolvedValue([]);
@@ -202,9 +210,20 @@ describe('exportAllData', () => {
     expect(mockExercises.toArray).toHaveBeenCalledOnce();
     expect(mockTemplates.toArray).toHaveBeenCalledOnce();
     expect(mockLogs.toArray).toHaveBeenCalledOnce();
+    expect(mockLogSnapshots.toArray).toHaveBeenCalledOnce();
     expect(mockExerciseHistory.toArray).toHaveBeenCalledOnce();
     expect(mockAchievements.toArray).toHaveBeenCalledOnce();
     expect(mockBodyWeights.toArray).toHaveBeenCalledOnce();
+  });
+
+  it('re-joins snapshots onto logs for backward compatibility', async () => {
+    const snapshot: ExerciseBlock[] = [{ id: 'b-1', type: 'exercise', exerciseId: 'ex-bench', sets: 3, repsMin: 8, repsMax: 12, restBetweenSetsSec: null, transitionRestSec: null }];
+    mockLogs.toArray.mockResolvedValue([{ id: 'log-1', templateName: 'Push', performedSets: [], startedAt: '2025-01-01', endedAt: null, durationSec: 0, totalVolumeG: 0, status: 'completed', templateId: 't-1' }]);
+    mockLogSnapshots.toArray.mockResolvedValue([{ logId: 'log-1', templateSnapshot: snapshot }]);
+
+    const result = await exportAllData();
+
+    expect(result.logs[0].templateSnapshot).toEqual(snapshot);
   });
 });
 
@@ -293,6 +312,7 @@ describe('importData', () => {
     mockExercises.clear.mockResolvedValue(undefined);
     mockTemplates.clear.mockResolvedValue(undefined);
     mockLogs.clear.mockResolvedValue(undefined);
+    mockLogSnapshots.clear.mockResolvedValue(undefined);
     mockExerciseHistory.clear.mockResolvedValue(undefined);
     mockAchievements.clear.mockResolvedValue(undefined);
     mockBodyWeights.clear.mockResolvedValue(undefined);
@@ -302,6 +322,7 @@ describe('importData', () => {
     mockExercises.bulkAdd.mockResolvedValue(undefined);
     mockTemplates.bulkAdd.mockResolvedValue(undefined);
     mockLogs.bulkAdd.mockResolvedValue(undefined);
+    mockLogSnapshots.bulkAdd.mockResolvedValue(undefined);
     mockExerciseHistory.bulkAdd.mockResolvedValue(undefined);
     mockAchievements.bulkAdd.mockResolvedValue(undefined);
     mockBodyWeights.bulkAdd.mockResolvedValue(undefined);
@@ -322,6 +343,7 @@ describe('importData', () => {
     expect(mockExercises.clear).toHaveBeenCalledOnce();
     expect(mockTemplates.clear).toHaveBeenCalledOnce();
     expect(mockLogs.clear).toHaveBeenCalledOnce();
+    expect(mockLogSnapshots.clear).toHaveBeenCalledOnce();
     expect(mockExerciseHistory.clear).toHaveBeenCalledOnce();
     expect(mockAchievements.clear).toHaveBeenCalledOnce();
     expect(mockBodyWeights.clear).toHaveBeenCalledOnce();
@@ -421,6 +443,38 @@ describe('importData', () => {
     expect(mockBodyWeights.bulkAdd).toHaveBeenCalledWith(bodyWeights);
   });
 
+
+  it('splits templateSnapshot from logs into logSnapshots on import', async () => {
+    const snapshot = [{ id: 'b-1', type: 'exercise', exerciseId: 'ex-bench', sets: 3, repsMin: 8, repsMax: 12, restBetweenSetsSec: null, transitionRestSec: null }];
+    const data = makeValidExportData({
+      logs: [{
+        id: 'l-1',
+        startedAt: '2025-01-01T10:00:00Z',
+        status: 'completed',
+        templateId: 't-1',
+        templateName: 'Push Day',
+        templateSnapshot: snapshot,
+        performedSets: [],
+        endedAt: '2025-01-01T11:00:00Z',
+        durationSec: 3600,
+        totalVolumeG: 0,
+      }],
+    });
+    const file = makeFile(data);
+
+    await importData(file);
+
+    // Logs should be added WITHOUT templateSnapshot
+    expect(mockLogs.bulkAdd).toHaveBeenCalledOnce();
+    const addedLogs = mockLogs.bulkAdd.mock.calls[0][0];
+    expect(addedLogs[0]).not.toHaveProperty('templateSnapshot');
+
+    // Snapshots should be added to the logSnapshots table
+    expect(mockLogSnapshots.bulkAdd).toHaveBeenCalledOnce();
+    const addedSnapshots = mockLogSnapshots.bulkAdd.mock.calls[0][0];
+    expect(addedSnapshots[0].logId).toBe('l-1');
+    expect(addedSnapshots[0].templateSnapshot).toEqual(snapshot);
+  });
 
   it('handles import with missing settings gracefully', async () => {
     // ExportData without settings at top level -- the normalizer should apply defaults

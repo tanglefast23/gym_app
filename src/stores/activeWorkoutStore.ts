@@ -207,8 +207,10 @@ export const useActiveWorkoutStore = create<
           const now = Date.now();
           const startMs = new Date(startedAt).getTime();
 
+          const logId = crypto.randomUUID();
+
           const log: WorkoutLog = {
-            id: crypto.randomUUID(),
+            id: logId,
             status:
               loggedSets.length === totalExerciseSteps
                 ? 'completed'
@@ -226,7 +228,12 @@ export const useActiveWorkoutStore = create<
             ),
           };
 
-          await db.logs.add(log);
+          // Write lean log (no snapshot) + snapshot in separate table atomically
+          const { templateSnapshot: snapshot, ...leanLog } = log;
+          await db.transaction('rw', [db.logs, db.logSnapshots], async () => {
+            await db.logs.add(leanLog);
+            await db.logSnapshots.add({ logId, templateSnapshot: snapshot! });
+          });
           await db.crashRecovery.delete('recovery');
 
           // Denormalize lastPerformedAt onto the template for fast home-page reads.

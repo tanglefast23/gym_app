@@ -543,7 +543,10 @@ export function validateImportLog(record: unknown, index: number): string[] {
     errors.push(`${prefix}: "templateName" must be a non-empty string`);
   }
 
-  errors.push(...validateImportTemplateBlocks(record.templateSnapshot, `${prefix}.templateSnapshot`));
+  // templateSnapshot is optional — validate if present, skip if absent
+  if (record.templateSnapshot !== undefined) {
+    errors.push(...validateImportTemplateBlocks(record.templateSnapshot, `${prefix}.templateSnapshot`));
+  }
 
   if (!Array.isArray(record.performedSets)) {
     errors.push(`${prefix}: "performedSets" must be an array`);
@@ -634,6 +637,28 @@ export function validateImportSettings(settings: unknown): string[] {
   }
   if (settings.theme !== undefined && settings.theme !== 'dark' && settings.theme !== 'light' && settings.theme !== 'system') {
     errors.push(`${prefix}: "theme" must be "dark", "light", or "system"`);
+  }
+
+  if (settings.heightCm !== undefined && settings.heightCm !== null) {
+    if (typeof settings.heightCm !== 'number' || !Number.isFinite(settings.heightCm) || settings.heightCm <= 0) {
+      errors.push(`${prefix}: "heightCm" must be a positive number or null`);
+    }
+  }
+
+  if (settings.age !== undefined && settings.age !== null) {
+    if (!isInt(settings.age) || settings.age < 0 || settings.age > 130) {
+      errors.push(`${prefix}: "age" must be an integer between 0 and 130 or null`);
+    }
+  }
+
+  if (settings.sex !== undefined && settings.sex !== null && settings.sex !== 'male' && settings.sex !== 'female') {
+    errors.push(`${prefix}: "sex" must be "male", "female", or null`);
+  }
+
+  if (settings.ageUpdatedAt !== undefined && settings.ageUpdatedAt !== null) {
+    if (typeof settings.ageUpdatedAt !== 'string' || !isValidISODate(settings.ageUpdatedAt)) {
+      errors.push(`${prefix}: "ageUpdatedAt" must be a valid ISO date string or null`);
+    }
   }
 
   return errors;
@@ -773,18 +798,24 @@ export function stripLog(record: Record<string, unknown>): Record<string, unknow
     ? (record.performedSets as Record<string, unknown>[]).map(stripPerformedSet)
     : record.performedSets;
 
-  return {
+  const result: Record<string, unknown> = {
     id: record.id,
     status: record.status,
     templateId: record.templateId ?? null,
     templateName: record.templateName,
-    templateSnapshot: stripTemplateBlocks(record.templateSnapshot),
     performedSets,
     startedAt: record.startedAt,
     endedAt: record.endedAt ?? null,
     durationSec: record.durationSec,
     totalVolumeG: record.totalVolumeG,
   };
+
+  // Only include templateSnapshot if present (it may be stored separately)
+  if (record.templateSnapshot !== undefined) {
+    result.templateSnapshot = stripTemplateBlocks(record.templateSnapshot);
+  }
+
+  return result;
 }
 
 /**
@@ -843,7 +874,7 @@ export function stripSettings(record: Record<string, unknown>): Record<string, u
   const knownKeys = [
     'id', 'unitSystem', 'defaultRestBetweenSetsSec', 'defaultTransitionsSec',
     'weightStepsKg', 'weightStepsLb', 'hapticFeedback', 'soundEnabled',
-    'restTimerSound', 'autoStartRestTimer', 'theme', 'heightCm', 'age', 'sex',
+    'restTimerSound', 'autoStartRestTimer', 'theme', 'heightCm', 'age', 'ageUpdatedAt', 'sex',
   ];
   for (const key of knownKeys) {
     if (record[key] !== undefined) {

@@ -685,6 +685,24 @@ describe('validateImportLog', () => {
     );
     expect(errors).toEqual([]);
   });
+
+  it('accepts log without templateSnapshot (stored separately)', () => {
+    const errors = validateImportLog(
+      {
+        id: 'l-1',
+        startedAt: '2025-01-01T10:00:00Z',
+        status: 'completed',
+        templateId: 't-1',
+        templateName: 'Push Day',
+        performedSets: [],
+        endedAt: '2025-01-01T11:00:00Z',
+        durationSec: 3600,
+        totalVolumeG: 0,
+      },
+      0,
+    );
+    expect(errors).toEqual([]);
+  });
 });
 
 // ---------------------------------------------------------------------------

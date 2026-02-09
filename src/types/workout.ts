@@ -89,12 +89,23 @@ export interface WorkoutLog {
   status: LogStatus;
   templateId: string | null;
   templateName: string;
-  templateSnapshot: TemplateBlock[];
+  /**
+   * Frozen snapshot of the template at workout start.
+   * Optional: stored in a separate `logSnapshots` table in IndexedDB,
+   * but present in-memory at workout completion time.
+   */
+  templateSnapshot?: TemplateBlock[];
   performedSets: PerformedSet[];
   startedAt: string;
   endedAt: string | null;
   durationSec: number;
   totalVolumeG: number;
+}
+
+/** Separate IndexedDB record holding the template snapshot for a log. */
+export interface LogSnapshot {
+  logId: string;
+  templateSnapshot: TemplateBlock[];
 }
 
 // === DENORMALIZED CHART DATA ===
@@ -156,6 +167,11 @@ export interface UserSettings {
   heightCm: number | null;
   /** Age in years, null if not set. */
   age: number | null;
+  /**
+   * ISO timestamp for when `age` was last set/normalized.
+   * Used to auto-increment age by +1 every 365 days.
+   */
+  ageUpdatedAt: string | null;
   /** Biological sex, null if not set. */
   sex: Sex | null;
 }
@@ -240,5 +256,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'dark',
   heightCm: null,
   age: null,
+  ageUpdatedAt: null,
   sex: null,
 };
