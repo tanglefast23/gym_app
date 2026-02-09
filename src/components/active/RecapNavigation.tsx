@@ -24,6 +24,8 @@ interface RecapNavigationProps {
   savingPartial: boolean;
   /** Called to apply edits to the current set during final review. */
   onUpdate: () => void;
+  /** Whether the update feedback animation is showing. */
+  updateFeedback: boolean;
   /** Called to navigate to the previous set. */
   onPrevious: () => void;
   /** Called to navigate to the next set. */
@@ -52,6 +54,7 @@ export const RecapNavigation = ({
   saveNudge,
   savingPartial,
   onUpdate,
+  updateFeedback,
   onPrevious,
   onNext,
   onComplete,
@@ -69,10 +72,20 @@ export const RecapNavigation = ({
             variant="secondary"
             size="lg"
             onClick={onUpdate}
-            disabled={isSaving}
-            className="flex-1"
+            disabled={isSaving || updateFeedback}
+            className={[
+              'flex-1 relative overflow-hidden',
+              updateFeedback ? 'bg-success text-white border border-success/40 shadow-[0_0_18px_rgba(16,185,129,0.25)]' : '',
+            ].join(' ')}
           >
-            Update
+            <span className={updateFeedback ? 'opacity-0' : 'opacity-100'}>
+              Update
+            </span>
+            {updateFeedback ? (
+              <span className="absolute inset-0 flex items-center justify-center animate-check-pop">
+                <Check className="h-6 w-6 text-white" />
+              </span>
+            ) : null}
           </Button>
         ) : (
           <Button

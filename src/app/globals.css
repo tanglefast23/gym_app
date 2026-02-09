@@ -186,6 +186,23 @@ body.workout-active {
   animation: check-pop 0.3s ease-out forwards;
 }
 
+/* ─── Value Pop (Used for "Update" feedback) ─── */
+@keyframes value-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-value-pop {
+  animation: value-pop 0.42s var(--ease-expo-out) both;
+}
+
 /* ─── Weight Logged Overlay ─── */
 @keyframes weight-log-overlay {
   0% {
