@@ -270,8 +270,8 @@ const SupersetExerciseRow = ({
   }, [exercise.repsMax, isAmrap, onAmrapToggle]);
 
   return (
-    <div className="rounded-xl border border-border bg-elevated/50 p-3">
-      <div className="mb-2 flex items-center justify-between">
+    <div className="rounded-xl border border-border bg-elevated/50 px-2 py-3">
+      <div className="mb-2 flex items-center justify-between px-1">
         <span className="text-xs font-medium text-text-muted">
           Exercise {index + 1}
         </span>
@@ -287,40 +287,44 @@ const SupersetExerciseRow = ({
         )}
       </div>
 
-      <ExerciseAutocomplete
-        value={exerciseName}
-        onChange={onNameChange}
-        placeholder="Search exercise..."
-      />
-
-      <div className="mt-2 flex items-center gap-1">
-        <label className="mr-1 text-xs text-text-muted">Reps</label>
-        {!isAmrap ? (
-          <>
-            <NumberStepper
-              value={exercise.repsMin}
-              onChange={onRepsMinChange}
-              min={1}
-              max={VALIDATION.MAX_REPS}
-              step={1}
-              size="sm"
-              ariaLabel={`Exercise ${index + 1} minimum reps`}
-            />
-            <span className="px-1 text-text-muted">&ndash;</span>
-          </>
-        ) : null}
-        <NumberStepper
-          value={exercise.repsMax}
-          onChange={handleMaxChange}
-          min={1}
-          max={VALIDATION.MAX_REPS}
-          step={1}
-          size="sm"
-          amrap={isAmrap}
-          onAmrapToggle={handleAmrap}
-          ariaLabel={`Exercise ${index + 1} maximum reps`}
+      <div className="px-1">
+        <ExerciseAutocomplete
+          value={exerciseName}
+          onChange={onNameChange}
+          placeholder="Search exercise..."
         />
       </div>
+
+      <fieldset className="mt-2 flex flex-col border-none p-0 m-0">
+        <legend className="mb-1 px-1 text-xs font-medium text-text-muted">Reps</legend>
+        <div className="flex items-center justify-center gap-1">
+          {!isAmrap ? (
+            <>
+              <NumberStepper
+                value={exercise.repsMin}
+                onChange={onRepsMinChange}
+                min={1}
+                max={VALIDATION.MAX_REPS}
+                step={1}
+                size="sm"
+                ariaLabel={`Exercise ${index + 1} minimum reps`}
+              />
+              <span className="px-0.5 text-text-muted">&ndash;</span>
+            </>
+          ) : null}
+          <NumberStepper
+            value={exercise.repsMax}
+            onChange={handleMaxChange}
+            min={1}
+            max={VALIDATION.MAX_REPS}
+            step={1}
+            size="sm"
+            amrap={isAmrap}
+            onAmrapToggle={handleAmrap}
+            ariaLabel={`Exercise ${index + 1} maximum reps`}
+          />
+        </div>
+      </fieldset>
     </div>
   );
 };

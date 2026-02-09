@@ -2,12 +2,14 @@
 
 import { Card } from '@/components/ui/Card';
 
+import { hexToRgba } from '@/lib/workoutTypeColors';
 import type { WorkoutTemplate, TemplateBlock } from '@/types/workout';
 
 interface WorkoutCardProps {
   template: WorkoutTemplate;
   lastPerformed?: string | null;
   exerciseNameMap?: Map<string, string>;
+  typeColor: string;
   /**
    * Optional stable-ish index from the list render to vary visuals across cards.
    * Falls back to a template-id hash when omitted.
@@ -26,6 +28,7 @@ export const WorkoutCard = ({
   template,
   lastPerformed,
   exerciseNameMap,
+  typeColor,
   colorIndex,
   onClick,
 }: WorkoutCardProps) => {
@@ -37,7 +40,15 @@ export const WorkoutCard = ({
     : { names: [], remaining: 0 };
 
   return (
-    <Card onClick={onClick} padding="md">
+    <Card
+      onClick={onClick}
+      padding="md"
+      style={{
+        // Match History card styling: surface base with a pastel wash + colored border.
+        backgroundImage: `linear-gradient(0deg, ${hexToRgba(typeColor, 0.18)}, ${hexToRgba(typeColor, 0.18)})`,
+        borderColor: hexToRgba(typeColor, 0.55),
+      }}
+    >
       {/* Header row */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
@@ -52,7 +63,13 @@ export const WorkoutCard = ({
             {template.name}
           </h3>
         </div>
-        <span className="exercise-count rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
+        <span
+          className="exercise-count rounded-full px-2.5 py-0.5 text-xs font-medium"
+          style={{
+            backgroundColor: hexToRgba(typeColor, 0.18),
+            color: typeColor,
+          }}
+        >
           {exerciseCount} {exerciseCount === 1 ? 'exercise' : 'exercises'}
         </span>
       </div>

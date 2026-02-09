@@ -202,8 +202,8 @@ export const VALIDATION = {
 export const DEFAULT_SETTINGS: UserSettings = {
   id: 'settings',
   unitSystem: 'kg',
-  defaultRestBetweenSetsSec: 90,
-  defaultTransitionsSec: 30,
+  defaultRestBetweenSetsSec: 60,
+  defaultTransitionsSec: 60,
   weightStepsKg: [1, 2.5, 5],
   weightStepsLb: [2.5, 5, 10],
   hapticFeedback: true,

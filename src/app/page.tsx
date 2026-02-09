@@ -18,6 +18,7 @@ import {
 } from '@/components/ui';
 import { WorkoutCard } from '@/components/workout';
 import Link from 'next/link';
+import { buildColorMap, colorForIndex, WORKOUT_COLORS } from '@/lib/workoutTypeColors';
 
 /** Minimum number of templates before the search bar is shown. */
 const SEARCH_THRESHOLD = 5;
@@ -25,6 +26,7 @@ const SEARCH_THRESHOLD = 5;
 interface LogSummary {
   templateId: string | null;
   startedAt: string;
+  templateName: string;
 }
 
 function buildLastPerformedMap(
@@ -197,10 +199,12 @@ export default function HomePage() {
     () =>
       db.logs
         .orderBy('startedAt')
-        .reverse()
-        .limit(50)
         .toArray((logs) =>
-          logs.map((l) => ({ templateId: l.templateId, startedAt: l.startedAt })),
+          logs.map((l) => ({
+            templateId: l.templateId,
+            startedAt: l.startedAt,
+            templateName: l.templateName,
+          })),
         ),
     [],
   );
@@ -220,6 +224,33 @@ export default function HomePage() {
     () => buildLastPerformedMap(allLogs ?? []),
     [allLogs],
   );
+
+  // Match History's workout-name -> color assignment (earliest appearance wins).
+  const templateColorMap = useMemo(() => {
+    const logs = allLogs ?? [];
+    const earliest = new Map<string, string>();
+    for (const log of logs) {
+      const prev = earliest.get(log.templateName);
+      if (!prev || log.startedAt < prev) {
+        earliest.set(log.templateName, log.startedAt);
+      }
+    }
+    const ordered = Array.from(earliest.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]))
+      .map(([name]) => name);
+    return buildColorMap(ordered);
+  }, [allLogs]);
+
+  function fallbackColorForTemplate(template: WorkoutTemplate): string {
+    // Deterministic per-template fallback for never-performed workouts.
+    // Keeps the UI colorful without perturbing History's "earliest log wins" palette assignment.
+    let hash = 0;
+    const s = template.id || template.name;
+    for (let i = 0; i < s.length; i++) {
+      hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+    }
+    return colorForIndex(hash % WORKOUT_COLORS.length);
+  }
 
   const filteredTemplates = useMemo(() => {
     if (!allTemplates) return undefined;
@@ -379,6 +410,10 @@ export default function HomePage() {
                   template={template}
                   lastPerformed={lastPerformedMap.get(template.id) ?? null}
                   exerciseNameMap={exerciseNameMap}
+                  typeColor={
+                    templateColorMap.get(template.name) ??
+                    fallbackColorForTemplate(template)
+                  }
                   onClick={() => handleCardClick(template)}
                 />
               </div>

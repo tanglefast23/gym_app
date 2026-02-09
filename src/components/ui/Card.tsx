@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { type ReactNode, type CSSProperties } from 'react';
 
 type CardPadding = 'sm' | 'md' | 'lg';
 
@@ -9,6 +9,7 @@ interface CardProps {
   className?: string;
   onClick?: () => void;
   padding?: CardPadding;
+  style?: CSSProperties;
 }
 
 const paddingClasses: Record<CardPadding, string> = {
@@ -22,6 +23,7 @@ export const Card = ({
   className = '',
   onClick,
   padding = 'md',
+  style,
 }: CardProps) => {
   const classes = [
     'bg-surface rounded-2xl border border-border',
@@ -35,6 +37,7 @@ export const Card = ({
   return (
     <div
       className={classes}
+      style={style}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
