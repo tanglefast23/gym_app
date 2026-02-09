@@ -12,7 +12,6 @@ const {
   mockExerciseHistory,
   mockAchievements,
   mockBodyWeights,
-  mockBpms,
   mockCrashRecovery,
   mockTransaction,
 } = vi.hoisted(() => ({
@@ -47,10 +46,6 @@ const {
     count: vi.fn(),
     clear: vi.fn(),
   },
-  mockBpms: {
-    count: vi.fn(),
-    clear: vi.fn(),
-  },
   mockCrashRecovery: {
     clear: vi.fn(),
   },
@@ -65,7 +60,6 @@ vi.mock('@/lib/db', () => ({
     exerciseHistory: mockExerciseHistory,
     achievements: mockAchievements,
     bodyWeights: mockBodyWeights,
-    bpms: mockBpms,
     crashRecovery: mockCrashRecovery,
     transaction: mockTransaction,
   },
@@ -434,7 +428,6 @@ describe('getDataCounts', () => {
     mockExerciseHistory.count.mockResolvedValue(50);
     mockAchievements.count.mockResolvedValue(2);
     mockBodyWeights.count.mockResolvedValue(10);
-    mockBpms.count.mockResolvedValue(7);
 
     const counts = await getDataCounts();
 
@@ -445,7 +438,6 @@ describe('getDataCounts', () => {
       exerciseHistory: 50,
       achievements: 2,
       bodyWeights: 10,
-      bpms: 7,
     });
   });
 
@@ -456,7 +448,6 @@ describe('getDataCounts', () => {
     mockExerciseHistory.count.mockResolvedValue(0);
     mockAchievements.count.mockResolvedValue(0);
     mockBodyWeights.count.mockResolvedValue(0);
-    mockBpms.count.mockResolvedValue(0);
 
     const counts = await getDataCounts();
 
@@ -467,7 +458,6 @@ describe('getDataCounts', () => {
       exerciseHistory: 0,
       achievements: 0,
       bodyWeights: 0,
-      bpms: 0,
     });
   });
 });
@@ -489,7 +479,6 @@ describe('deleteAllData', () => {
     mockExerciseHistory.clear.mockResolvedValue(undefined);
     mockAchievements.clear.mockResolvedValue(undefined);
     mockBodyWeights.clear.mockResolvedValue(undefined);
-    mockBpms.clear.mockResolvedValue(undefined);
     mockCrashRecovery.clear.mockResolvedValue(undefined);
 
     await deleteAllData();
@@ -501,7 +490,6 @@ describe('deleteAllData', () => {
     expect(mockExerciseHistory.clear).toHaveBeenCalledOnce();
     expect(mockAchievements.clear).toHaveBeenCalledOnce();
     expect(mockBodyWeights.clear).toHaveBeenCalledOnce();
-    expect(mockBpms.clear).toHaveBeenCalledOnce();
     expect(mockCrashRecovery.clear).toHaveBeenCalledOnce();
   });
 
@@ -516,7 +504,6 @@ describe('deleteAllData', () => {
     mockExerciseHistory.clear.mockResolvedValue(undefined);
     mockAchievements.clear.mockResolvedValue(undefined);
     mockBodyWeights.clear.mockResolvedValue(undefined);
-    mockBpms.clear.mockResolvedValue(undefined);
     mockCrashRecovery.clear.mockResolvedValue(undefined);
 
     await deleteAllData();

@@ -10,11 +10,18 @@ import {
   ResponsiveContainer,
   ReferenceArea,
 } from 'recharts';
-import type { BpmChartPoint } from '@/lib/bpm';
+import type { BmiChartPoint } from '@/lib/bmi';
 
-export interface BpmHealthyRange {
-  minBpm: number;
-  maxBpm: number;
+export interface HealthyBmiRange {
+  min: number;
+  max: number;
+}
+
+function bmiCategory(bmi: number): string {
+  if (bmi < 18.5) return 'Underweight';
+  if (bmi < 25) return 'Healthy';
+  if (bmi < 30) return 'Overweight';
+  return 'Obese';
 }
 
 function CustomTooltip({
@@ -33,18 +40,23 @@ function CustomTooltip({
   return (
     <div className="rounded-lg border border-border bg-elevated px-3 py-2 shadow-lg">
       <p className="text-xs text-text-muted">{label}</p>
-      <p className="text-sm font-semibold text-text-primary">{v} bpm</p>
+      <p className="text-sm font-semibold text-text-primary">
+        {v} BMI
+        <span className="ml-2 text-xs font-medium text-text-muted">
+          {bmiCategory(v)}
+        </span>
+      </p>
     </div>
   );
 }
 
-export function BpmChart({
+export function BmiChart({
   data,
   healthyRange,
   height = 140,
 }: {
-  data: BpmChartPoint[];
-  healthyRange: BpmHealthyRange | null;
+  data: BmiChartPoint[];
+  healthyRange?: HealthyBmiRange | null;
   height?: number;
 }) {
   const hasAtLeastTwo = useMemo(() => {
@@ -61,16 +73,12 @@ export function BpmChart({
       .map((p) => p.value)
       .filter((v): v is number => v !== null && v !== undefined);
 
-    if (values.length === 0) return [40, 200];
+    if (values.length === 0) return [10, 40];
 
-    let min = Math.min(...values);
-    let max = Math.max(...values);
-    if (healthyRange) {
-      min = Math.min(min, healthyRange.minBpm);
-      max = Math.max(max, healthyRange.maxBpm);
-    }
-    const pad = 6;
-    return [Math.max(0, Math.floor(min - pad)), Math.ceil(max + pad)];
+    const min = healthyRange ? Math.min(...values, healthyRange.min) : Math.min(...values);
+    const max = healthyRange ? Math.max(...values, healthyRange.max) : Math.max(...values);
+    const pad = 1.2;
+    return [Math.max(0, Math.floor((min - pad) * 10) / 10), Math.ceil((max + pad) * 10) / 10];
   }, [data, healthyRange]);
 
   if (!hasAtLeastTwo) {
@@ -79,14 +87,14 @@ export function BpmChart({
         className="flex items-center justify-center text-xs text-text-muted"
         style={{ height }}
       >
-        Add at least 2 entries to see a chart
+        Add at least 2 weight entries to see a chart
       </div>
     );
   }
 
   const x1 = data[0]?.label ?? '';
   const x2 = data[data.length - 1]?.label ?? '';
-  const summaryText = `BPM chart with ${data.length} points.`;
+  const summaryText = `BMI chart with ${data.length} points.`;
 
   return (
     <div role="img" aria-label={summaryText} style={{ height }}>
@@ -96,8 +104,8 @@ export function BpmChart({
             <ReferenceArea
               x1={x1}
               x2={x2}
-              y1={healthyRange.minBpm}
-              y2={healthyRange.maxBpm}
+              y1={healthyRange.min}
+              y2={healthyRange.max}
               fill="var(--success, #22C55E)"
               fillOpacity={0.14}
               strokeOpacity={0}

@@ -13,7 +13,6 @@ const {
   mockExerciseHistory,
   mockAchievements,
   mockBodyWeights,
-  mockBpms,
   mockSettings,
   mockCrashRecovery,
   mockTransaction,
@@ -49,11 +48,6 @@ const {
     clear: vi.fn(),
     bulkAdd: vi.fn(),
   },
-  mockBpms: {
-    toArray: vi.fn(),
-    clear: vi.fn(),
-    bulkAdd: vi.fn(),
-  },
   mockSettings: {
     clear: vi.fn(),
     put: vi.fn(),
@@ -73,7 +67,6 @@ vi.mock('@/lib/db', () => ({
     exerciseHistory: mockExerciseHistory,
     achievements: mockAchievements,
     bodyWeights: mockBodyWeights,
-    bpms: mockBpms,
     settings: mockSettings,
     crashRecovery: mockCrashRecovery,
     transaction: mockTransaction,
@@ -123,7 +116,6 @@ function makeValidExportData(overrides: Partial<ExportData> = {}): ExportData {
     exerciseHistory: [],
     achievements: [],
     bodyWeights: [],
-    bpms: [],
     ...overrides,
   };
 }
@@ -156,7 +148,6 @@ beforeEach(() => {
   mockExerciseHistory.toArray.mockResolvedValue([]);
   mockAchievements.toArray.mockResolvedValue([]);
   mockBodyWeights.toArray.mockResolvedValue([]);
-  mockBpms.toArray.mockResolvedValue([]);
 });
 
 // ---------------------------------------------------------------------------
@@ -174,7 +165,6 @@ describe('exportAllData', () => {
     mockExerciseHistory.toArray.mockResolvedValue([]);
     mockAchievements.toArray.mockResolvedValue([]);
     mockBodyWeights.toArray.mockResolvedValue([]);
-    mockBpms.toArray.mockResolvedValue([]);
 
     const result = await exportAllData();
 
@@ -184,7 +174,6 @@ describe('exportAllData', () => {
     expect(result.exerciseHistory).toEqual([]);
     expect(result.achievements).toEqual([]);
     expect(result.bodyWeights).toEqual([]);
-    expect(result.bpms).toEqual([]);
   });
 
   it('includes schemaVersion of 1', async () => {
@@ -216,7 +205,6 @@ describe('exportAllData', () => {
     expect(mockExerciseHistory.toArray).toHaveBeenCalledOnce();
     expect(mockAchievements.toArray).toHaveBeenCalledOnce();
     expect(mockBodyWeights.toArray).toHaveBeenCalledOnce();
-    expect(mockBpms.toArray).toHaveBeenCalledOnce();
   });
 });
 
@@ -288,21 +276,6 @@ describe('previewImport', () => {
     expect(result.summary!.bodyWeights).toBe(2);
   });
 
-  it('includes bpm count in summary', async () => {
-    const data = makeValidExportData({
-      bpms: [
-        { id: '2025-06-01', recordedAt: '2025-06-01T08:00:00Z', bpm: 62 },
-        { id: '2025-06-02', recordedAt: '2025-06-02T08:00:00Z', bpm: 65 },
-        { id: '2025-06-03', recordedAt: '2025-06-03T08:00:00Z', bpm: 64 },
-      ],
-    });
-
-    const file = makeFile(data);
-    const result = await previewImport(file);
-
-    expect(result.valid).toBe(true);
-    expect(result.summary!.bpms).toBe(3);
-  });
 });
 
 // ---------------------------------------------------------------------------
@@ -323,7 +296,6 @@ describe('importData', () => {
     mockExerciseHistory.clear.mockResolvedValue(undefined);
     mockAchievements.clear.mockResolvedValue(undefined);
     mockBodyWeights.clear.mockResolvedValue(undefined);
-    mockBpms.clear.mockResolvedValue(undefined);
     mockSettings.clear.mockResolvedValue(undefined);
     mockCrashRecovery.clear.mockResolvedValue(undefined);
 
@@ -333,7 +305,6 @@ describe('importData', () => {
     mockExerciseHistory.bulkAdd.mockResolvedValue(undefined);
     mockAchievements.bulkAdd.mockResolvedValue(undefined);
     mockBodyWeights.bulkAdd.mockResolvedValue(undefined);
-    mockBpms.bulkAdd.mockResolvedValue(undefined);
     mockSettings.put.mockResolvedValue(undefined);
   });
 
@@ -354,7 +325,6 @@ describe('importData', () => {
     expect(mockExerciseHistory.clear).toHaveBeenCalledOnce();
     expect(mockAchievements.clear).toHaveBeenCalledOnce();
     expect(mockBodyWeights.clear).toHaveBeenCalledOnce();
-    expect(mockBpms.clear).toHaveBeenCalledOnce();
     expect(mockSettings.clear).toHaveBeenCalledOnce();
     expect(mockCrashRecovery.clear).toHaveBeenCalledOnce();
 
@@ -374,7 +344,6 @@ describe('importData', () => {
     expect(mockExerciseHistory.bulkAdd).not.toHaveBeenCalled();
     expect(mockAchievements.bulkAdd).not.toHaveBeenCalled();
     expect(mockBodyWeights.bulkAdd).not.toHaveBeenCalled();
-    expect(mockBpms.bulkAdd).not.toHaveBeenCalled();
   });
 
   it('writes normalized settings via settings.put', async () => {
@@ -452,17 +421,6 @@ describe('importData', () => {
     expect(mockBodyWeights.bulkAdd).toHaveBeenCalledWith(bodyWeights);
   });
 
-  it('imports bpms when present', async () => {
-    const bpms = [
-      { id: '2025-06-01', recordedAt: '2025-06-01T08:00:00Z', bpm: 62 },
-    ];
-    const data = makeValidExportData({ bpms });
-    const file = makeFile(data);
-
-    await importData(file);
-
-    expect(mockBpms.bulkAdd).toHaveBeenCalledWith(bpms);
-  });
 
   it('handles import with missing settings gracefully', async () => {
     // ExportData without settings at top level -- the normalizer should apply defaults

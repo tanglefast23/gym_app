@@ -102,7 +102,7 @@ function normalizeImportedSettings(raw: unknown): UserSettings {
  * @returns A fully-populated `ExportData` object
  */
 export async function exportAllData(): Promise<ExportData> {
-  const [exercises, templates, logs, exerciseHistory, achievements, bodyWeights, bpms] =
+  const [exercises, templates, logs, exerciseHistory, achievements, bodyWeights] =
     await Promise.all([
       db.exercises.toArray(),
       db.templates.toArray(),
@@ -110,7 +110,6 @@ export async function exportAllData(): Promise<ExportData> {
       db.exerciseHistory.toArray(),
       db.achievements.toArray(),
       db.bodyWeights.toArray(),
-      db.bpms.toArray(),
     ]);
 
   return {
@@ -123,7 +122,6 @@ export async function exportAllData(): Promise<ExportData> {
     exerciseHistory,
     achievements,
     bodyWeights,
-    bpms,
   };
 }
 
@@ -223,7 +221,6 @@ export async function importData(
         db.exerciseHistory,
         db.achievements,
         db.bodyWeights,
-        db.bpms,
         db.settings,
         db.crashRecovery,
       ],
@@ -236,7 +233,6 @@ export async function importData(
           db.exerciseHistory.clear(),
           db.achievements.clear(),
           db.bodyWeights.clear(),
-          db.bpms.clear(),
           db.settings.clear(),
           db.crashRecovery.clear(),
         ]);
@@ -259,9 +255,6 @@ export async function importData(
         }
         if (parsed.bodyWeights && parsed.bodyWeights.length > 0) {
           await db.bodyWeights.bulkAdd(parsed.bodyWeights);
-        }
-        if (parsed.bpms && parsed.bpms.length > 0) {
-          await db.bpms.bulkAdd(parsed.bpms);
         }
         await db.settings.put(normalizedSettings);
       },
@@ -296,7 +289,6 @@ export async function previewImport(file: File): Promise<{
     logs: number;
     achievements: number;
     bodyWeights: number;
-    bpms: number;
     exportedAt: string;
   };
 }> {
@@ -322,9 +314,6 @@ export async function previewImport(file: File): Promise<{
     const bodyWeights = Array.isArray((d as unknown as { bodyWeights?: unknown }).bodyWeights)
       ? (d.bodyWeights ?? []).length
       : 0;
-    const bpms = Array.isArray((d as unknown as { bpms?: unknown }).bpms)
-      ? (d.bpms ?? []).length
-      : 0;
     return {
       valid: true,
       errors: [],
@@ -334,7 +323,6 @@ export async function previewImport(file: File): Promise<{
         logs: d.logs.length,
         achievements: d.achievements.length,
         bodyWeights,
-        bpms,
         exportedAt: d.exportedAt,
       },
     };

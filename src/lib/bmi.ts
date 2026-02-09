@@ -1,44 +1,34 @@
-import { localDateKey } from '@/lib/bodyWeight';
-import type { BpmEntry } from '@/types/workout';
+import { latestPerDay } from '@/lib/bodyWeight';
+import type { BodyWeightEntry } from '@/types/workout';
 import type { WeightTimeline } from '@/types/weight';
 
-export interface BpmChartPoint {
+export interface BmiChartPoint {
   label: string;
   value: number | null;
 }
 
-/**
- * One-entry-per-day canonical series: keep the latest entry for each local date.
- * Returned array is sorted by dateKey ascending.
- */
-export function latestBpmPerDay(entries: BpmEntry[]): Array<{ dateKey: string; entry: BpmEntry }> {
-  const map = new Map<string, BpmEntry>();
-  for (const e of entries) {
-    const key = localDateKey(new Date(e.recordedAt));
-    const existing = map.get(key);
-    if (!existing || e.recordedAt > existing.recordedAt) {
-      map.set(key, e);
-    }
-  }
-  return Array.from(map.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([dateKey, entry]) => ({ dateKey, entry }));
+export function computeBmi(weightG: number, heightCm: number): number {
+  const kg = weightG / 1000;
+  const m = heightCm / 100;
+  const bmi = kg / (m * m);
+  return Math.round(bmi * 10) / 10;
 }
 
 /**
- * Build chart-ready data points from BPM entries.
+ * Build chart-ready BMI points from body weight entries.
  * Produces one point per time bucket (day or month) with `null` for missing data.
  */
-export function buildBpmChartData(
-  entries: BpmEntry[],
+export function buildBmiChartData(
+  entries: BodyWeightEntry[],
+  heightCm: number,
   timeline: WeightTimeline,
-): BpmChartPoint[] {
-  const byDay = latestBpmPerDay(entries);
+): BmiChartPoint[] {
+  const byDay = latestPerDay(entries);
   const today = new Date();
 
   if (timeline === 'year') {
     // Last 12 months, monthly latest.
-    const monthMap = new Map<string, BpmEntry>();
+    const monthMap = new Map<string, BodyWeightEntry>();
     for (const { dateKey, entry } of byDay) {
       const monthKey = dateKey.slice(0, 7); // YYYY-MM
       const existing = monthMap.get(monthKey);
@@ -47,7 +37,7 @@ export function buildBpmChartData(
       }
     }
 
-    const points: BpmChartPoint[] = [];
+    const points: BmiChartPoint[] = [];
     for (let i = 11; i >= 0; i--) {
       const d = new Date(today);
       d.setMonth(d.getMonth() - i);
@@ -55,7 +45,7 @@ export function buildBpmChartData(
       const e = monthMap.get(key);
       points.push({
         label: `${String(d.getMonth() + 1)}/${String(d.getFullYear()).slice(-2)}`,
-        value: e ? e.bpm : null,
+        value: e ? computeBmi(e.weightG, heightCm) : null,
       });
     }
     return points;
@@ -65,7 +55,7 @@ export function buildBpmChartData(
   // month: last 30 days
   const days = timeline === 'month' ? 30 : 7;
   const values = new Map(byDay.map((x) => [x.dateKey, x.entry]));
-  const points: BpmChartPoint[] = [];
+  const points: BmiChartPoint[] = [];
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
@@ -73,7 +63,7 @@ export function buildBpmChartData(
     const e = values.get(k);
     points.push({
       label: `${d.getMonth() + 1}/${d.getDate()}`,
-      value: e ? e.bpm : null,
+      value: e ? computeBmi(e.weightG, heightCm) : null,
     });
   }
   return points;

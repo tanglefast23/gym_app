@@ -1,19 +1,31 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRouter } from 'next/navigation';
 import { Check, Minus, Plus } from 'lucide-react';
 import { db } from '@/lib/db';
 import { localDateKey, latestPerDay, buildBodyWeightChartData } from '@/lib/bodyWeight';
+import { buildBmiChartData, computeBmi } from '@/lib/bmi';
 import { displayToGrams, formatWeight, formatWeightValue } from '@/lib/calculations';
 import { playSfx } from '@/lib/sfx';
+import { useSettingsStore } from '@/stores/settingsStore';
 import { ScaleIcon } from '@/components/icons/ScaleIcon';
 import { BodyWeightChart } from '@/components/weight/BodyWeightChart';
 import { TimelinePills } from '@/components/weight/TimelinePills';
+import { BmiChart } from '@/components/bmi/BmiChart';
 import { Button, Card, useToastStore } from '@/components/ui';
 import type { BodyWeightEntry, UnitSystem } from '@/types/workout';
 import type { WeightTimeline } from '@/types/weight';
+
+function focusTodayWeight(): void {
+  const el = document.getElementById('today-weight');
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  window.dispatchEvent(new Event('workout-pwa:focus-today-weight'));
+}
 
 export function WeightTrackerSection({
   unitSystem,
@@ -22,6 +34,9 @@ export function WeightTrackerSection({
 }) {
   const router = useRouter();
   const addToast = useToastStore((s) => s.addToast);
+  const heightCm = useSettingsStore((s) => s.heightCm);
+  const age = useSettingsStore((s) => s.age);
+  const sex = useSettingsStore((s) => s.sex);
 
   const bodyWeights = useLiveQuery(
     () => db.bodyWeights.orderBy('recordedAt').toArray(),
@@ -158,6 +173,13 @@ export function WeightTrackerSection({
     [bodyWeights, weightTimeline, unitSystem],
   );
 
+  const [bmiTimeline, setBmiTimeline] = useState<WeightTimeline>('week');
+
+  const bmiChartData = useMemo(() => {
+    if (!heightCm) return null;
+    return buildBmiChartData(bodyWeights ?? [], heightCm, bmiTimeline);
+  }, [bodyWeights, heightCm, bmiTimeline]);
+
   const recentEntries = useMemo(() => {
     const byDay = latestPerDay(bodyWeights ?? []);
     const last = byDay.slice(-5).reverse(); // latest first
@@ -167,6 +189,24 @@ export function WeightTrackerSection({
       return { ...x, deltaG };
     });
   }, [bodyWeights]);
+
+  const bmiMissing = useMemo(() => {
+    return {
+      height: heightCm === null,
+      weight: (bodyWeights ?? []).length === 0,
+      age: age === null,
+      sex: sex === null,
+    };
+  }, [heightCm, bodyWeights, age, sex]);
+
+  const bmiHealthyRange = useMemo(() => {
+    // BMI itself requires height + weight.
+    if (bmiMissing.height || bmiMissing.weight) return null;
+    // Healthy BMI thresholds depend on BMI-for-age percentiles for < 20.
+    if (age === null) return null;
+    if (age < 20) return null;
+    return { min: 18.5, max: 24.9 };
+  }, [bmiMissing.height, bmiMissing.weight, age]);
 
   return (
     <section className="mb-6">
@@ -370,6 +410,135 @@ export function WeightTrackerSection({
             No weight entries yet. Add today&apos;s weight to start tracking.
           </p>
         )}
+      </Card>
+
+      {/* BMI changes */}
+      <Card
+        padding="md"
+        className="mt-3"
+        onClick={() => router.push('/weight')}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-text-primary">
+              BMI changes
+            </p>
+            <p className="text-xs text-text-muted">
+              {heightCm
+                ? `Using height: ${Math.round(heightCm)} cm`
+                : 'Add your height to compute BMI'}
+            </p>
+          </div>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <TimelinePills
+              value={bmiTimeline}
+              onChange={(v) => setBmiTimeline(v)}
+              ariaLabel="BMI timeline"
+            />
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-2xl border border-border bg-elevated/40 p-3">
+          {bmiMissing.height || bmiMissing.weight ? (
+            <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-xs text-text-muted">
+              To show BMI, add your{' '}
+              {bmiMissing.height ? (
+                <Link
+                  href="/settings?focus=height"
+                  className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  height
+                </Link>
+              ) : null}
+              {bmiMissing.height && bmiMissing.weight ? ' and ' : null}
+              {bmiMissing.weight ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    focusTodayWeight();
+                  }}
+                  className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+                >
+                  weight
+                </button>
+              ) : null}
+              .
+            </div>
+          ) : bmiHealthyRange === null ? (
+            <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-xs text-text-muted">
+              To show the healthy BMI range, add your{' '}
+              {bmiMissing.age ? (
+                <Link
+                  href="/settings?focus=age"
+                  className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  age
+                </Link>
+              ) : (
+                <span className="font-semibold text-text-secondary">age</span>
+              )}
+              {age !== null && age < 20 ? (
+                <>
+                  {' '}
+                  and{' '}
+                  {bmiMissing.sex ? (
+                    <Link
+                      href="/settings?focus=sex"
+                      className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+                      onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
+                      sex
+                    </Link>
+                  ) : (
+                    <span className="font-semibold text-text-secondary">sex</span>
+                  )}
+                  . BMI-for-age percentiles (under 20) aren&apos;t supported yet.
+                </>
+              ) : (
+                '.'
+              )}
+            </div>
+          ) : null}
+
+          {heightCm && bmiChartData ? (
+            <BmiChart
+              data={bmiChartData}
+              healthyRange={bmiHealthyRange}
+              height={140}
+            />
+          ) : (
+            <div className="flex h-[140px] items-center justify-center text-xs text-text-muted">
+              BMI needs height + weight entries
+            </div>
+          )}
+        </div>
+
+        {/* Current BMI quick read */}
+        {heightCm && (bodyWeights ?? []).length > 0 ? (
+          <div className="mt-4 rounded-xl bg-elevated px-3 py-2">
+            {(() => {
+              const arr = bodyWeights ?? [];
+              const latest = arr[arr.length - 1] ?? null;
+              if (!latest) return null;
+              const bmi = computeBmi(latest.weightG, heightCm);
+              return (
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-text-secondary">Latest BMI</p>
+                  <p className="text-sm font-semibold text-text-primary">{bmi}</p>
+                </div>
+              );
+            })()}
+          </div>
+        ) : null}
       </Card>
     </section>
   );

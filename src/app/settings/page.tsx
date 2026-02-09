@@ -174,7 +174,6 @@ interface ImportSummary {
   logs: number;
   achievements: number;
   bodyWeights: number;
-  bpms: number;
   exportedAt: string;
 }
 
@@ -410,7 +409,6 @@ function SettingsContent() {
     exerciseHistory: number;
     achievements: number;
     bodyWeights: number;
-    bpms: number;
   } | null>(null);
   const [deleteAllCountdown, setDeleteAllCountdown] = useState(3);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
@@ -773,7 +771,7 @@ function SettingsContent() {
             <p className="text-xs text-text-secondary">
               {importSummary.exercises} exercises, {importSummary.templates}{' '}
               templates, {importSummary.logs} logs, {importSummary.achievements}{' '}
-              achievements, {importSummary.bodyWeights} weight entries, {importSummary.bpms} bpm entries
+              achievements, {importSummary.bodyWeights} weight entries
             </p>
             <p className="mt-1 text-xs text-text-muted">
               Exported on{' '}
@@ -943,7 +941,7 @@ function SettingsContent() {
         title="Delete all data?"
         description={
           deleteAllCounts
-            ? `This will permanently delete ALL your data:\n\n• ${deleteAllCounts.logs} workout logs\n• ${deleteAllCounts.templates} workout templates\n• ${deleteAllCounts.exercises} exercises\n• ${deleteAllCounts.exerciseHistory} history entries\n• ${deleteAllCounts.achievements} achievements\n• ${deleteAllCounts.bodyWeights} weight entries\n• ${deleteAllCounts.bpms} bpm entries\n\nYour settings will be preserved. This cannot be undone.`
+            ? `This will permanently delete ALL your data:\n\n• ${deleteAllCounts.logs} workout logs\n• ${deleteAllCounts.templates} workout templates\n• ${deleteAllCounts.exercises} exercises\n• ${deleteAllCounts.exerciseHistory} history entries\n• ${deleteAllCounts.achievements} achievements\n• ${deleteAllCounts.bodyWeights} weight entries\n\nYour settings will be preserved. This cannot be undone.`
             : 'Loading data counts...'
         }
         confirmText="Continue"

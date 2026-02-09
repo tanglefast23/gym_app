@@ -134,13 +134,6 @@ export interface BodyWeightEntry {
   weightG: number;          // integer grams
 }
 
-// === HEART RATE (BPM) ===
-export interface BpmEntry {
-  id: string;               // local date key (YYYY-MM-DD) to enforce one entry per day
-  recordedAt: string;       // ISO timestamp
-  bpm: number;              // beats per minute
-}
-
 // === SETTINGS ===
 export type UnitSystem = 'kg' | 'lb';
 export type ThemeMode = 'dark' | 'light' | 'system';
@@ -188,8 +181,6 @@ export interface ExportData {
   achievements: UnlockedAchievement[];
   /** Optional for backward compatibility with older backups. */
   bodyWeights?: BodyWeightEntry[];
-  /** Optional for backward compatibility with older backups. */
-  bpms?: BpmEntry[];
 }
 
 // === STEP ENGINE ===
@@ -229,8 +220,6 @@ export const VALIDATION = {
   MAX_SETS: 20,
   MAX_REPS: 999,
   MAX_WEIGHT_G: 999_000, // 999kg
-  MIN_BPM: 30,
-  MAX_BPM: 250,
   MIN_REST_SEC: 5,
   MAX_REST_SEC: 600,
   RECOVERY_MAX_AGE_MS: 4 * 60 * 60 * 1000, // 4 hours

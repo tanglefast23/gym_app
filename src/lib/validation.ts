@@ -660,27 +660,6 @@ export function validateImportBodyWeightEntry(record: unknown, index: number): s
   return errors;
 }
 
-export function validateImportBpmEntry(record: unknown, index: number): string[] {
-  const errors: string[] = [];
-  const prefix = `bpms[${index}]`;
-
-  if (!isRecord(record)) {
-    return [`${prefix}: must be an object`];
-  }
-
-  if (!isNonEmptyString(record.id)) {
-    errors.push(`${prefix}: "id" must be a non-empty string`);
-  }
-  if (!isValidISODate(record.recordedAt)) {
-    errors.push(`${prefix}: "recordedAt" must be a valid ISO date string`);
-  }
-  if (!isInt(record.bpm) || record.bpm < VALIDATION.MIN_BPM || record.bpm > VALIDATION.MAX_BPM) {
-    errors.push(`${prefix}: "bpm" must be an integer between ${VALIDATION.MIN_BPM} and ${VALIDATION.MAX_BPM}`);
-  }
-
-  return errors;
-}
-
 // ---------------------------------------------------------------------------
 // Property stripping helpers — keep only known fields, discard extras
 // ---------------------------------------------------------------------------
@@ -856,18 +835,6 @@ export function stripBodyWeightEntry(record: Record<string, unknown>): Record<st
 }
 
 /**
- * Strip unknown properties from a validated BPM entry.
- * Only retains fields defined in the BpmEntry interface.
- */
-export function stripBpmEntry(record: Record<string, unknown>): Record<string, unknown> {
-  return {
-    id: record.id,
-    recordedAt: record.recordedAt,
-    bpm: record.bpm,
-  };
-}
-
-/**
  * Strip unknown properties from validated settings.
  * Only retains fields defined in the UserSettings interface.
  */
@@ -897,7 +864,6 @@ const IMPORT_CAPS = {
   exerciseHistory: 50_000,
   achievements: 100,
   bodyWeights: 5_000,
-  bpms: 10_000,
   weightStepsKg: 20,
   weightStepsLb: 20,
 } as const;
@@ -979,11 +945,6 @@ export function validateImportData(data: unknown): { valid: boolean; errors: str
       errors.push(`Too many body weight entries (max ${IMPORT_CAPS.bodyWeights.toLocaleString()})`);
     }
   }
-  if (d.bpms !== undefined && Array.isArray(d.bpms)) {
-    if ((d.bpms as unknown[]).length > IMPORT_CAPS.bpms) {
-      errors.push(`Too many bpm entries (max ${IMPORT_CAPS.bpms.toLocaleString()})`);
-    }
-  }
 
   // Check weight steps caps inside settings if present
   if (d.settings !== undefined && d.settings !== null && isRecord(d.settings)) {
@@ -1033,18 +994,6 @@ export function validateImportData(data: unknown): { valid: boolean; errors: str
     }
   }
 
-  // Optional for backwards compatibility with older exports
-  if (d.bpms !== undefined) {
-    if (!Array.isArray(d.bpms)) {
-      errors.push('bpms must be an array');
-    } else {
-      const bpms = d.bpms as unknown[];
-      for (let i = 0; i < bpms.length; i++) {
-        errors.push(...validateImportBpmEntry(bpms[i], i));
-      }
-    }
-  }
-
   // Settings is optional in the schema but if present must be valid
   if (d.settings !== undefined && d.settings !== null) {
     errors.push(...validateImportSettings(d.settings));
@@ -1071,12 +1020,6 @@ export function validateImportData(data: unknown): { valid: boolean; errors: str
       const bodyWeights = d.bodyWeights as unknown[];
       for (let i = 0; i < bodyWeights.length; i++) {
         bodyWeights[i] = stripBodyWeightEntry(bodyWeights[i] as Record<string, unknown>);
-      }
-    }
-    if (Array.isArray(d.bpms)) {
-      const bpms = d.bpms as unknown[];
-      for (let i = 0; i < bpms.length; i++) {
-        bpms[i] = stripBpmEntry(bpms[i] as Record<string, unknown>);
       }
     }
     if (d.settings !== undefined && d.settings !== null) {

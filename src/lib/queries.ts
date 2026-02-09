@@ -164,18 +164,16 @@ export async function getDataCounts(): Promise<{
   exerciseHistory: number;
   achievements: number;
   bodyWeights: number;
-  bpms: number;
 }> {
-  const [exercises, templates, logs, exerciseHistory, achievements, bodyWeights, bpms] = await Promise.all([
+  const [exercises, templates, logs, exerciseHistory, achievements, bodyWeights] = await Promise.all([
     db.exercises.count(),
     db.templates.count(),
     db.logs.count(),
     db.exerciseHistory.count(),
     db.achievements.count(),
     db.bodyWeights.count(),
-    db.bpms.count(),
   ]);
-  return { exercises, templates, logs, exerciseHistory, achievements, bodyWeights, bpms };
+  return { exercises, templates, logs, exerciseHistory, achievements, bodyWeights };
 }
 
 /**
@@ -189,7 +187,7 @@ export async function getDataCounts(): Promise<{
 export async function deleteAllData(): Promise<void> {
   await db.transaction(
     'rw',
-    [db.exercises, db.templates, db.logs, db.exerciseHistory, db.achievements, db.bodyWeights, db.bpms, db.crashRecovery],
+    [db.exercises, db.templates, db.logs, db.exerciseHistory, db.achievements, db.bodyWeights, db.crashRecovery],
     async () => {
       await Promise.all([
         db.exercises.clear(),
@@ -198,7 +196,6 @@ export async function deleteAllData(): Promise<void> {
         db.exerciseHistory.clear(),
         db.achievements.clear(),
         db.bodyWeights.clear(),
-        db.bpms.clear(),
         db.crashRecovery.clear(),
       ]);
     },

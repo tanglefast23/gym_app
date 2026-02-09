@@ -6,7 +6,6 @@ import type {
   ExerciseHistoryEntry,
   UnlockedAchievement,
   BodyWeightEntry,
-  BpmEntry,
   UserSettings,
   CrashRecoveryData,
 } from '@/types/workout';
@@ -18,7 +17,6 @@ export class WorkoutDB extends Dexie {
   exerciseHistory!: Table<ExerciseHistoryEntry, number>;
   achievements!: Table<UnlockedAchievement, string>;
   bodyWeights!: Table<BodyWeightEntry, string>;
-  bpms!: Table<BpmEntry, string>;
   settings!: Table<UserSettings, string>;
   crashRecovery!: Table<CrashRecoveryData, string>;
 
@@ -99,19 +97,6 @@ export class WorkoutDB extends Dexie {
         });
       });
 
-    // v5: add heart rate (BPM) tracking
-    this.version(5).stores({
-      exercises: 'id, name',
-      templates: 'id, name, isArchived, createdAt',
-      logs: 'id, templateId, startedAt, status, [templateId+startedAt]',
-      exerciseHistory:
-        '++id, exerciseId, exerciseName, logId, performedAt, [exerciseId+performedAt], [exerciseName+performedAt]',
-      achievements: 'achievementId, unlockedAt',
-      bodyWeights: 'id, recordedAt',
-      bpms: 'id, recordedAt',
-      settings: 'id',
-      crashRecovery: 'id',
-    });
   }
 }
 

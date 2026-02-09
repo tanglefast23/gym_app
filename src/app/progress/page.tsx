@@ -10,7 +10,6 @@ import { AppShell } from '@/components/layout';
 import { Header } from '@/components/layout/Header';
 import { ToastContainer } from '@/components/ui';
 import { WeightTrackerSection } from '@/components/progress/WeightTrackerSection';
-import { BpmTrackerSection } from '@/components/progress/BpmTrackerSection';
 import { StatsSection } from '@/components/progress/StatsSection';
 import { PersonalRecordsSection } from '@/components/progress/PersonalRecordsSection';
 import { ExerciseProgressSection } from '@/components/progress/ExerciseProgressSection';
@@ -227,7 +226,6 @@ export default function ProgressPage() {
             />
 
             <WeightTrackerSection unitSystem={unitSystem} />
-            <BpmTrackerSection />
 
             <PersonalRecordsSection
               personalRecords={personalRecords}
