@@ -56,6 +56,14 @@ export function TimerRing({
         height={size}
         className="absolute inset-0 block"
       >
+        {/* Light-mode gradient for the progress ring */}
+        <defs>
+          <linearGradient id="light-timer-gradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#F97316" />
+            <stop offset="100%" stopColor="#EC4899" />
+          </linearGradient>
+        </defs>
+
         {/* Background ring */}
         <circle
           cx={center}

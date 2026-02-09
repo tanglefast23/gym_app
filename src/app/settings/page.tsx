@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Download, Upload, RotateCcw, Trash2, CalendarRange } from 'lucide-react';
+import { AppShell } from '@/components/layout/AppShell';
 import { Header } from '@/components/layout/Header';
 import { Button, ConfirmDialog, useToastStore, ToastContainer } from '@/components/ui';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -396,7 +397,7 @@ export default function SettingsPage() {
   }, [dateFrom, dateTo, addToast]);
 
   return (
-    <div className="min-h-dvh bg-background">
+    <AppShell>
       <Header
         title="Settings"
         centered
@@ -728,6 +729,6 @@ export default function SettingsPage() {
       />
 
       <ToastContainer />
-    </div>
+    </AppShell>
   );
 }

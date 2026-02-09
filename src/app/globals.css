@@ -494,6 +494,87 @@ body.workout-active {
   animation: rest-enter 0.5s var(--ease-expo-out) both;
 }
 
+/* ─── Dark Mode Enhanced Design System ─── */
+
+/* Exercise count pill (dark) */
+.dark .exercise-count {
+  background: rgba(245, 158, 11, 0.15);
+  color: #FBBF24;
+  font-weight: 600;
+}
+
+/* Exercise name pill tags (dark) */
+.dark .exercise-tag {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Hide cover images in dark mode too for cleaner card design */
+.dark .card-cover {
+  display: none;
+}
+
+/* Dark mode stat icon circle backgrounds */
+.dark .grid-cols-3 > div:nth-child(1) .stat-icon {
+  background: rgba(245, 158, 11, 0.12);
+  width: 2rem;
+  height: 2rem;
+}
+.dark .grid-cols-3 > div:nth-child(1) .stat-icon svg {
+  color: #FBBF24 !important;
+}
+
+.dark .grid-cols-3 > div:nth-child(2) .stat-icon {
+  background: rgba(78, 205, 196, 0.12);
+  width: 2rem;
+  height: 2rem;
+}
+.dark .grid-cols-3 > div:nth-child(2) .stat-icon svg {
+  color: #4ECDC4 !important;
+}
+
+.dark .grid-cols-3 > div:nth-child(3) .stat-icon {
+  background: rgba(168, 85, 247, 0.12);
+  width: 2rem;
+  height: 2rem;
+}
+.dark .grid-cols-3 > div:nth-child(3) .stat-icon svg {
+  color: #A855F7 !important;
+}
+
+/* Dark mode row 2 stats */
+.dark .grid-cols-2 .stat-icon {
+  background: rgba(245, 158, 11, 0.1);
+  width: 2rem;
+  height: 2rem;
+}
+.dark .grid-cols-2 .stat-icon svg {
+  color: #FBBF24 !important;
+}
+.dark .grid-cols-2 > div:nth-child(2) .stat-icon {
+  background: rgba(78, 205, 196, 0.1);
+}
+.dark .grid-cols-2 > div:nth-child(2) .stat-icon svg {
+  color: #4ECDC4 !important;
+}
+
+/* Dark mode achievement colored backgrounds */
+.dark .w-\[140px\] img,
+.dark .w-\[140px\] span[role="img"] {
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 16px;
+  padding: 8px;
+}
+
+.dark .w-\[140px\]:nth-child(3n+2) img,
+.dark .w-\[140px\]:nth-child(3n+2) span[role="img"] {
+  background: rgba(78, 205, 196, 0.1);
+}
+
+.dark .w-\[140px\]:nth-child(3n+3) img,
+.dark .w-\[140px\]:nth-child(3n+3) span[role="img"] {
+  background: rgba(168, 85, 247, 0.1);
+}
+
 /* ─── Light Mode Playful Accents ─── */
 
 /* Cards and surfaces get subtle shadows in light mode */
@@ -618,12 +699,21 @@ body.workout-active {
 }
 
 .light svg.absolute.inset-0 circle:last-of-type {
+  stroke: url(#light-timer-gradient) !important;
   stroke-width: 10;
 }
 
 /* Subtle shadow around the timer ring */
 .light svg.absolute.inset-0 {
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.06));
+}
+
+/* "REST TIME" header label in light mode */
+.light .tracking-wider.text-accent {
+  background: linear-gradient(90deg, #F97316, #EC4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* ─── Light Mode Rest Timer Controls ─── */
@@ -643,6 +733,123 @@ body.workout-active {
 .light .bg-elevated.rounded-xl {
   background: #FFFFFF;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* ─── Light Mode Home Cards ─── */
+
+/* Hide cover images in light mode (design has clean layout without them) */
+.light .card-cover {
+  display: none;
+}
+
+/* Exercise count pill */
+.light .exercise-count {
+  background: rgba(249, 115, 22, 0.1);
+  color: #F97316;
+  font-weight: 600;
+}
+
+/* Exercise name pill tags */
+.light .exercise-tag {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: #52525B !important;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* ─── Light Mode Progress Stat Cards ─── */
+
+/* Stat icon circle backgrounds — vivid colors per position */
+/* Row 1: Total (orange), This Week (teal), Exercises (purple) */
+.light .grid-cols-3 > div:nth-child(1) .stat-icon {
+  background: rgba(249, 115, 22, 0.15);
+  width: 2rem;
+  height: 2rem;
+}
+.light .grid-cols-3 > div:nth-child(1) .stat-icon svg {
+  color: #EA580C !important;
+}
+
+.light .grid-cols-3 > div:nth-child(2) .stat-icon {
+  background: rgba(78, 205, 196, 0.15);
+  width: 2rem;
+  height: 2rem;
+}
+.light .grid-cols-3 > div:nth-child(2) .stat-icon svg {
+  color: #0D9488 !important;
+}
+
+.light .grid-cols-3 > div:nth-child(3) .stat-icon {
+  background: rgba(168, 85, 247, 0.15);
+  width: 2rem;
+  height: 2rem;
+}
+.light .grid-cols-3 > div:nth-child(3) .stat-icon svg {
+  color: #9333EA !important;
+}
+
+/* Row 2: Avg Duration (orange), Total Time (teal) */
+.light .grid-cols-2 .stat-icon {
+  background: rgba(249, 115, 22, 0.12);
+  width: 2rem;
+  height: 2rem;
+}
+.light .grid-cols-2 .stat-icon svg {
+  color: #EA580C !important;
+}
+.light .grid-cols-2 > div:nth-child(2) .stat-icon {
+  background: rgba(78, 205, 196, 0.12);
+}
+.light .grid-cols-2 > div:nth-child(2) .stat-icon svg {
+  color: #0D9488 !important;
+}
+
+/* ─── Light Mode Achievement Badges ─── */
+
+/* Colored icon backgrounds for achievement cards */
+.light .w-\[140px\] img,
+.light .w-\[140px\] span[role="img"] {
+  background: linear-gradient(135deg, #FFEDD5 0%, #FED7AA 100%);
+  border-radius: 16px;
+  padding: 8px;
+}
+
+/* Alternating colors for achievement icons */
+.light .w-\[140px\]:nth-child(3n+2) img,
+.light .w-\[140px\]:nth-child(3n+2) span[role="img"] {
+  background: linear-gradient(135deg, #CCFBF1 0%, #99F6E4 100%);
+}
+
+.light .w-\[140px\]:nth-child(3n+3) img,
+.light .w-\[140px\]:nth-child(3n+3) span[role="img"] {
+  background: linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%);
+}
+
+/* ─── Light Mode Empty State ─── */
+/* Make dark-themed illustrations lighter in light mode */
+.light img[src*="/visuals/empty/"],
+.light img[src*="/visuals/covers/"] {
+  filter: brightness(1.8) saturate(0.5) opacity(0.6);
+}
+
+/* ─── Light Mode PR Card ─── */
+/* Best 1RM value uses gradient text */
+.light .text-accent.font-bold {
+  background: linear-gradient(90deg, #F97316, #EC4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* PR card stat cells in light mode */
+.light .grid-cols-3 .rounded-xl.bg-elevated {
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* ─── Light Mode Workout Complete ─── */
+/* Trophy/celebration icon gradient background */
+.light .animate-hero-scale-in .rounded-full {
+  background: linear-gradient(135deg, #F97316 0%, #EC4899 100%) !important;
 }
 
 /* ─── Reduced Motion ─── */

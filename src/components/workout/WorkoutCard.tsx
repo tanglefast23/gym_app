@@ -1,6 +1,5 @@
 'use client';
 
-import { Clock, Dumbbell, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 import type { WorkoutTemplate, TemplateBlock } from '@/types/workout';
@@ -31,12 +30,11 @@ export const WorkoutCard = ({
   onClick,
 }: WorkoutCardProps) => {
   const exerciseCount = countExercises(template.blocks);
-  const estimatedDuration = estimateWorkoutDuration(template);
   const lastPerformedLabel = formatLastPerformed(lastPerformed);
   const coverSrc = `/visuals/covers/cover-${pickCoverIndex(template.id, colorIndex)}.svg`;
-  const exercisePreview = exerciseNameMap
-    ? getExercisePreview(template.blocks, exerciseNameMap)
-    : '';
+  const exerciseNames = exerciseNameMap
+    ? getExerciseNamesList(template.blocks, exerciseNameMap)
+    : { names: [], remaining: 0 };
 
   return (
     <Card onClick={onClick} padding="md">
@@ -47,33 +45,35 @@ export const WorkoutCard = ({
           <img
             src={coverSrc}
             alt=""
-            className="h-11 w-11 shrink-0 rounded-xl bg-elevated object-cover"
+            className="card-cover h-11 w-11 shrink-0 rounded-xl bg-elevated object-cover"
             draggable={false}
           />
           <h3 className="truncate text-lg font-semibold text-text-primary">
             {template.name}
           </h3>
         </div>
-        <ChevronRight className="h-5 w-5 flex-shrink-0 text-text-muted" />
-      </div>
-
-      {/* Meta row */}
-      <div className="mt-3 flex items-center gap-4">
-        <span className="flex items-center gap-1.5 text-sm text-text-secondary">
-          <Dumbbell className="h-4 w-4 text-text-muted" />
+        <span className="exercise-count rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
           {exerciseCount} {exerciseCount === 1 ? 'exercise' : 'exercises'}
         </span>
-        <span className="flex items-center gap-1.5 text-sm text-text-secondary">
-          <Clock className="h-4 w-4 text-text-muted" />
-          ~{Math.round(estimatedDuration / 60)} min
-        </span>
       </div>
 
-      {/* Exercise preview */}
-      {exercisePreview ? (
-        <p className="mt-2 truncate text-[13px] text-text-secondary">
-          {exercisePreview}
-        </p>
+      {/* Exercise preview pills */}
+      {exerciseNames.names.length > 0 ? (
+        <div className="exercise-pills mt-3 flex flex-wrap gap-1.5">
+          {exerciseNames.names.map((name) => (
+            <span
+              key={name}
+              className="exercise-tag rounded-full bg-elevated px-2.5 py-0.5 text-xs text-text-secondary"
+            >
+              {name}
+            </span>
+          ))}
+          {exerciseNames.remaining > 0 ? (
+            <span className="exercise-tag rounded-full bg-elevated px-2.5 py-0.5 text-xs text-text-muted">
+              +{exerciseNames.remaining}
+            </span>
+          ) : null}
+        </div>
       ) : null}
 
       {/* Last performed */}
@@ -89,13 +89,13 @@ export const WorkoutCard = ({
 // ---------------------------------------------------------------------------
 
 /**
- * Extract the first 2–3 exercise names for a card preview line.
- * Appends "+N more" when the template has additional exercises.
+ * Extract exercise names as an array for rendering as pill badges.
+ * Returns up to 4 names and a count of remaining exercises.
  */
-function getExercisePreview(
+function getExerciseNamesList(
   blocks: TemplateBlock[],
   nameMap: Map<string, string>,
-): string {
+): { names: string[]; remaining: number } {
   const names: string[] = [];
   for (const block of blocks) {
     if (block.type === 'exercise') {
@@ -107,18 +107,11 @@ function getExercisePreview(
         if (name) names.push(name);
       }
     }
-    if (names.length >= 3) break;
   }
 
-  if (names.length === 0) return '';
-
+  const preview = names.slice(0, 4);
   const total = countExercises(blocks);
-  const remaining = total - names.length;
-
-  if (remaining > 0) {
-    return `${names.join(', ')} +${remaining} more`;
-  }
-  return names.join(', ');
+  return { names: preview, remaining: total - preview.length };
 }
 
 /**
@@ -151,35 +144,6 @@ function pickCoverIndex(
 
   const idx = (Math.abs(base) % 4) + 1;
   return String(idx).padStart(2, '0');
-}
-
-/**
- * Estimate total workout duration in seconds.
- *
- * Heuristic: ~2 minutes per set (including exercise time) + rest durations.
- * Rest defaults to template default when not overridden on the block.
- */
-function estimateWorkoutDuration(template: WorkoutTemplate): number {
-  const SECONDS_PER_SET = 120;
-  const defaultRest = template.defaultRestBetweenSetsSec ?? 90;
-  let total = 0;
-
-  for (const block of template.blocks) {
-    if (block.type === 'exercise') {
-      const rest = block.restBetweenSetsSec ?? defaultRest;
-      total += block.sets * SECONDS_PER_SET;
-      total += Math.max(0, block.sets - 1) * rest;
-    } else {
-      const exercisesPerRound = block.exercises.length;
-      const roundTime =
-        exercisesPerRound * SECONDS_PER_SET +
-        Math.max(0, exercisesPerRound - 1) * block.restBetweenExercisesSec;
-      total += block.sets * roundTime;
-      total += Math.max(0, block.sets - 1) * block.restBetweenSupersetsSec;
-    }
-  }
-
-  return total;
 }
 
 /**

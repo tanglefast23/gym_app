@@ -180,7 +180,9 @@ function StatCard({
 }) {
   return (
     <Card padding="sm" className="text-center">
-      <Icon className="mx-auto mb-1 h-4 w-4 text-text-muted" />
+      <div className="stat-icon mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full">
+        <Icon className="h-4 w-4 text-text-muted" />
+      </div>
       <p className="text-sm font-semibold text-text-primary">{value}</p>
       <p className="text-xs text-text-muted">{label}</p>
     </Card>
