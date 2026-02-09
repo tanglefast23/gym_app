@@ -73,6 +73,7 @@
 
 /* ─── Base Styles ─── */
 html {
+  font-size: 17.6px;
   scroll-behavior: smooth;
 }
 
