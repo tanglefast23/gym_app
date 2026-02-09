@@ -636,6 +636,28 @@ export function validateImportSettings(settings: unknown): string[] {
     errors.push(`${prefix}: "theme" must be "dark", "light", or "system"`);
   }
 
+  if (settings.heightCm !== undefined && settings.heightCm !== null) {
+    if (typeof settings.heightCm !== 'number' || !Number.isFinite(settings.heightCm) || settings.heightCm <= 0) {
+      errors.push(`${prefix}: "heightCm" must be a positive number or null`);
+    }
+  }
+
+  if (settings.age !== undefined && settings.age !== null) {
+    if (!isInt(settings.age) || settings.age < 0 || settings.age > 130) {
+      errors.push(`${prefix}: "age" must be an integer between 0 and 130 or null`);
+    }
+  }
+
+  if (settings.sex !== undefined && settings.sex !== null && settings.sex !== 'male' && settings.sex !== 'female') {
+    errors.push(`${prefix}: "sex" must be "male", "female", or null`);
+  }
+
+  if (settings.ageUpdatedAt !== undefined && settings.ageUpdatedAt !== null) {
+    if (typeof settings.ageUpdatedAt !== 'string' || !isValidISODate(settings.ageUpdatedAt)) {
+      errors.push(`${prefix}: "ageUpdatedAt" must be a valid ISO date string or null`);
+    }
+  }
+
   return errors;
 }
 
@@ -843,7 +865,7 @@ export function stripSettings(record: Record<string, unknown>): Record<string, u
   const knownKeys = [
     'id', 'unitSystem', 'defaultRestBetweenSetsSec', 'defaultTransitionsSec',
     'weightStepsKg', 'weightStepsLb', 'hapticFeedback', 'soundEnabled',
-    'restTimerSound', 'autoStartRestTimer', 'theme', 'heightCm', 'age', 'sex',
+    'restTimerSound', 'autoStartRestTimer', 'theme', 'heightCm', 'age', 'ageUpdatedAt', 'sex',
   ];
   for (const key of knownKeys) {
     if (record[key] !== undefined) {

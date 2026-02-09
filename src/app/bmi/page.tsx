@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -27,6 +27,8 @@ export default function BmiPage() {
   const router = useRouter();
   const unitSystem = useSettingsStore((s) => s.unitSystem);
   const heightCm = useSettingsStore((s) => s.heightCm);
+  const age = useSettingsStore((s) => s.age);
+  const sex = useSettingsStore((s) => s.sex);
   const [timeline, setTimeline] = useState<WeightTimeline>('week');
 
   const bodyWeights = useLiveQuery(
@@ -40,15 +42,15 @@ export default function BmiPage() {
   }, [bodyWeights]);
 
   const chartData = useMemo(() => {
-    if (heightCm == null) return null;
+    if (heightCm == null || age == null || sex == null) return null;
     return buildBmiChartData(bodyWeights ?? [], heightCm, timeline);
-  }, [bodyWeights, heightCm, timeline]);
+  }, [bodyWeights, heightCm, timeline, age, sex]);
 
   const latest = byDayDesc[0]?.entry ?? null;
   const latestBmi = useMemo(() => {
-    if (!latest || heightCm == null) return null;
+    if (!latest || heightCm == null || age == null || sex == null) return null;
     return computeBmi(latest.weightG, heightCm);
-  }, [latest, heightCm]);
+  }, [latest, heightCm, age, sex]);
 
   const healthyRange = useMemo(() => {
     // Adult BMI range. (BMI-for-age percentiles < 20 not implemented.)
@@ -57,6 +59,78 @@ export default function BmiPage() {
 
   const needsHeight = heightCm == null;
   const needsWeight = byDayDesc.length === 0;
+  const needsAge = age == null;
+  const needsSex = sex == null;
+  const canComputeBmi = !needsHeight && !needsWeight && !needsAge && !needsSex;
+
+  const missingLinks = useMemo(() => {
+    if (canComputeBmi) return null;
+    const items: Array<{ key: string; node: ReactNode }> = [];
+
+    if (needsHeight) {
+      items.push({
+        key: 'height',
+        node: (
+          <Link
+            href="/settings?focus=height"
+            className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+          >
+            height
+          </Link>
+        ),
+      });
+    }
+    if (needsWeight) {
+      items.push({
+        key: 'weight',
+        node: (
+          <Link
+            href="/progress?focus=today-weight"
+            className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+          >
+            weight
+          </Link>
+        ),
+      });
+    }
+    if (needsAge) {
+      items.push({
+        key: 'age',
+        node: (
+          <Link
+            href="/settings?focus=age"
+            className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+          >
+            age
+          </Link>
+        ),
+      });
+    }
+    if (needsSex) {
+      items.push({
+        key: 'sex',
+        node: (
+          <Link
+            href="/settings?focus=sex"
+            className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+          >
+            sex
+          </Link>
+        ),
+      });
+    }
+
+    return (
+      <>
+        {items.map((it, idx) => (
+          <span key={it.key}>
+            {idx === 0 ? null : idx === items.length - 1 ? ' and ' : ', '}
+            {it.node}
+          </span>
+        ))}
+      </>
+    );
+  }, [canComputeBmi, needsAge, needsHeight, needsSex, needsWeight]);
 
   return (
     <AppShell>
@@ -94,7 +168,7 @@ export default function BmiPage() {
                     <span className="ml-2">({bmiCategory(latestBmi)})</span>
                   </>
                 ) : (
-                  'Add height and a weight entry to compute BMI'
+                  'Add missing details to compute BMI'
                 )}
               </p>
               {heightCm != null ? (
@@ -106,31 +180,9 @@ export default function BmiPage() {
           </div>
 
           <div className="mt-3 rounded-2xl border border-border bg-elevated/40 p-3">
-            {needsHeight || needsWeight ? (
+            {!canComputeBmi ? (
               <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-xs text-text-muted">
-                To show BMI, add your{' '}
-                {needsHeight ? (
-                  <Link
-                    href="/settings?focus=height"
-                    className="font-semibold text-accent underline decoration-dotted underline-offset-2"
-                  >
-                    height
-                  </Link>
-                ) : (
-                  <span className="font-semibold text-text-secondary">height</span>
-                )}
-                {needsHeight && needsWeight ? ' and ' : null}
-                {needsWeight ? (
-                  <Link
-                    href="/progress?focus=today-weight"
-                    className="font-semibold text-accent underline decoration-dotted underline-offset-2"
-                  >
-                    weight
-                  </Link>
-                ) : (
-                  <span className="font-semibold text-text-secondary">weight</span>
-                )}
-                .
+                Missing: {missingLinks}.
               </div>
             ) : null}
 
@@ -138,7 +190,7 @@ export default function BmiPage() {
               <BmiChart data={chartData} healthyRange={healthyRange} height={240} />
             ) : (
               <div className="flex h-[240px] items-center justify-center text-xs text-text-muted">
-                BMI needs height + weight entries
+                BMI needs height, weight, age, and sex
               </div>
             )}
           </div>
@@ -154,14 +206,10 @@ export default function BmiPage() {
               No weight entries yet. Add today&apos;s weight from the Progress tab.
             </p>
           </Card>
-        ) : heightCm == null ? (
+        ) : !canComputeBmi ? (
           <Card padding="md">
             <p className="text-sm text-text-muted">
-              BMI needs height. Add it in{' '}
-              <Link href="/settings?focus=height" className="text-accent underline">
-                Settings
-              </Link>
-              .
+              Missing: {missingLinks}.
             </p>
           </Card>
         ) : (

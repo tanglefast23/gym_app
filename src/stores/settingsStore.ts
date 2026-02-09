@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 
 import type { UnitSystem, ThemeMode, Sex, UserSettings } from '@/types/workout';
 import { DEFAULT_SETTINGS } from '@/types/workout';
+import { autoIncrementAge } from '@/lib/age';
 
 /**
  * Shape of the persisted settings data.
@@ -25,6 +26,7 @@ interface SettingsState {
   theme: ThemeMode;
   heightCm: number | null;
   age: number | null;
+  ageUpdatedAt: string | null;
   sex: Sex | null;
 }
 
@@ -42,6 +44,7 @@ const SETTINGS_KEYS: readonly (keyof SettingsState)[] = [
   'theme',
   'heightCm',
   'age',
+  'ageUpdatedAt',
   'sex',
 ] as const;
 
@@ -106,7 +109,11 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         set((state) => ({ autoStartRestTimer: !state.autoStartRestTimer })),
       setTheme: (theme) => set({ theme }),
       setHeightCm: (heightCm) => set({ heightCm }),
-      setAge: (age) => set({ age }),
+      setAge: (age) =>
+        set({
+          age,
+          ageUpdatedAt: age == null ? null : new Date().toISOString(),
+        }),
       setSex: (sex) => set({ sex }),
       resetToDefaults: () => set(STATE_DEFAULTS),
       rehydrateFromImport: (settings: UserSettings) =>
@@ -125,12 +132,25 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
           theme: settings.theme,
           heightCm: settings.heightCm ?? STATE_DEFAULTS.heightCm,
           age: settings.age ?? STATE_DEFAULTS.age,
+          ageUpdatedAt:
+            settings.ageUpdatedAt ??
+            (settings.age != null ? new Date().toISOString() : STATE_DEFAULTS.ageUpdatedAt),
           sex: settings.sex ?? STATE_DEFAULTS.sex,
         }),
     }),
     {
       name: 'workout-pwa-settings',
       partialize: (state) => pickSettingsState(state as unknown as Record<string, unknown>),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        const next = autoIncrementAge({
+          age: state.age,
+          ageUpdatedAt: state.ageUpdatedAt,
+        });
+        if (next.age !== state.age || next.ageUpdatedAt !== state.ageUpdatedAt) {
+          useSettingsStore.setState(next);
+        }
+      },
     }
   )
 );

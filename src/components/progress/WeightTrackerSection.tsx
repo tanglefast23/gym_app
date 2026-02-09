@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useRouter } from 'next/navigation';
@@ -35,6 +35,8 @@ export function WeightTrackerSection({
   const router = useRouter();
   const addToast = useToastStore((s) => s.addToast);
   const heightCm = useSettingsStore((s) => s.heightCm);
+  const age = useSettingsStore((s) => s.age);
+  const sex = useSettingsStore((s) => s.sex);
 
   const bodyWeights = useLiveQuery(
     () => db.bodyWeights.orderBy('recordedAt').toArray(),
@@ -173,11 +175,6 @@ export function WeightTrackerSection({
 
   const [bmiTimeline, setBmiTimeline] = useState<WeightTimeline>('week');
 
-  const bmiChartData = useMemo(() => {
-    if (!heightCm) return null;
-    return buildBmiChartData(bodyWeights ?? [], heightCm, bmiTimeline);
-  }, [bodyWeights, heightCm, bmiTimeline]);
-
   const recentEntries = useMemo(() => {
     const byDay = latestPerDay(bodyWeights ?? []);
     const last = byDay.slice(-5).reverse(); // latest first
@@ -192,14 +189,108 @@ export function WeightTrackerSection({
     return {
       height: heightCm === null,
       weight: (bodyWeights ?? []).length === 0,
+      age: age === null,
+      sex: sex === null,
     };
-  }, [heightCm, bodyWeights]);
+  }, [heightCm, bodyWeights, age, sex]);
+
+  const canComputeBmi =
+    !bmiMissing.height && !bmiMissing.weight && !bmiMissing.age && !bmiMissing.sex;
+
+  const bmiChartData = useMemo(() => {
+    if (!heightCm || !canComputeBmi) return null;
+    return buildBmiChartData(bodyWeights ?? [], heightCm, bmiTimeline);
+  }, [bodyWeights, heightCm, bmiTimeline, canComputeBmi]);
 
   const bmiHealthyRange = useMemo(() => {
     // Always show the adult BMI band. (BMI-for-age percentiles < 20 not implemented.)
-    if (bmiMissing.height || bmiMissing.weight) return null;
+    if (!canComputeBmi) return null;
     return { min: 18.5, max: 24.9 };
-  }, [bmiMissing.height, bmiMissing.weight]);
+  }, [canComputeBmi]);
+
+  const bmiMissingPrompt = useMemo(() => {
+    if (canComputeBmi) return null;
+
+    const items: Array<{ key: string; node: ReactNode }> = [];
+
+    if (bmiMissing.height) {
+      items.push({
+        key: 'height',
+        node: (
+          <Link
+            href="/settings?focus=height"
+            className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            height
+          </Link>
+        ),
+      });
+    }
+    if (bmiMissing.weight) {
+      items.push({
+        key: 'weight',
+        node: (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              focusTodayWeight();
+            }}
+            className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+          >
+            weight
+          </button>
+        ),
+      });
+    }
+    if (bmiMissing.age) {
+      items.push({
+        key: 'age',
+        node: (
+          <Link
+            href="/settings?focus=age"
+            className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            age
+          </Link>
+        ),
+      });
+    }
+    if (bmiMissing.sex) {
+      items.push({
+        key: 'sex',
+        node: (
+          <Link
+            href="/settings?focus=sex"
+            className="font-semibold text-accent underline decoration-dotted underline-offset-2"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            sex
+          </Link>
+        ),
+      });
+    }
+
+    const nodes = items.map((it) => it.node);
+
+    return (
+      <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-xs text-text-muted">
+        Missing:{' '}
+        {nodes.map((n, idx) => (
+          <span key={items[idx]?.key ?? String(idx)}>
+            {idx === 0 ? null : idx === nodes.length - 1 ? ' and ' : ', '}
+            {n}
+          </span>
+        ))}
+        .
+      </div>
+    );
+  }, [canComputeBmi, bmiMissing.age, bmiMissing.height, bmiMissing.sex, bmiMissing.weight]);
 
   return (
     <section className="mb-6">
@@ -417,9 +508,9 @@ export function WeightTrackerSection({
               BMI changes
             </p>
             <p className="text-xs text-text-muted">
-              {heightCm
+              {canComputeBmi && heightCm
                 ? `Using height: ${Math.round(heightCm)} cm`
-                : 'Add your height to compute BMI'}
+                : 'Add missing details to compute BMI'}
             </p>
           </div>
           <div
@@ -435,35 +526,7 @@ export function WeightTrackerSection({
         </div>
 
         <div className="mt-3 rounded-2xl border border-border bg-elevated/40 p-3">
-          {bmiMissing.height || bmiMissing.weight ? (
-            <div className="mb-3 rounded-2xl border border-border bg-surface p-3 text-xs text-text-muted">
-              To show BMI, add your{' '}
-              {bmiMissing.height ? (
-                <Link
-                  href="/settings?focus=height"
-                  className="font-semibold text-accent underline decoration-dotted underline-offset-2"
-                  onClick={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                >
-                  height
-                </Link>
-              ) : null}
-              {bmiMissing.height && bmiMissing.weight ? ' and ' : null}
-              {bmiMissing.weight ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    focusTodayWeight();
-                  }}
-                  className="font-semibold text-accent underline decoration-dotted underline-offset-2"
-                >
-                  weight
-                </button>
-              ) : null}
-              .
-            </div>
-          ) : null}
+          {bmiMissingPrompt}
 
           {heightCm && bmiChartData ? (
             <BmiChart
@@ -473,13 +536,13 @@ export function WeightTrackerSection({
             />
           ) : (
             <div className="flex h-[140px] items-center justify-center text-xs text-text-muted">
-              BMI needs height + weight entries
+              BMI needs height, weight, age, and sex
             </div>
           )}
         </div>
 
         {/* Current BMI quick read */}
-        {heightCm && (bodyWeights ?? []).length > 0 ? (
+        {canComputeBmi && heightCm && (bodyWeights ?? []).length > 0 ? (
           <div className="mt-4 rounded-xl bg-elevated px-3 py-2">
             {(() => {
               const arr = bodyWeights ?? [];

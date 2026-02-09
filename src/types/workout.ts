@@ -156,6 +156,11 @@ export interface UserSettings {
   heightCm: number | null;
   /** Age in years, null if not set. */
   age: number | null;
+  /**
+   * ISO timestamp for when `age` was last set/normalized.
+   * Used to auto-increment age by +1 every 365 days.
+   */
+  ageUpdatedAt: string | null;
   /** Biological sex, null if not set. */
   sex: Sex | null;
 }
@@ -240,5 +245,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'dark',
   heightCm: null,
   age: null,
+  ageUpdatedAt: null,
   sex: null,
 };

@@ -24,6 +24,7 @@ function getSettingsSnapshot(): UserSettings {
     theme: s.theme,
     heightCm: s.heightCm,
     age: s.age,
+    ageUpdatedAt: s.ageUpdatedAt,
     sex: s.sex,
   };
 }
@@ -89,6 +90,31 @@ function normalizeImportedSettings(raw: unknown): UserSettings {
 
   if (r.theme === 'dark' || r.theme === 'light' || r.theme === 'system') {
     next.theme = r.theme;
+  }
+
+  if (r.heightCm === null || r.heightCm === undefined) {
+    next.heightCm = null;
+  } else if (typeof r.heightCm === 'number' && Number.isFinite(r.heightCm) && r.heightCm > 0) {
+    next.heightCm = Math.round(r.heightCm * 10) / 10;
+  }
+
+  if (r.age === null || r.age === undefined) {
+    next.age = null;
+  } else if (typeof r.age === 'number' && Number.isFinite(r.age) && r.age >= 0 && r.age <= 130) {
+    next.age = Math.floor(r.age);
+  }
+
+  if (r.sex === null || r.sex === undefined) {
+    next.sex = null;
+  } else if (r.sex === 'male' || r.sex === 'female') {
+    next.sex = r.sex;
+  }
+
+  if (r.ageUpdatedAt === null || r.ageUpdatedAt === undefined) {
+    next.ageUpdatedAt = next.age == null ? null : new Date().toISOString();
+  } else if (typeof r.ageUpdatedAt === 'string') {
+    const d = new Date(r.ageUpdatedAt);
+    next.ageUpdatedAt = Number.isNaN(d.getTime()) ? null : d.toISOString();
   }
 
   return next;
