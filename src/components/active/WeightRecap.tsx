@@ -589,7 +589,7 @@ export const WeightRecap = ({
                   'transition-all duration-200',
                   sameWeightFeedback
                     ? 'bg-success/20 text-success border border-success/40'
-                    : 'bg-elevated text-text-secondary',
+                    : 'bg-elevated text-text-secondary border border-border',
                   hasPreviousSetWeight && !sameWeightFeedback
                     ? 'hover:bg-surface active:scale-[0.97]'
                     : '',
@@ -618,7 +618,7 @@ export const WeightRecap = ({
                     'transition-all duration-200',
                     applyFeedback
                       ? 'bg-success/20 text-success border border-success/40'
-                      : 'bg-elevated text-text-secondary hover:bg-surface active:scale-[0.97]',
+                      : 'bg-elevated text-text-secondary border border-border hover:bg-surface active:scale-[0.97]',
                   ].join(' ')}
                 >
                   {applyFeedback ? (

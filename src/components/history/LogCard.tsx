@@ -3,6 +3,7 @@
 import { useRef, useCallback } from 'react';
 import { Clock, Layers, TrendingUp } from 'lucide-react';
 import { formatDuration, formatWeight } from '@/lib/calculations';
+import { hexToRgba, pastelForWorkoutType } from '@/lib/workoutTypeColors';
 import { useSettingsStore } from '@/stores/settingsStore';
 import type { WorkoutLog } from '@/types/workout';
 
@@ -32,6 +33,7 @@ export const LogCard = ({ log, onClick, onLongPress }: LogCardProps) => {
   const unitSystem = useSettingsStore((s) => s.unitSystem);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
+  const typeColor = pastelForWorkoutType(log.templateName);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -55,6 +57,11 @@ export const LogCard = ({ log, onClick, onLongPress }: LogCardProps) => {
 
   return (
     <div
+      style={{
+        // Match the workout-type pill tinting: keep the surface base, then overlay a pastel wash.
+        backgroundImage: `linear-gradient(0deg, ${hexToRgba(typeColor, 0.18)}, ${hexToRgba(typeColor, 0.18)})`,
+        borderColor: hexToRgba(typeColor, 0.55),
+      }}
       onClick={handleClick}
       role="button"
       tabIndex={0}

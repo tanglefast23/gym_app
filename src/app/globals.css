@@ -506,7 +506,8 @@ body.workout-active {
 
 /* Exercise name pill tags (dark) */
 .dark .exercise-tag {
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(245, 158, 11, 0.10) !important;
+  border: 1px solid rgba(245, 158, 11, 0.18);
 }
 
 /* Hide cover images in dark mode too for cleaner card design */
@@ -865,6 +866,16 @@ body.workout-active {
 
 .light :where(button, a, input, select, textarea, [role="button"]).border-border:hover {
   border-color: rgba(249, 115, 22, 0.32);
+}
+
+/* ─── Dark Mode Touchable Outlines ─── */
+/* In dark mode, neutral borders can disappear; tint interactive outlines with the accent. */
+.dark :where(button, a, input, select, textarea, [role="button"]).border-border {
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.dark :where(button, a, input, select, textarea, [role="button"]).border-border:hover {
+  border-color: rgba(245, 158, 11, 0.40);
 }
 
 /* ─── Light Mode Workout Complete ─── */
