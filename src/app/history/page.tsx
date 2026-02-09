@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Settings, Search, CalendarDays, History as HistoryIcon } from 'lucide-react';
+import { Settings, CalendarDays, History as HistoryIcon } from 'lucide-react';
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { deleteLog } from '@/lib/queries';
@@ -93,6 +93,16 @@ function pastelForWorkoutType(type: string): string {
   return PASTEL_COLORS[idx]!;
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return `rgba(0,0,0,${alpha})`;
+  const int = Number.parseInt(m[1]!, 16);
+  const r = (int >> 16) & 255;
+  const g = (int >> 8) & 255;
+  const b = int & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function segmentedBackground(colors: string[]): React.CSSProperties {
   if (colors.length === 0) return {};
   if (colors.length === 1) return { backgroundColor: colors[0] };
@@ -169,7 +179,7 @@ type DaySelection =
 export default function HistoryPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'history' | 'calendar'>('history');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [templateFilters, setTemplateFilters] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<WorkoutLog | null>(null);
   const [selectedMonthKey, setSelectedMonthKey] = useState<string | null>(null);
   const [daySelection, setDaySelection] = useState<DaySelection>(null);
@@ -188,6 +198,30 @@ export default function HistoryPage() {
     [allLogs],
   );
 
+  const workoutTypeOptions = useMemo(() => {
+    const logs = allLogs ?? [];
+    const counts = new Map<string, { count: number; lastAt: string }>();
+
+    for (const log of logs) {
+      const name = log.templateName;
+      const existing = counts.get(name);
+      if (existing) {
+        existing.count += 1;
+        if (log.startedAt > existing.lastAt) existing.lastAt = log.startedAt;
+      } else {
+        counts.set(name, { count: 1, lastAt: log.startedAt });
+      }
+    }
+
+    return Array.from(counts.entries())
+      .map(([name, meta]) => ({ name, ...meta, color: pastelForWorkoutType(name) }))
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        if (b.lastAt !== a.lastAt) return b.lastAt.localeCompare(a.lastAt);
+        return a.name.localeCompare(b.name);
+      });
+  }, [allLogs]);
+
   const resolvedMonthKey = useMemo(() => {
     if (selectedMonthKey) return selectedMonthKey;
     return monthOptions[0]?.key ?? localMonthKey(new Date());
@@ -204,13 +238,10 @@ export default function HistoryPage() {
 
   const filteredLogs = useMemo(() => {
     if (!allLogs) return undefined;
-    if (!searchQuery.trim()) return allLogs;
-
-    const query = searchQuery.toLowerCase().trim();
-    return allLogs.filter((log) =>
-      log.templateName.toLowerCase().includes(query),
-    );
-  }, [allLogs, searchQuery]);
+    if (templateFilters.length === 0) return allLogs;
+    const set = new Set(templateFilters);
+    return allLogs.filter((log) => set.has(log.templateName));
+  }, [allLogs, templateFilters]);
 
   const groupedLogs = useMemo(
     () => groupLogsByDate(filteredLogs ?? []),
@@ -263,6 +294,13 @@ export default function HistoryPage() {
     setDaySelection(null);
   }, []);
 
+  const toggleTemplateFilter = useCallback((name: string) => {
+    setTemplateFilters((prev) => {
+      if (prev.includes(name)) return prev.filter((x) => x !== name);
+      return [...prev, name];
+    });
+  }, []);
+
   return (
     <AppShell>
       <Header
@@ -281,7 +319,7 @@ export default function HistoryPage() {
       <div className="px-5 pt-4">
         {/* Tabs */}
         <div
-          className="mb-4 grid grid-cols-2 rounded-2xl border border-border bg-surface p-1"
+          className="mb-4 grid grid-cols-2 rounded-2xl border border-border bg-surface p-1 shadow-[0_2px_10px_rgba(0,0,0,0.04)]"
           role="tablist"
           aria-label="History view"
         >
@@ -291,9 +329,9 @@ export default function HistoryPage() {
             aria-selected={activeTab === 'history'}
             onClick={() => setActiveTab('history')}
             className={[
-              'flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
+              'flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all',
               activeTab === 'history'
-                ? 'bg-elevated text-text-primary'
+                ? 'bg-accent/20 text-accent shadow-[0_0_0_1px_rgba(245,158,11,0.30)]'
                 : 'text-text-muted hover:text-text-secondary',
             ].join(' ')}
           >
@@ -306,9 +344,9 @@ export default function HistoryPage() {
             aria-selected={activeTab === 'calendar'}
             onClick={() => setActiveTab('calendar')}
             className={[
-              'flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
+              'flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all',
               activeTab === 'calendar'
-                ? 'bg-elevated text-text-primary'
+                ? 'bg-accent/20 text-accent shadow-[0_0_0_1px_rgba(245,158,11,0.30)]'
                 : 'text-text-muted hover:text-text-secondary',
             ].join(' ')}
           >
@@ -328,18 +366,45 @@ export default function HistoryPage() {
           <>
             {activeTab === 'history' ? (
               <>
-                {/* Search Filter */}
+                {/* Workout-type filter pills (colored to match calendar) */}
                 {allLogs.length > 0 ? (
-                  <div className="relative mb-4">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-                    <input
-                      type="text"
-                      placeholder="Search workouts..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      aria-label="Search workouts"
-                      className="h-10 w-full rounded-xl border border-border bg-surface pl-10 pr-4 text-sm text-text-primary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-                    />
+                  <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+                    <button
+                      type="button"
+                      onClick={() => setTemplateFilters([])}
+                      className={[
+                        'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                        templateFilters.length === 0
+                          ? 'border-accent bg-accent/15 text-text-primary'
+                          : 'border-border bg-surface text-text-muted hover:text-text-secondary',
+                      ].join(' ')}
+                    >
+                      All
+                    </button>
+                    {workoutTypeOptions.map((opt) => {
+                      const selected = templateFilters.includes(opt.name);
+                      return (
+                        <button
+                          key={opt.name}
+                          type="button"
+                          onClick={() => toggleTemplateFilter(opt.name)}
+                          className={[
+                            'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                            selected
+                              ? 'text-[#0A0A0B]'
+                              : 'text-text-secondary hover:text-text-primary',
+                          ].join(' ')}
+                          style={
+                            selected
+                              ? { backgroundColor: opt.color, borderColor: 'rgba(0,0,0,0.08)' }
+                              : { backgroundColor: hexToRgba(opt.color, 0.18), borderColor: hexToRgba(opt.color, 0.55) }
+                          }
+                          aria-pressed={selected}
+                        >
+                          {opt.name}
+                        </button>
+                      );
+                    })}
                   </div>
                 ) : null}
 
@@ -353,16 +418,16 @@ export default function HistoryPage() {
                   />
                 ) : null}
 
-                {/* No search results */}
+                {/* No filter results */}
                 {allLogs.length > 0 &&
-                searchQuery.trim() &&
+                templateFilters.length > 0 &&
                 filteredLogs &&
                 filteredLogs.length === 0 ? (
                   <EmptyState
                     illustrationSrc="/visuals/empty/empty-search.svg"
                     illustrationAlt=""
                     title="No results"
-                    description={`No workouts match "${searchQuery.trim()}"`}
+                    description="No workouts match your selected filters."
                   />
                 ) : null}
 
@@ -424,7 +489,7 @@ export default function HistoryPage() {
                           {monthLabelFormatter.format(new Date(selectedMonth.year, selectedMonth.monthIndex, 1))}
                         </h3>
                         <p className="text-xs text-text-muted">
-                          Tap a green day to view workouts
+                          Tap a colored day to view workouts
                         </p>
                       </div>
 
@@ -477,7 +542,7 @@ export default function HistoryPage() {
                                   'h-10 rounded-xl border text-sm font-semibold tabular-nums transition-transform',
                                   'active:scale-[0.97]',
                                   hasWorkout
-                                    ? 'border-white/15 text-[#0A0A0B] hover:brightness-110'
+                                    ? 'border-black/10 text-[#0A0A0B] hover:brightness-110'
                                     : 'border-border bg-transparent text-text-muted opacity-70',
                                 ].join(' ')}
                               >

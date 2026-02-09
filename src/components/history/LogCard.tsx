@@ -73,27 +73,27 @@ export const LogCard = ({ log, onClick, onLongPress }: LogCardProps) => {
       onContextMenu={(e) => {
         if (onLongPress) e.preventDefault();
       }}
-      className="mb-3 cursor-pointer rounded-2xl border border-border bg-surface p-4 transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="mb-3 cursor-pointer rounded-2xl border border-border bg-surface px-4 py-3 transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      {/* Header: name + status badge */}
-      <div className="flex items-center justify-between">
-        <h3 className="truncate pr-2 text-base font-semibold text-white">
-          {log.templateName}
-        </h3>
-        {log.status === 'partial' ? (
-          <span className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
-            Partial
-          </span>
-        ) : null}
+      {/* Row 1: workout name + date (and optional status) */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <h3 className="truncate text-[15px] font-semibold text-text-primary">
+            {log.templateName}
+          </h3>
+          {log.status === 'partial' ? (
+            <span className="shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
+              Partial
+            </span>
+          ) : null}
+        </div>
+        <span className="shrink-0 text-xs text-text-muted">
+          {formatLogDate(log.startedAt)}
+        </span>
       </div>
 
-      {/* Date line */}
-      <p className="mt-3 text-xs text-text-muted">
-        {formatLogDate(log.startedAt)}
-      </p>
-
       {/* Stats row */}
-      <div className="mt-3 flex items-center gap-4">
+      <div className="mt-2 flex items-center gap-4">
         <span className="flex items-center gap-1 text-[13px] text-text-secondary">
           <Clock className="h-4 w-4 text-text-muted" />
           {formatDuration(log.durationSec)}
