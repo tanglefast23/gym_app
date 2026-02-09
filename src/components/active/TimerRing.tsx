@@ -32,6 +32,9 @@ export function TimerRing({
   label = 'REST',
 }: TimerRingProps) {
   const strokeWidth = 4;
+  // Safari/iOS can clip SVG strokes (especially with round linecaps) to the viewBox.
+  // Add a small viewBox padding so the ring always renders fully.
+  const viewBoxPad = strokeWidth;
   const radius = (size - strokeWidth) / 2;
   const center = size / 2;
   const circumference = 2 * Math.PI * radius;
@@ -63,10 +66,10 @@ export function TimerRing({
       style={{ width: size, height: size }}
     >
       <svg
-        viewBox={`0 0 ${size} ${size}`}
+        viewBox={`${-viewBoxPad} ${-viewBoxPad} ${size + viewBoxPad * 2} ${size + viewBoxPad * 2}`}
         width={size}
         height={size}
-        className="absolute inset-0 block"
+        className="absolute inset-0 block overflow-visible"
       >
         {/* Light-mode gradient for the progress ring */}
         <defs>
