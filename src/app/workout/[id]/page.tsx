@@ -225,6 +225,9 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   const globalDefaultRest = useSettingsStore(
     (s) => s.defaultRestBetweenSetsSec,
   );
+  const globalDefaultTransitions = useSettingsStore(
+    (s) => s.defaultTransitionsSec,
+  );
   const autoStartRestTimer = useSettingsStore(
     (s) => s.autoStartRestTimer,
   );
@@ -311,9 +314,10 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
         template.blocks,
         template.defaultRestBetweenSetsSec,
         globalDefaultRest,
+        globalDefaultTransitions,
       );
     }
-  }, [template, isActive, startWorkout, globalDefaultRest]);
+  }, [template, isActive, startWorkout, globalDefaultRest, globalDefaultTransitions]);
 
   // ---------------------------------------------------------------------------
   // Fetch exercise names for all exerciseIds present in the steps

@@ -15,6 +15,7 @@ import { DEFAULT_SETTINGS } from '@/types/workout';
 interface SettingsState {
   unitSystem: UnitSystem;
   defaultRestBetweenSetsSec: number;
+  defaultTransitionsSec: number;
   weightStepsKg: number[];
   weightStepsLb: number[];
   hapticFeedback: boolean;
@@ -27,6 +28,7 @@ interface SettingsState {
 interface SettingsActions {
   setUnitSystem: (unit: UnitSystem) => void;
   setDefaultRest: (seconds: number) => void;
+  setDefaultTransitions: (seconds: number) => void;
   setWeightStepsKg: (steps: number[]) => void;
   setWeightStepsLb: (steps: number[]) => void;
   toggleHapticFeedback: () => void;
@@ -45,6 +47,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       // --- data fields (defaults from DEFAULT_SETTINGS) ---
       unitSystem: DEFAULT_SETTINGS.unitSystem,
       defaultRestBetweenSetsSec: DEFAULT_SETTINGS.defaultRestBetweenSetsSec,
+      defaultTransitionsSec: DEFAULT_SETTINGS.defaultTransitionsSec,
       weightStepsKg: DEFAULT_SETTINGS.weightStepsKg,
       weightStepsLb: DEFAULT_SETTINGS.weightStepsLb,
       hapticFeedback: DEFAULT_SETTINGS.hapticFeedback,
@@ -56,6 +59,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       // --- actions ---
       setUnitSystem: (unitSystem) => set({ unitSystem }),
       setDefaultRest: (seconds) => set({ defaultRestBetweenSetsSec: seconds }),
+      setDefaultTransitions: (seconds) => set({ defaultTransitionsSec: seconds }),
       setWeightStepsKg: (steps) => set({ weightStepsKg: steps }),
       setWeightStepsLb: (steps) => set({ weightStepsLb: steps }),
       toggleHapticFeedback: () =>
@@ -71,6 +75,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         set({
           unitSystem: DEFAULT_SETTINGS.unitSystem,
           defaultRestBetweenSetsSec: DEFAULT_SETTINGS.defaultRestBetweenSetsSec,
+          defaultTransitionsSec: DEFAULT_SETTINGS.defaultTransitionsSec,
           weightStepsKg: DEFAULT_SETTINGS.weightStepsKg,
           weightStepsLb: DEFAULT_SETTINGS.weightStepsLb,
           hapticFeedback: DEFAULT_SETTINGS.hapticFeedback,
@@ -83,6 +88,8 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
         set({
           unitSystem: settings.unitSystem,
           defaultRestBetweenSetsSec: settings.defaultRestBetweenSetsSec,
+          defaultTransitionsSec:
+            settings.defaultTransitionsSec ?? DEFAULT_SETTINGS.defaultTransitionsSec,
           weightStepsKg: settings.weightStepsKg,
           weightStepsLb: settings.weightStepsLb,
           hapticFeedback: settings.hapticFeedback,
@@ -97,6 +104,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
       partialize: (state): SettingsState => ({
         unitSystem: state.unitSystem,
         defaultRestBetweenSetsSec: state.defaultRestBetweenSetsSec,
+        defaultTransitionsSec: state.defaultTransitionsSec,
         weightStepsKg: state.weightStepsKg,
         weightStepsLb: state.weightStepsLb,
         hapticFeedback: state.hapticFeedback,

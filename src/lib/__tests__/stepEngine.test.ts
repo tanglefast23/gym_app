@@ -26,6 +26,7 @@ function makeExerciseBlock(
     repsMin: 8,
     repsMax: 12,
     restBetweenSetsSec: null,
+    transitionRestSec: null,
     ...overrides,
   };
 }
@@ -43,6 +44,7 @@ function makeSupersetBlock(
     ],
     restBetweenExercisesSec: 30,
     restBetweenSupersetsSec: 120,
+    transitionRestSec: null,
     ...overrides,
   };
 }
@@ -76,7 +78,7 @@ describe('resolveRest', () => {
 describe('generateSteps with exercise blocks', () => {
   it('generates correct steps for a single block with 3 sets', () => {
     const blocks: TemplateBlock[] = [makeExerciseBlock({ sets: 3 })];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
 
     // Expected: ex, rest, ex, rest, ex, complete = 6 steps
     expect(steps).toHaveLength(6);
@@ -90,7 +92,7 @@ describe('generateSteps with exercise blocks', () => {
 
   it('generates only exercise + complete for a single set', () => {
     const blocks: TemplateBlock[] = [makeExerciseBlock({ sets: 1 })];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
 
     // Expected: ex, complete = 2 steps (no rest after single set)
     expect(steps).toHaveLength(2);
@@ -103,24 +105,25 @@ describe('generateSteps with exercise blocks', () => {
       makeExerciseBlock({ id: 'eb-1', exerciseId: 'ex-bench', sets: 2 }),
       makeExerciseBlock({ id: 'eb-2', exerciseId: 'ex-squat', sets: 2 }),
     ];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
 
     // Block 1: ex, rest, ex  (3 steps)
+    // Transition: rest (1 step)
     // Block 2: ex, rest, ex  (3 steps)
-    // + complete = 7 steps
-    expect(steps).toHaveLength(7);
+    // + complete = 8 steps
+    expect(steps).toHaveLength(8);
     expect(steps[0].exerciseId).toBe('ex-bench');
     expect(steps[2].exerciseId).toBe('ex-bench');
-    expect(steps[3].exerciseId).toBe('ex-squat');
-    expect(steps[5].exerciseId).toBe('ex-squat');
-    expect(steps[6].type).toBe('complete');
+    expect(steps[4].exerciseId).toBe('ex-squat');
+    expect(steps[6].exerciseId).toBe('ex-squat');
+    expect(steps[7].type).toBe('complete');
   });
 
   it('applies block rest over template and global defaults', () => {
     const blocks: TemplateBlock[] = [
       makeExerciseBlock({ sets: 2, restBetweenSetsSec: 45 }),
     ];
-    const steps = generateSteps(blocks, 90, 120);
+    const steps = generateSteps(blocks, 90, 120, 30);
     const restStep = steps.find((s) => s.type === 'rest');
     expect(restStep?.restDurationSec).toBe(45);
   });
@@ -129,14 +132,14 @@ describe('generateSteps with exercise blocks', () => {
     const blocks: TemplateBlock[] = [
       makeExerciseBlock({ sets: 2, restBetweenSetsSec: null }),
     ];
-    const steps = generateSteps(blocks, 75, 120);
+    const steps = generateSteps(blocks, 75, 120, 30);
     const restStep = steps.find((s) => s.type === 'rest');
     expect(restStep?.restDurationSec).toBe(75);
   });
 
   it('assigns correct setIndex and totalSets', () => {
     const blocks: TemplateBlock[] = [makeExerciseBlock({ sets: 3 })];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
     const exerciseSteps = steps.filter((s) => s.type === 'exercise');
 
     expect(exerciseSteps[0].setIndex).toBe(0);
@@ -153,7 +156,7 @@ describe('generateSteps with exercise blocks', () => {
 describe('generateSteps with superset blocks', () => {
   it('generates correct steps for 2 exercises, 2 sets', () => {
     const blocks: TemplateBlock[] = [makeSupersetBlock({ sets: 2 })];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
 
     // Round 1: A(0), rest, B(0), superset-rest
     // Round 2: A(1), rest, B(1)
@@ -176,7 +179,7 @@ describe('generateSteps with superset blocks', () => {
 
   it('marks superset exercise steps with correct metadata', () => {
     const blocks: TemplateBlock[] = [makeSupersetBlock({ sets: 1 })];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
     const exerciseSteps = steps.filter((s) => s.type === 'exercise');
 
     exerciseSteps.forEach((s) => {
@@ -198,7 +201,7 @@ describe('generateSteps with superset blocks', () => {
         ],
       }),
     ];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
 
     // A, rest, B, rest, C, complete = 6 steps
     expect(steps).toHaveLength(6);
@@ -212,7 +215,7 @@ describe('generateSteps with superset blocks', () => {
 
   it('does not append superset-rest after the final round', () => {
     const blocks: TemplateBlock[] = [makeSupersetBlock({ sets: 2 })];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
 
     // The step before 'complete' should NOT be 'superset-rest'
     const lastBeforeComplete = steps[steps.length - 2];
@@ -230,19 +233,20 @@ describe('generateSteps with mixed blocks', () => {
       makeExerciseBlock({ sets: 2 }),
       makeSupersetBlock({ sets: 1 }),
     ];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
 
     // Exercise block: ex, rest, ex = 3
+    // Transition: rest = 1
     // Superset block (1 set, 2 exercises): A, rest, B = 3
-    // + complete = 7
-    expect(steps).toHaveLength(7);
-    expect(steps[6].type).toBe('complete');
+    // + complete = 8
+    expect(steps).toHaveLength(8);
+    expect(steps[7].type).toBe('complete');
 
     // Verify blockIndex is correct
     expect(steps[0].blockIndex).toBe(0);
     expect(steps[2].blockIndex).toBe(0);
-    expect(steps[3].blockIndex).toBe(1);
-    expect(steps[5].blockIndex).toBe(1);
+    expect(steps[4].blockIndex).toBe(1);
+    expect(steps[6].blockIndex).toBe(1);
   });
 });
 
@@ -253,13 +257,13 @@ describe('generateSteps with mixed blocks', () => {
 describe('countExerciseSteps', () => {
   it('counts only exercise steps, not rests or complete', () => {
     const blocks: TemplateBlock[] = [makeExerciseBlock({ sets: 3 })];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
     expect(countExerciseSteps(steps)).toBe(3);
   });
 
   it('counts exercise steps from superset blocks', () => {
     const blocks: TemplateBlock[] = [makeSupersetBlock({ sets: 2 })];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
     // 2 exercises * 2 sets = 4 exercise steps
     expect(countExerciseSteps(steps)).toBe(4);
   });
@@ -276,7 +280,7 @@ describe('countExerciseSteps', () => {
 describe('getExerciseStepAt', () => {
   it('returns the exercise step at a valid exercise index', () => {
     const blocks: TemplateBlock[] = [makeExerciseBlock({ sets: 3 })];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
 
     const step = getExerciseStepAt(steps, 0);
     expect(step).not.toBeNull();
@@ -286,7 +290,7 @@ describe('getExerciseStepAt', () => {
 
   it('returns null for a rest step index', () => {
     const blocks: TemplateBlock[] = [makeExerciseBlock({ sets: 3 })];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
 
     // Index 1 is a rest step
     const step = getExerciseStepAt(steps, 1);
@@ -295,14 +299,14 @@ describe('getExerciseStepAt', () => {
 
   it('returns null for an out-of-bounds index', () => {
     const blocks: TemplateBlock[] = [makeExerciseBlock({ sets: 1 })];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
 
     expect(getExerciseStepAt(steps, 100)).toBeNull();
   });
 
   it('returns null for a negative index', () => {
     const blocks: TemplateBlock[] = [makeExerciseBlock({ sets: 1 })];
-    const steps = generateSteps(blocks, null, 90);
+    const steps = generateSteps(blocks, null, 90, 30);
 
     expect(getExerciseStepAt(steps, -1)).toBeNull();
   });

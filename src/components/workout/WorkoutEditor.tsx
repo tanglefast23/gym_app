@@ -4,13 +4,14 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Dumbbell, Layers } from 'lucide-react';
 import { AppShell, Header } from '@/components/layout';
-import { Button, ToastContainer, useToastStore } from '@/components/ui';
+import { Button, NumberStepper, ToastContainer, useToastStore } from '@/components/ui';
 import { ExerciseBlockEditor } from './ExerciseBlockEditor';
 import { SupersetBlockEditor } from './SupersetBlockEditor';
 import { db } from '@/lib/db';
 import { validateTemplate, sanitizeText } from '@/lib/validation';
 import { VALIDATION } from '@/types/workout';
 import type { TemplateBlock, ExerciseBlock, SupersetBlock } from '@/types/workout';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 /**
  * Map that tracks display names for exercises by a composite key.
@@ -29,6 +30,7 @@ function createExerciseBlock(): ExerciseBlock {
     repsMin: 8,
     repsMax: 12,
     restBetweenSetsSec: null,
+    transitionRestSec: null,
   };
 }
 
@@ -44,6 +46,7 @@ function createSupersetBlock(): SupersetBlock {
     ],
     restBetweenExercisesSec: 30,
     restBetweenSupersetsSec: 90,
+    transitionRestSec: null,
   };
 }
 
@@ -224,6 +227,7 @@ export function WorkoutEditor({
 }: WorkoutEditorProps) {
   const router = useRouter();
   const addToast = useToastStore((s) => s.addToast);
+  const defaultTransitionsSec = useSettingsStore((s) => s.defaultTransitionsSec);
 
   const [name, setName] = useState(initialName);
   const [blocks, setBlocks] = useState<TemplateBlock[]>(initialBlocks);
@@ -368,6 +372,25 @@ export function WorkoutEditor({
                     onExerciseNameChange={handleSupersetExerciseNameChange}
                   />
                 )}
+
+                {/* Transition rest between this block and the next */}
+                {index < blocks.length - 1 ? (
+                  <div className="mt-3 rounded-2xl border border-border bg-surface/60 p-4">
+                    <NumberStepper
+                      label="Rest between exercises"
+                      value={block.transitionRestSec ?? defaultTransitionsSec}
+                      onChange={(rest) =>
+                        updateBlock(index, { ...block, transitionRestSec: rest })
+                      }
+                      min={VALIDATION.MIN_REST_SEC}
+                      max={VALIDATION.MAX_REST_SEC}
+                      step={5}
+                      size="sm"
+                      suffix="s"
+                      ariaLabel="Rest between exercises in seconds"
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}

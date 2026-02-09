@@ -25,6 +25,20 @@ export function resolveRest(
 }
 
 /**
+ * Resolve transition rest duration using the fallback chain: block -> global.
+ *
+ * @param blockTransition - Block-level transition rest in seconds, or null if unset
+ * @param globalTransition - Global default transition rest in seconds
+ * @returns The resolved transition rest duration in seconds
+ */
+export function resolveTransitionRest(
+  blockTransition: number | null | undefined,
+  globalTransition: number,
+): number {
+  return blockTransition ?? globalTransition;
+}
+
+/**
  * Count the total number of exercise steps (excluding rest and complete steps).
  *
  * @param steps - The flat list of workout steps
@@ -168,6 +182,7 @@ export function generateSteps(
   blocks: TemplateBlock[],
   templateDefaultRest: number | null,
   globalDefaultRest: number,
+  globalDefaultTransitions: number,
 ): WorkoutStep[] {
   const steps: WorkoutStep[] = [];
 
@@ -185,6 +200,21 @@ export function generateSteps(
     } else if (block.type === 'superset') {
       const blockSteps = buildSupersetBlockSteps(block, blockIndex);
       steps.push(...blockSteps);
+    }
+
+    // Transition rest between top-level blocks (no trailing rest after last block)
+    if (blockIndex < blocks.length - 1) {
+      const restSec = resolveTransitionRest(
+        (block as { transitionRestSec?: number | null }).transitionRestSec,
+        globalDefaultTransitions,
+      );
+      if (restSec > 0) {
+        steps.push({
+          type: 'rest',
+          blockIndex,
+          restDurationSec: restSec,
+        });
+      }
     }
   }
 

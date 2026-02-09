@@ -122,6 +122,12 @@ export function validateBlock(
       const restErr = validateRestTime(block.restBetweenSetsSec);
       if (restErr) errors.push(restErr);
     }
+    if ((block as { transitionRestSec?: number | null }).transitionRestSec != null) {
+      const restErr = validateRestTime(
+        (block as { transitionRestSec: number }).transitionRestSec,
+      );
+      if (restErr) errors.push(`Transition rest: ${restErr}`);
+    }
   } else if (block.type === 'superset') {
     if (block.exercises.length < 2) errors.push('Superset must have at least 2 exercises');
     for (let i = 0; i < block.exercises.length; i++) {
@@ -136,6 +142,12 @@ export function validateBlock(
     if (restBetween) errors.push(`Rest between exercises: ${restBetween}`);
     const restAfter = validateRestTime(block.restBetweenSupersetsSec);
     if (restAfter) errors.push(`Rest between supersets: ${restAfter}`);
+    if ((block as { transitionRestSec?: number | null }).transitionRestSec != null) {
+      const restErr = validateRestTime(
+        (block as { transitionRestSec: number }).transitionRestSec,
+      );
+      if (restErr) errors.push(`Transition rest: ${restErr}`);
+    }
   }
 
   return errors;
@@ -283,6 +295,15 @@ function validateImportTemplateBlocks(blocks: unknown, blocksPath: string): stri
           if (err) errors.push(`${blockPrefix}: ${err}`);
         }
       }
+
+      if (block.transitionRestSec !== null && block.transitionRestSec !== undefined) {
+        if (!isInt(block.transitionRestSec)) {
+          errors.push(`${blockPrefix}: "transitionRestSec" must be an integer or null`);
+        } else {
+          const err = validateRestTime(block.transitionRestSec);
+          if (err) errors.push(`${blockPrefix}: ${err}`);
+        }
+      }
     } else if (block.type === 'superset') {
       if (!isInt(block.sets)) {
         errors.push(`${blockPrefix}: "sets" must be an integer`);
@@ -325,6 +346,15 @@ function validateImportTemplateBlocks(blocks: unknown, blocksPath: string): stri
       } else {
         const err = validateRestTime(block.restBetweenSupersetsSec);
         if (err) errors.push(`${blockPrefix}: ${err}`);
+      }
+
+      if (block.transitionRestSec !== null && block.transitionRestSec !== undefined) {
+        if (!isInt(block.transitionRestSec)) {
+          errors.push(`${blockPrefix}: "transitionRestSec" must be an integer or null`);
+        } else {
+          const err = validateRestTime(block.transitionRestSec);
+          if (err) errors.push(`${blockPrefix}: ${err}`);
+        }
       }
     } else {
       errors.push(`${blockPrefix}: "type" must be "exercise" or "superset"`);
@@ -561,6 +591,12 @@ export function validateImportSettings(settings: unknown): string[] {
   if (settings.defaultRestBetweenSetsSec !== undefined) {
     if (!isInt(settings.defaultRestBetweenSetsSec) || settings.defaultRestBetweenSetsSec < VALIDATION.MIN_REST_SEC) {
       errors.push(`${prefix}: "defaultRestBetweenSetsSec" must be an integer >= ${VALIDATION.MIN_REST_SEC}`);
+    }
+  }
+
+  if (settings.defaultTransitionsSec !== undefined) {
+    if (!isInt(settings.defaultTransitionsSec) || settings.defaultTransitionsSec < VALIDATION.MIN_REST_SEC) {
+      errors.push(`${prefix}: "defaultTransitionsSec" must be an integer >= ${VALIDATION.MIN_REST_SEC}`);
     }
   }
 

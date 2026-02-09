@@ -34,6 +34,7 @@ function makeValidExerciseBlock(
     repsMin: 8,
     repsMax: 12,
     restBetweenSetsSec: null,
+    transitionRestSec: null,
     ...overrides,
   };
 }
@@ -51,6 +52,7 @@ function makeValidSupersetBlock(
     ],
     restBetweenExercisesSec: 30,
     restBetweenSupersetsSec: 120,
+    transitionRestSec: null,
     ...overrides,
   };
 }

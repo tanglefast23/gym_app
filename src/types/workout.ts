@@ -24,6 +24,11 @@ export interface ExerciseBlock {
   repsMin: number;
   repsMax: number;
   restBetweenSetsSec: number | null;
+  /**
+   * Rest time after this block, before the next block starts.
+   * Null means: use the global default transition rest from settings.
+   */
+  transitionRestSec: number | null;
 }
 
 export interface SupersetBlock {
@@ -33,6 +38,11 @@ export interface SupersetBlock {
   exercises: ExerciseBlockExercise[];
   restBetweenExercisesSec: number;
   restBetweenSupersetsSec: number;
+  /**
+   * Rest time after this block, before the next block starts.
+   * Null means: use the global default transition rest from settings.
+   */
+  transitionRestSec: number | null;
 }
 
 export type TemplateBlock = ExerciseBlock | SupersetBlock;
@@ -114,6 +124,8 @@ export interface UserSettings {
   id: 'settings';
   unitSystem: UnitSystem;
   defaultRestBetweenSetsSec: number;
+  /** Default rest between blocks (exercise/superset) during a workout. */
+  defaultTransitionsSec: number;
   weightStepsKg: number[];
   weightStepsLb: number[];
   hapticFeedback: boolean;
@@ -191,6 +203,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   id: 'settings',
   unitSystem: 'kg',
   defaultRestBetweenSetsSec: 90,
+  defaultTransitionsSec: 30,
   weightStepsKg: [1, 2.5, 5],
   weightStepsLb: [2.5, 5, 10],
   hapticFeedback: true,

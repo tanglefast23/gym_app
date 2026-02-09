@@ -14,6 +14,7 @@ function getSettingsSnapshot(): UserSettings {
     id: 'settings',
     unitSystem: s.unitSystem,
     defaultRestBetweenSetsSec: s.defaultRestBetweenSetsSec,
+    defaultTransitionsSec: s.defaultTransitionsSec,
     weightStepsKg: s.weightStepsKg,
     weightStepsLb: s.weightStepsLb,
     hapticFeedback: s.hapticFeedback,
@@ -41,6 +42,13 @@ function normalizeImportedSettings(raw: unknown): UserSettings {
     next.defaultRestBetweenSetsSec = Math.max(
       VALIDATION.MIN_REST_SEC,
       Math.min(VALIDATION.MAX_REST_SEC, r.defaultRestBetweenSetsSec),
+    );
+  }
+
+  if (typeof r.defaultTransitionsSec === 'number') {
+    next.defaultTransitionsSec = Math.max(
+      VALIDATION.MIN_REST_SEC,
+      Math.min(VALIDATION.MAX_REST_SEC, r.defaultTransitionsSec),
     );
   }
 

@@ -159,6 +159,7 @@ export default function SettingsPage() {
   // Settings store selectors (Zustand v5 pattern -- never call without selector)
   const unitSystem = useSettingsStore((s) => s.unitSystem);
   const defaultRest = useSettingsStore((s) => s.defaultRestBetweenSetsSec);
+  const defaultTransitions = useSettingsStore((s) => s.defaultTransitionsSec);
   const weightStepsKg = useSettingsStore((s) => s.weightStepsKg);
   const weightStepsLb = useSettingsStore((s) => s.weightStepsLb);
   const hapticFeedback = useSettingsStore((s) => s.hapticFeedback);
@@ -166,6 +167,7 @@ export default function SettingsPage() {
   const restTimerSound = useSettingsStore((s) => s.restTimerSound);
   const setUnitSystem = useSettingsStore((s) => s.setUnitSystem);
   const setDefaultRest = useSettingsStore((s) => s.setDefaultRest);
+  const setDefaultTransitions = useSettingsStore((s) => s.setDefaultTransitions);
   const toggleHaptic = useSettingsStore((s) => s.toggleHapticFeedback);
   const toggleMasterSound = useSettingsStore((s) => s.toggleSoundEnabled);
   const toggleTimerSound = useSettingsStore((s) => s.toggleRestTimerSound);
@@ -265,6 +267,20 @@ export default function SettingsPage() {
       setDefaultRest(clamped);
     },
     [setDefaultRest],
+  );
+
+  const handleTransitionsChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const raw = parseInt(e.target.value, 10);
+      if (Number.isNaN(raw)) return;
+
+      const clamped = Math.max(
+        VALIDATION.MIN_REST_SEC,
+        Math.min(VALIDATION.MAX_REST_SEC, raw),
+      );
+      setDefaultTransitions(clamped);
+    },
+    [setDefaultTransitions],
   );
 
   const handleResetDefaults = useCallback(() => {
@@ -434,6 +450,19 @@ export default function SettingsPage() {
             min={VALIDATION.MIN_REST_SEC}
             max={VALIDATION.MAX_REST_SEC}
             aria-label="Default rest between sets in seconds"
+            className="w-20 rounded-lg border border-border bg-surface px-3 py-1.5 text-right text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
+          />
+        </SettingRow>
+
+        <SettingRow label="Default transitions" description="Between exercises (seconds)">
+          <input
+            id="default-transitions"
+            type="number"
+            value={defaultTransitions}
+            onChange={handleTransitionsChange}
+            min={VALIDATION.MIN_REST_SEC}
+            max={VALIDATION.MAX_REST_SEC}
+            aria-label="Default transitions between exercises in seconds"
             className="w-20 rounded-lg border border-border bg-surface px-3 py-1.5 text-right text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </SettingRow>

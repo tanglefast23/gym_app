@@ -9,6 +9,7 @@ import type {
 } from '@/types/workout';
 import { generateSteps, countExerciseSteps } from '@/lib/stepEngine';
 import { db } from '@/lib/db';
+import { useSettingsStore } from '@/stores/settingsStore';
 
 /**
  * State describing the currently active workout session.
@@ -51,6 +52,7 @@ interface ActiveWorkoutActions {
     blocks: TemplateBlock[],
     templateDefaultRest: number | null,
     globalDefaultRest: number,
+    globalDefaultTransitions: number,
   ) => void;
 
   /** Advance to the next step (called when "DONE" is pressed or timer completes) */
@@ -119,8 +121,14 @@ export const useActiveWorkoutStore = create<
         blocks,
         templateDefaultRest,
         globalDefaultRest,
+        globalDefaultTransitions,
       ) => {
-        const steps = generateSteps(blocks, templateDefaultRest, globalDefaultRest);
+        const steps = generateSteps(
+          blocks,
+          templateDefaultRest,
+          globalDefaultRest,
+          globalDefaultTransitions,
+        );
         set({
           sessionId: crypto.randomUUID(),
           templateId,
@@ -262,7 +270,14 @@ export const useActiveWorkoutStore = create<
       },
 
       restoreFromRecovery: (recovery) => {
-        const steps = generateSteps(recovery.sessionState.templateSnapshot, null, 90);
+        const { defaultRestBetweenSetsSec, defaultTransitionsSec } =
+          useSettingsStore.getState();
+        const steps = generateSteps(
+          recovery.sessionState.templateSnapshot,
+          null,
+          defaultRestBetweenSetsSec,
+          defaultTransitionsSec,
+        );
         set({
           sessionId: recovery.sessionState.id,
           templateId: recovery.templateId,
