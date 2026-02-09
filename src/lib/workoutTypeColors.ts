@@ -8,8 +8,7 @@ const WORKOUT_COLORS: readonly string[] = [
   '#C9B1FF', // 6. pastel purple
   '#C8D6E5', // 7. pastel silver
   // Additional distinct pastels
-  '#FFB6C1', // 8. pastel pink
-  '#88E5D9', // 9. pastel teal
+  '#88E5D9', // 8. pastel teal
   '#C5E99B', // 10. pastel lime
   // Regular colors (when pastels would look too similar)
   '#FF7F7F', // 11. coral
