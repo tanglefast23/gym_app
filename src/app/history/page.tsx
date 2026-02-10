@@ -10,7 +10,7 @@ import { deleteLog } from '@/lib/queries';
 import { hexToRgba, buildColorMap } from '@/lib/workoutTypeColors';
 import { AppShell } from '@/components/layout';
 import { Header } from '@/components/layout/Header';
-import { BottomSheet, EmptyState, ConfirmDialog, useToastStore } from '@/components/ui';
+import { BottomSheet, EmptyState, ConfirmDialog, useToastStore, FontSizeToggle } from '@/components/ui';
 import { LogCard } from '@/components/history/LogCard';
 import type { WorkoutLog } from '@/types/workout';
 
@@ -288,13 +288,16 @@ export default function HistoryPage() {
       <Header
         title="History"
         rightAction={
-          <Link
-            href="/settings"
-            aria-label="Settings"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-elevated"
-          >
-            <Settings className="h-5 w-5 text-text-secondary" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <FontSizeToggle />
+            <Link
+              href="/settings"
+              aria-label="Settings"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-elevated"
+            >
+              <Settings className="h-5 w-5 text-text-secondary" />
+            </Link>
+          </div>
         }
       />
 

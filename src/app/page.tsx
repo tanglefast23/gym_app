@@ -15,6 +15,7 @@ import {
   useToastStore,
   EmptyState,
   ConfirmDialog,
+  FontSizeToggle,
 } from '@/components/ui';
 import { WorkoutCard } from '@/components/workout';
 import Link from 'next/link';
@@ -307,13 +308,16 @@ export default function HomePage() {
       <Header
         title="Workouts"
         rightAction={
-          <Link
-            href="/settings"
-            aria-label="Settings"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-elevated"
-          >
-            <Settings className="h-5 w-5 text-text-secondary" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <FontSizeToggle />
+            <Link
+              href="/settings"
+              aria-label="Settings"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-elevated"
+            >
+              <Settings className="h-5 w-5 text-text-secondary" />
+            </Link>
+          </div>
         }
       />
       <div className="px-5 pt-4">

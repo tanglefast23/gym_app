@@ -9,7 +9,7 @@ import { db } from '@/lib/db';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { AppShell } from '@/components/layout';
 import { Header } from '@/components/layout/Header';
-import { ToastContainer } from '@/components/ui';
+import { ToastContainer, FontSizeToggle } from '@/components/ui';
 import { WeightTrackerSection } from '@/components/progress/WeightTrackerSection';
 import { StatsSection } from '@/components/progress/StatsSection';
 import { PersonalRecordsSection } from '@/components/progress/PersonalRecordsSection';
@@ -221,13 +221,16 @@ export default function ProgressPage() {
       <Header
         title="Progress"
         rightAction={
-          <Link
-            href="/settings"
-            aria-label="Settings"
-            className="flex h-11 w-11 items-center justify-center rounded-full bg-elevated"
-          >
-            <Settings className="h-5 w-5 text-text-secondary" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <FontSizeToggle />
+            <Link
+              href="/settings"
+              aria-label="Settings"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-elevated"
+            >
+              <Settings className="h-5 w-5 text-text-secondary" />
+            </Link>
+          </div>
         }
       />
 
