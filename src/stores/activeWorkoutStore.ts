@@ -10,7 +10,7 @@ import type {
 import { generateSteps, countExerciseSteps } from '@/lib/stepEngine';
 import { db } from '@/lib/db';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { useToastStore } from '@/components/ui';
+import { useToastStore } from '@/stores/toastStore';
 
 /** Ensures the crash-recovery-failed toast is only shown once per session. */
 let crashRecoveryWarningShown = false;
@@ -315,14 +315,38 @@ export const useActiveWorkoutStore = create<
       name: 'workout-pwa-active-session',
       storage: {
         getItem: (name: string) => {
-          const str = sessionStorage.getItem(name);
-          return str ? JSON.parse(str) : null;
+          try {
+            const str = sessionStorage.getItem(name);
+            if (!str) return null;
+            try {
+              return JSON.parse(str);
+            } catch {
+              // If persisted state is corrupted, discard it to avoid bricking the app.
+              try {
+                sessionStorage.removeItem(name);
+              } catch {
+                // ignore
+              }
+              return null;
+            }
+          } catch {
+            // sessionStorage may be unavailable (Safari private mode, blocked storage, etc.)
+            return null;
+          }
         },
         setItem: (name: string, value: unknown) => {
-          sessionStorage.setItem(name, JSON.stringify(value));
+          try {
+            sessionStorage.setItem(name, JSON.stringify(value));
+          } catch {
+            // Best-effort persistence only.
+          }
         },
         removeItem: (name: string) => {
-          sessionStorage.removeItem(name);
+          try {
+            sessionStorage.removeItem(name);
+          } catch {
+            // ignore
+          }
         },
       },
       partialize: (state): ActiveWorkoutState => ({

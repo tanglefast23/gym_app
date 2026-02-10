@@ -1,6 +1,7 @@
 import type {
   TemplateBlock,
   WorkoutStep,
+  ExerciseStep,
   ExerciseBlock,
   SupersetBlock,
 } from '@/types/workout';
@@ -59,7 +60,7 @@ export function countExerciseSteps(steps: WorkoutStep[]): number {
 export function getExerciseStepAt(
   steps: WorkoutStep[],
   index: number,
-): WorkoutStep | null {
+): ExerciseStep | null {
   const step = steps[index];
   if (!step || step.type !== 'exercise') return null;
   return step;

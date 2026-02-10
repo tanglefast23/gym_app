@@ -91,31 +91,34 @@ export async function getLastPerformedSetsForMultiple(
   const result = new Map<string, PerformedSet[]>();
   if (exerciseIds.length === 0) return result;
 
-  // Single IndexedDB query for all exercise history entries matching any of the IDs.
-  const allEntries = await db.exerciseHistory
-    .where('exerciseId')
-    .anyOf(exerciseIds)
-    .toArray();
+  // Deduplicate inputs to avoid redundant IndexedDB queries.
+  const uniqueExerciseIds = [...new Set(exerciseIds)].filter((id) => id.length > 0);
+  if (uniqueExerciseIds.length === 0) return result;
 
-  if (allEntries.length === 0) return result;
-
-  // Group by exerciseId, keeping only the entry with the latest performedAt.
-  const latestByExercise = new Map<string, { logId: string; performedAt: string }>();
-  for (const entry of allEntries) {
-    const existing = latestByExercise.get(entry.exerciseId);
-    if (!existing || entry.performedAt > existing.performedAt) {
-      latestByExercise.set(entry.exerciseId, {
-        logId: entry.logId,
-        performedAt: entry.performedAt,
-      });
-    }
-  }
+  // Fetch ONLY the latest ExerciseHistoryEntry per exerciseId.
+  // This intentionally does N small queries instead of 1 large query that could
+  // materialize thousands of rows (and spike memory) for long-time users.
+  const latestEntries = await Promise.all(
+    uniqueExerciseIds.map(async (exerciseId) => {
+      const entry = await db.exerciseHistory
+        .where('[exerciseId+performedAt]')
+        .between([exerciseId, ''], [exerciseId, '\uffff'])
+        .reverse()
+        .first();
+      return entry ? { exerciseId, logId: entry.logId } : null;
+    }),
+  );
 
   // Collect unique logIds to fetch (multiple exercises may share a log).
   const uniqueLogIds = new Set<string>();
-  for (const { logId } of latestByExercise.values()) {
-    uniqueLogIds.add(logId);
+  const latestLogIdByExercise = new Map<string, string>();
+  for (const item of latestEntries) {
+    if (!item) continue;
+    latestLogIdByExercise.set(item.exerciseId, item.logId);
+    uniqueLogIds.add(item.logId);
   }
+
+  if (uniqueLogIds.size === 0) return result;
 
   // Fetch all required logs in a single batch.
   const logs = await db.logs.bulkGet([...uniqueLogIds]);
@@ -125,13 +128,11 @@ export async function getLastPerformedSetsForMultiple(
   }
 
   // Extract performed sets for each exerciseId from the corresponding log.
-  for (const [exerciseId, { logId }] of latestByExercise) {
+  for (const [exerciseId, logId] of latestLogIdByExercise) {
     const log = logMap.get(logId);
     if (!log) continue;
     const sets = log.performedSets.filter((s) => s.exerciseId === exerciseId);
-    if (sets.length > 0) {
-      result.set(exerciseId, sets);
-    }
+    if (sets.length > 0) result.set(exerciseId, sets);
   }
 
   return result;

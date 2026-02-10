@@ -36,6 +36,7 @@ function normalizeImportedSettings(raw: unknown): UserSettings {
     return next;
   }
 
+  // Safe cast: the typeof/null guard above guarantees `raw` is a non-null object.
   const r = raw as Record<string, unknown>;
 
   if (r.unitSystem === 'kg' || r.unitSystem === 'lb') {

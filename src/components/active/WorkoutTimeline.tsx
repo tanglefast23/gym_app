@@ -43,13 +43,13 @@ function computeNodes(steps: WorkoutStep[]): TimelineNode[] {
     const step = steps[i];
     if (step.type !== 'exercise') continue;
 
-    const key = `${step.blockIndex}-${step.setIndex ?? 0}`;
+    const key = `${step.blockIndex}-${step.setIndex}`;
 
     if (seen.has(key)) {
       nodes[seen.get(key)!].stepIndices.push(i);
     } else {
       const blockNum = step.blockIndex + 1;
-      const letter = String.fromCharCode(97 + (step.setIndex ?? 0));
+      const letter = String.fromCharCode(97 + step.setIndex);
       nodes.push({
         label: `${blockNum}${letter}`,
         blockNumber: blockNum,

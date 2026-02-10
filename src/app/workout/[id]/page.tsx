@@ -155,9 +155,12 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     exerciseVisualMap,
   );
 
+  /** Narrowed reference when the current step is an exercise (null otherwise). */
+  const currentExerciseStep = currentStep?.type === 'exercise' ? currentStep : null;
+
   /** Index of the current step within the exercise-only steps array. */
-  const currentExerciseStepIndex = currentStep
-    ? exerciseSteps.indexOf(currentStep)
+  const currentExerciseStepIndex = currentExerciseStep
+    ? exerciseSteps.indexOf(currentExerciseStep)
     : -1;
 
   // ---------------------------------------------------------------------------
@@ -172,7 +175,8 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     if (timerAdvanceRef.current !== null) return;
     setTimerFinishFlash(true);
     haptics.timerComplete();
-    playSfx('timerDone');
+    const { soundEnabled, restTimerSound } = useSettingsStore.getState();
+    playSfx('timerDone', { soundEnabled, restTimerSound });
     timerAdvanceRef.current = window.setTimeout(() => {
       timerAdvanceRef.current = null;
       setTimerFinishFlash(false);
@@ -198,7 +202,8 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     }
 
     // Countdown beep
-    playSfx('countdown');
+    const { soundEnabled, restTimerSound } = useSettingsStore.getState();
+    playSfx('countdown', { soundEnabled, restTimerSound });
   }, []);
 
   const timer = useTimer({ onComplete: handleTimerComplete, onTick: handleTimerTick });
@@ -242,7 +247,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
 
     const exerciseIds = new Set<string>();
     for (const step of steps) {
-      if (step.exerciseId) {
+      if (step.type === 'exercise') {
         exerciseIds.add(step.exerciseId);
       }
     }
@@ -332,14 +337,14 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
       ? Math.max(0, Math.min(repsDone, VALIDATION.MAX_REPS))
       : 0;
 
-    if (currentExerciseStepIndex >= 0 && currentStep) {
+    if (currentExerciseStepIndex >= 0 && currentStep?.type === 'exercise') {
       const performedSet: PerformedSet = {
-        exerciseId: currentStep.exerciseId ?? '',
+        exerciseId: currentStep.exerciseId,
         exerciseNameSnapshot: currentExerciseName,
         blockPath: `block-${currentStep.blockIndex}`,
-        setIndex: currentStep.setIndex ?? 0,
-        repsTargetMin: currentStep.repsMin ?? 0,
-        repsTargetMax: currentStep.repsMax ?? 0,
+        setIndex: currentStep.setIndex,
+        repsTargetMin: currentStep.repsMin,
+        repsTargetMax: currentStep.repsMax,
         repsDone: safeReps,
         weightG: safeWeight,
       };
@@ -626,10 +631,10 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
             <ExerciseDisplay
               exerciseName={currentExerciseName}
               exerciseId={currentStep.exerciseId}
-              setIndex={currentStep.setIndex ?? 0}
-              totalSets={currentStep.totalSets ?? 1}
-              repsMin={currentStep.repsMin ?? 1}
-              repsMax={currentStep.repsMax ?? 1}
+              setIndex={currentStep.setIndex}
+              totalSets={currentStep.totalSets}
+              repsMin={currentStep.repsMin}
+              repsMax={currentStep.repsMax}
               visualKey={currentExerciseVisualKey}
               isSuperset={currentStep.isSuperset}
               supersetExerciseIndex={currentStep.supersetExerciseIndex}
@@ -645,7 +650,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
           <div key={`rest-${currentStepIndex}`} className="flex flex-1 flex-col animate-rest-enter">
             <RestTimer
               remainingMs={timer.remainingMs}
-              totalMs={(currentStep.restDurationSec ?? 90) * 1000}
+              totalMs={currentStep.restDurationSec * 1000}
               isSuperset={currentStep.type === 'superset-rest'}
               ringLabel={
                 currentStep.type === 'superset-rest'
@@ -677,10 +682,10 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
         onSaveAndRest={handleSetLogSave}
         onSkip={handleSetLogSkip}
         exerciseName={currentExerciseName}
-        setNumber={(currentStep?.setIndex ?? 0) + 1}
-        totalSets={currentStep?.totalSets ?? 1}
+        setNumber={(currentExerciseStep?.setIndex ?? 0) + 1}
+        totalSets={currentExerciseStep?.totalSets ?? 1}
         prefillWeightG={prefillWeightG}
-        prefillReps={currentStep?.repsMax ?? 8}
+        prefillReps={currentExerciseStep?.repsMax ?? 8}
         unitSystem={unitSystem}
         weightStep={weightStep}
       />

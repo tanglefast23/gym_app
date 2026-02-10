@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { WorkoutStep } from '@/types/workout';
+import type { WorkoutStep, ExerciseStep } from '@/types/workout';
 
 // -----------------------------------------------------------------------------
 // Helper: build a "next up" label from the rest of the step list
@@ -18,10 +18,10 @@ function buildNextUpLabel(
     const step = allSteps[i];
     if (step.type === 'exercise') {
       const name =
-        nameMap.get(step.exerciseId ?? '') ??
+        nameMap.get(step.exerciseId) ??
         step.exerciseName ??
         'Exercise';
-      const set = (step.setIndex ?? 0) + 1;
+      const set = step.setIndex + 1;
       return `Next: ${name} - Set ${set}`;
     }
   }
@@ -42,7 +42,7 @@ export interface ActiveWorkoutDerived {
   /** "Next: Bench Press - Set 2" or "Workout complete!" during rest steps. */
   nextUpLabel: string;
   /** Only the exercise-type steps (used for recap filtering). */
-  exerciseSteps: WorkoutStep[];
+  exerciseSteps: ExerciseStep[];
   /** Screen-reader announcement text for the current step. */
   ariaStepAnnouncement: string;
 }
@@ -67,7 +67,7 @@ export function useActiveWorkoutDerived(
   const currentStep: WorkoutStep | undefined = steps[currentStepIndex];
 
   const exerciseSteps = useMemo(
-    () => steps.filter((s) => s.type === 'exercise'),
+    () => steps.filter((s): s is ExerciseStep => s.type === 'exercise'),
     [steps],
   );
 
@@ -85,7 +85,7 @@ export function useActiveWorkoutDerived(
   const currentExerciseName = useMemo(() => {
     if (!currentStep || currentStep.type !== 'exercise') return '';
     return (
-      exerciseNameMap.get(currentStep.exerciseId ?? '') ??
+      exerciseNameMap.get(currentStep.exerciseId) ??
       currentStep.exerciseName ??
       'Exercise'
     );
@@ -94,7 +94,7 @@ export function useActiveWorkoutDerived(
   const currentExerciseVisualKey = useMemo(() => {
     if (!currentStep || currentStep.type !== 'exercise') return undefined;
     return (
-      exerciseVisualMap.get(currentStep.exerciseId ?? '') ??
+      exerciseVisualMap.get(currentStep.exerciseId) ??
       currentStep.visualKey
     );
   }, [currentStep, exerciseVisualMap]);
@@ -109,17 +109,16 @@ export function useActiveWorkoutDerived(
 
     if (currentStep.type === 'exercise') {
       const name =
-        exerciseNameMap.get(currentStep.exerciseId ?? '') ??
+        exerciseNameMap.get(currentStep.exerciseId) ??
         currentStep.exerciseName ??
         'Exercise';
-      const set = (currentStep.setIndex ?? 0) + 1;
-      const totalSets = currentStep.totalSets ?? 1;
+      const set = currentStep.setIndex + 1;
+      const totalSets = currentStep.totalSets;
       return `Now: ${name} - Set ${set} of ${totalSets}`;
     }
 
     if (currentStep.type === 'rest' || currentStep.type === 'superset-rest') {
-      const seconds = currentStep.restDurationSec ?? 90;
-      return `Rest: ${seconds} seconds`;
+      return `Rest: ${currentStep.restDurationSec} seconds`;
     }
 
     if (currentStep.type === 'complete') {

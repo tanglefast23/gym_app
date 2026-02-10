@@ -191,21 +191,34 @@ export interface ExportData {
 // === STEP ENGINE ===
 export type StepType = 'exercise' | 'rest' | 'superset-rest' | 'complete';
 
-export interface WorkoutStep {
-  type: StepType;
+export interface ExerciseStep {
+  type: 'exercise';
   blockIndex: number;
-  exerciseId?: string;
+  exerciseId: string;
   exerciseName?: string;
-  setIndex?: number;
-  totalSets?: number;
-  repsMin?: number;
-  repsMax?: number;
-  restDurationSec?: number;
+  setIndex: number;
+  totalSets: number;
+  repsMin: number;
+  repsMax: number;
   visualKey?: string;
-  isSuperset?: boolean;
+  isSuperset: boolean;
   supersetExerciseIndex?: number;
   supersetTotalExercises?: number;
 }
+
+export interface RestStep {
+  type: 'rest' | 'superset-rest';
+  blockIndex: number;
+  restDurationSec: number;
+  isSuperset?: boolean;
+}
+
+export interface CompleteStep {
+  type: 'complete';
+  blockIndex: number;
+}
+
+export type WorkoutStep = ExerciseStep | RestStep | CompleteStep;
 
 // === VALIDATION CONSTRAINTS ===
 export const VALIDATION = {

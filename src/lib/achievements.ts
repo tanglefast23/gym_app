@@ -10,11 +10,10 @@ interface PrefetchedData {
   totalLogs: number;
   /** Number of workout logs started within the last 7 days. */
   recentLogsCount: number;
-  /**
-   * Exercise history entries for exercises that appear in the current workout log,
-   * grouped by exerciseId for O(1) lookup.
-   */
-  exerciseHistoryByExercise: Map<string, ExerciseHistoryEntry[]>;
+  /** Previous-best estimated 1RM (grams) per exerciseId, excluding the current log. */
+  prevBest1rmByExercise: Map<string, number>;
+  /** Previous-best session volume (grams) per exerciseId, excluding the current log. */
+  prevBestVolumeByExercise: Map<string, number>;
   /** Set of achievement IDs that have already been unlocked. */
   existingAchievementIds: Set<string>;
 }
@@ -84,20 +83,8 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
 
       if (bestByExercise.size === 0) return { earned: false, context: null };
 
-      // Build previous-best map from prefetched history
-      const previousBestByExercise = new Map<string, number>();
-      for (const [exerciseId] of bestByExercise) {
-        const history = data.exerciseHistoryByExercise.get(exerciseId) ?? [];
-        for (const h of history) {
-          if (h.logId === log.id) continue;
-          if (h.estimated1RM_G === null) continue;
-          const prev = previousBestByExercise.get(h.exerciseId) ?? 0;
-          if (h.estimated1RM_G > prev) previousBestByExercise.set(h.exerciseId, h.estimated1RM_G);
-        }
-      }
-
       for (const [exerciseId, { best1RM, name }] of bestByExercise) {
-        const previousBest = previousBestByExercise.get(exerciseId) ?? 0;
+        const previousBest = data.prevBest1rmByExercise.get(exerciseId) ?? 0;
 
         if (best1RM > previousBest) {
           return { earned: true, context: `${name} - new 1RM PR!` };
@@ -125,19 +112,8 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
 
       if (exerciseVolumes.size === 0) return { earned: false, context: null };
 
-      // Build previous-best volume map from prefetched history
-      const previousBestByExercise = new Map<string, number>();
-      for (const [exerciseId] of exerciseVolumes) {
-        const history = data.exerciseHistoryByExercise.get(exerciseId) ?? [];
-        for (const h of history) {
-          if (h.logId === log.id) continue;
-          const prev = previousBestByExercise.get(h.exerciseId) ?? 0;
-          if (h.totalVolumeG > prev) previousBestByExercise.set(h.exerciseId, h.totalVolumeG);
-        }
-      }
-
       for (const [exerciseId, { volume, name }] of exerciseVolumes) {
-        const previousBest = previousBestByExercise.get(exerciseId) ?? 0;
+        const previousBest = data.prevBestVolumeByExercise.get(exerciseId) ?? 0;
 
         if (volume > previousBest && previousBest > 0) {
           return { earned: true, context: `${name} - volume PR!` };
@@ -177,32 +153,47 @@ async function prefetchAchievementData(log: WorkoutLog): Promise<PrefetchedData>
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   // Collect unique exerciseIds from the workout log for targeted history fetch
-  const exerciseIds = [...new Set(log.performedSets.map((s) => s.exerciseId))];
+  const exerciseIds = [...new Set(log.performedSets.map((s) => s.exerciseId))].filter(
+    (id) => id.length > 0,
+  );
 
-  const [totalLogs, recentLogsCount, historyRows, existingAchievements] = await Promise.all([
+  const prevBest1rmByExercise = new Map<string, number>();
+  const prevBestVolumeByExercise = new Map<string, number>();
+
+  const historyPromise =
+    exerciseIds.length > 0
+      ? db.exerciseHistory
+          .where('exerciseId')
+          .anyOf(exerciseIds)
+          .each((h: ExerciseHistoryEntry) => {
+            if (h.logId === log.id) return;
+
+            if (h.estimated1RM_G !== null) {
+              const prev = prevBest1rmByExercise.get(h.exerciseId) ?? 0;
+              if (h.estimated1RM_G > prev) {
+                prevBest1rmByExercise.set(h.exerciseId, h.estimated1RM_G);
+              }
+            }
+
+            const prevVol = prevBestVolumeByExercise.get(h.exerciseId) ?? 0;
+            if (h.totalVolumeG > prevVol) {
+              prevBestVolumeByExercise.set(h.exerciseId, h.totalVolumeG);
+            }
+          })
+      : Promise.resolve();
+
+  const [totalLogs, recentLogsCount, existingAchievements] = await Promise.all([
     db.logs.count(),
     db.logs.where('startedAt').above(weekAgo).count(),
-    exerciseIds.length > 0
-      ? db.exerciseHistory.where('exerciseId').anyOf(exerciseIds).toArray()
-      : Promise.resolve([]),
     db.achievements.toArray(),
   ]);
-
-  // Group history entries by exerciseId for O(1) lookup
-  const exerciseHistoryByExercise = new Map<string, ExerciseHistoryEntry[]>();
-  for (const entry of historyRows) {
-    const bucket = exerciseHistoryByExercise.get(entry.exerciseId);
-    if (bucket) {
-      bucket.push(entry);
-    } else {
-      exerciseHistoryByExercise.set(entry.exerciseId, [entry]);
-    }
-  }
+  await historyPromise;
 
   return {
     totalLogs,
     recentLogsCount,
-    exerciseHistoryByExercise,
+    prevBest1rmByExercise,
+    prevBestVolumeByExercise,
     existingAchievementIds: new Set(existingAchievements.map((a) => a.achievementId)),
   };
 }

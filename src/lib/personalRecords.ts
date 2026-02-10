@@ -11,10 +11,10 @@ import type { WorkoutLog } from '@/types/workout';
  * Summary of personal records detected in a completed workout log.
  * Each array lists exercises where the user beat their previous best.
  */
-export type PersonalRecordSummary = {
+export interface PersonalRecordSummary {
   oneRm: Array<{ exerciseId: string; name: string }>;
   volume: Array<{ exerciseId: string; name: string }>;
-};
+}
 
 /**
  * Compare a workout log's per-exercise 1RM and total volume against all
@@ -52,27 +52,27 @@ export async function detectPersonalRecords(
   const exerciseIds = [...byExercise.keys()];
   if (exerciseIds.length === 0) return { oneRm: [], volume: [] };
 
-  const history = await db.exerciseHistory
-    .where('exerciseId')
-    .anyOf(exerciseIds)
-    .toArray();
-
   const prevBest1rmByExercise = new Map<string, number>();
   const prevBestVolumeByExercise = new Map<string, number>();
 
-  for (const h of history) {
-    if (h.logId === log.id) continue;
+  await db.exerciseHistory
+    .where('exerciseId')
+    .anyOf(exerciseIds)
+    .each((h) => {
+      if (h.logId === log.id) return;
 
-    if (h.estimated1RM_G !== null) {
-      const prev = prevBest1rmByExercise.get(h.exerciseId) ?? 0;
-      if (h.estimated1RM_G > prev)
-        prevBest1rmByExercise.set(h.exerciseId, h.estimated1RM_G);
-    }
+      if (h.estimated1RM_G !== null) {
+        const prev = prevBest1rmByExercise.get(h.exerciseId) ?? 0;
+        if (h.estimated1RM_G > prev) {
+          prevBest1rmByExercise.set(h.exerciseId, h.estimated1RM_G);
+        }
+      }
 
-    const prevVol = prevBestVolumeByExercise.get(h.exerciseId) ?? 0;
-    if (h.totalVolumeG > prevVol)
-      prevBestVolumeByExercise.set(h.exerciseId, h.totalVolumeG);
-  }
+      const prevVol = prevBestVolumeByExercise.get(h.exerciseId) ?? 0;
+      if (h.totalVolumeG > prevVol) {
+        prevBestVolumeByExercise.set(h.exerciseId, h.totalVolumeG);
+      }
+    });
 
   const oneRm: PersonalRecordSummary['oneRm'] = [];
   const volume: PersonalRecordSummary['volume'] = [];

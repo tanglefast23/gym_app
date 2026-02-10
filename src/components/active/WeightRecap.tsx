@@ -8,7 +8,7 @@ import {
   gramsToKg,
   gramsToLb,
 } from '@/lib/calculations';
-import type { WorkoutStep, PerformedSet } from '@/types/workout';
+import type { WorkoutStep, ExerciseStep, PerformedSet } from '@/types/workout';
 import {
   useWeightPrefill,
   findNextUnfilledIndex,
@@ -35,8 +35,8 @@ interface WeightRecapProps {
 }
 
 /** Filter to only exercise-type steps. */
-function getExerciseSteps(steps: WorkoutStep[]): WorkoutStep[] {
-  return steps.filter((s) => s.type === 'exercise');
+function getExerciseSteps(steps: WorkoutStep[]): ExerciseStep[] {
+  return steps.filter((s): s is ExerciseStep => s.type === 'exercise');
 }
 
 /* ── Component ─────────────────────────────────────────────────────── */
@@ -103,7 +103,7 @@ export const WeightRecap = ({
     const histWeight = findHistoricalWeight(
       historicalSetsRef.current,
       step.exerciseId,
-      step.setIndex ?? 0,
+      step.setIndex,
     );
 
     if (histWeight !== null) {
@@ -114,7 +114,7 @@ export const WeightRecap = ({
   const currentStep = exerciseSteps[currentIndex];
   const currentExerciseName = useMemo(() => {
     if (!currentStep) return '';
-    const exerciseId = currentStep.exerciseId ?? '';
+    const exerciseId = currentStep.exerciseId;
     return (
       (exerciseId ? exerciseNameMap?.get(exerciseId) : undefined) ??
       currentStep.exerciseName ??
@@ -147,6 +147,7 @@ export const WeightRecap = ({
   const saveNudgeTimeoutRef = useRef<number | null>(null);
   const updateTimeoutRef = useRef<number | null>(null);
   const updateHighlightTimeoutRef = useRef<number | null>(null);
+  const savePartialTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
@@ -155,6 +156,7 @@ export const WeightRecap = ({
       if (saveNudgeTimeoutRef.current !== null) clearTimeout(saveNudgeTimeoutRef.current);
       if (updateTimeoutRef.current !== null) clearTimeout(updateTimeoutRef.current);
       if (updateHighlightTimeoutRef.current !== null) clearTimeout(updateHighlightTimeoutRef.current);
+      if (savePartialTimeoutRef.current !== null) clearTimeout(savePartialTimeoutRef.current);
     };
   }, []);
 
@@ -163,12 +165,12 @@ export const WeightRecap = ({
     if (!currentStep) return;
 
     const performedSet: PerformedSet = {
-      exerciseId: currentStep.exerciseId ?? '',
+      exerciseId: currentStep.exerciseId,
       exerciseNameSnapshot: currentExerciseName,
       blockPath: `block-${currentStep.blockIndex}`,
-      setIndex: currentStep.setIndex ?? 0,
-      repsTargetMin: currentStep.repsMin ?? 0,
-      repsTargetMax: currentStep.repsMax ?? 0,
+      setIndex: currentStep.setIndex,
+      repsTargetMin: currentStep.repsMin,
+      repsTargetMax: currentStep.repsMax,
       repsDone: draftReps,
       weightG: draftWeightG,
     };
@@ -195,9 +197,9 @@ export const WeightRecap = ({
         exerciseNameSnapshot:
           exerciseNameMap?.get(exerciseId) ?? step.exerciseName ?? 'Exercise',
         blockPath: `block-${step.blockIndex}`,
-        setIndex: step.setIndex ?? 0,
-        repsTargetMin: step.repsMin ?? 0,
-        repsTargetMax: step.repsMax ?? 0,
+        setIndex: step.setIndex,
+        repsTargetMin: step.repsMin,
+        repsTargetMax: step.repsMax,
         repsDone: draftReps,
         weightG: draftWeightG,
       };
@@ -206,7 +208,10 @@ export const WeightRecap = ({
       justFilled.add(i);
     }
 
-    playSfx('success');
+    {
+      const { soundEnabled, restTimerSound } = useSettingsStore.getState();
+      playSfx('success', { soundEnabled, restTimerSound });
+    }
     setApplyFeedback(true);
 
     if (applyTimeoutRef.current !== null) clearTimeout(applyTimeoutRef.current);
@@ -262,7 +267,10 @@ export const WeightRecap = ({
     if (prevWeight !== null) {
       setLastEditedField('weight');
       setDraftWeight({ weightG: prevWeight, source: 'user' });
-      playSfx('success');
+      {
+        const { soundEnabled, restTimerSound } = useSettingsStore.getState();
+        playSfx('success', { soundEnabled, restTimerSound });
+      }
       setSameWeightFeedback(true);
       if (sameWeightTimeoutRef.current !== null) clearTimeout(sameWeightTimeoutRef.current);
       sameWeightTimeoutRef.current = window.setTimeout(() => {
@@ -318,7 +326,7 @@ export const WeightRecap = ({
         nextStep.exerciseId === currentExerciseId &&
         !performedSets[nextIndex]
       ) {
-        setDraftReps(nextStep.repsMax ?? nextStep.repsMin ?? 0);
+        setDraftReps(nextStep.repsMax);
         setDraftWeight({ weightG: currentWeightG, source: 'previous' });
       } else {
         initializeDraft(nextIndex);
@@ -360,7 +368,10 @@ export const WeightRecap = ({
     }
 
     saveDraft();
-    playSfx('success');
+    {
+      const { soundEnabled, restTimerSound } = useSettingsStore.getState();
+      playSfx('success', { soundEnabled, restTimerSound });
+    }
 
     if (field) {
       setUpdateHighlight(field);
@@ -382,9 +393,16 @@ export const WeightRecap = ({
   /** Handle save partial: save draft, play SFX, then call onSavePartial after delay. */
   const handleSavePartial = useCallback(() => {
     saveDraft();
-    playSfx('success');
+    {
+      const { soundEnabled, restTimerSound } = useSettingsStore.getState();
+      playSfx('success', { soundEnabled, restTimerSound });
+    }
     setSavingPartial(true);
-    setTimeout(() => onSavePartial(), 500);
+    if (savePartialTimeoutRef.current !== null) clearTimeout(savePartialTimeoutRef.current);
+    savePartialTimeoutRef.current = window.setTimeout(() => {
+      savePartialTimeoutRef.current = null;
+      onSavePartial();
+    }, 500);
   }, [saveDraft, onSavePartial]);
 
   // Derived state

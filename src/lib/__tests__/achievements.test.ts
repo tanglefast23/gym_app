@@ -45,7 +45,8 @@ import { ACHIEVEMENTS, checkAchievements, getUnlockedAchievements } from '../ach
 interface PrefetchedData {
   totalLogs: number;
   recentLogsCount: number;
-  exerciseHistoryByExercise: Map<string, ExerciseHistoryEntry[]>;
+  prevBest1rmByExercise: Map<string, number>;
+  prevBestVolumeByExercise: Map<string, number>;
   existingAchievementIds: Set<string>;
 }
 
@@ -91,7 +92,8 @@ function makeData(overrides: Partial<PrefetchedData> = {}): PrefetchedData {
   return {
     totalLogs: 0,
     recentLogsCount: 0,
-    exerciseHistoryByExercise: new Map(),
+    prevBest1rmByExercise: new Map(),
+    prevBestVolumeByExercise: new Map(),
     existingAchievementIds: new Set(),
     ...overrides,
   };
@@ -112,7 +114,9 @@ function mockPrefetchData(opts: {
   });
   mockExerciseHistory.where.mockReturnValue({
     anyOf: vi.fn().mockReturnValue({
-      toArray: vi.fn().mockResolvedValue(opts.historyRows ?? []),
+      each: vi.fn().mockImplementation(async (cb: (row: ExerciseHistoryEntry) => void) => {
+        for (const row of opts.historyRows ?? []) cb(row);
+      }),
     }),
   });
   mockAchievements.toArray.mockResolvedValue(opts.existingAchievements ?? []);
@@ -193,9 +197,7 @@ describe('ACHIEVEMENTS', () => {
       const log = makeLog({
         performedSets: [makePerformedSet('ex-bench', 100000, 5)],
       });
-      const data = makeData({ exerciseHistoryByExercise: new Map() });
-
-      const result = pr1rm.check(log, data);
+      const result = pr1rm.check(log, makeData());
       expect(result.earned).toBe(true);
       expect(result.context).toContain('Bench Press');
       expect(result.context).toContain('1RM PR');
@@ -219,9 +221,8 @@ describe('ACHIEVEMENTS', () => {
           estimated1RM_G: Math.round(100000 * (1 + 5 / 30)),
         },
       ];
-      const data = makeData({
-        exerciseHistoryByExercise: new Map([['ex-bench', previousHistory]]),
-      });
+      const previousBest = previousHistory[0]!.estimated1RM_G as number;
+      const data = makeData({ prevBest1rmByExercise: new Map([['ex-bench', previousBest]]) });
 
       const result = pr1rm.check(log, data);
       expect(result.earned).toBe(true);
@@ -245,9 +246,8 @@ describe('ACHIEVEMENTS', () => {
           estimated1RM_G: Math.round(110000 * (1 + 5 / 30)),
         },
       ];
-      const data = makeData({
-        exerciseHistoryByExercise: new Map([['ex-bench', previousHistory]]),
-      });
+      const previousBest = previousHistory[0]!.estimated1RM_G as number;
+      const data = makeData({ prevBest1rmByExercise: new Map([['ex-bench', previousBest]]) });
 
       const result = pr1rm.check(log, data);
       expect(result.earned).toBe(false);
@@ -259,22 +259,7 @@ describe('ACHIEVEMENTS', () => {
         performedSets: [makePerformedSet('ex-bench', 100000, 5)],
       });
       const expected1RM = 100000 * (1 + 5 / 30);
-      const previousHistory: ExerciseHistoryEntry[] = [
-        {
-          logId: 'log-1',
-          exerciseId: 'ex-bench',
-          exerciseName: 'Bench Press',
-          performedAt: '2025-05-01T10:00:00Z',
-          bestWeightG: 100000,
-          totalVolumeG: 500000,
-          totalSets: 3,
-          totalReps: 15,
-          estimated1RM_G: expected1RM,
-        },
-      ];
-      const data = makeData({
-        exerciseHistoryByExercise: new Map([['ex-bench', previousHistory]]),
-      });
+      const data = makeData({ prevBest1rmByExercise: new Map([['ex-bench', expected1RM]]) });
 
       const result = pr1rm.check(log, data);
       expect(result.earned).toBe(false);
@@ -315,27 +300,8 @@ describe('ACHIEVEMENTS', () => {
         id: 'log-1',
         performedSets: [makePerformedSet('ex-bench', 100000, 5)],
       });
-      const expected1RM = 100000 * (1 + 5 / 30);
-      const data = makeData({
-        exerciseHistoryByExercise: new Map([
-          [
-            'ex-bench',
-            [
-              {
-                logId: 'log-1',
-                exerciseId: 'ex-bench',
-                exerciseName: 'Bench Press',
-                performedAt: '2025-06-01T10:00:00Z',
-                bestWeightG: 100000,
-                totalVolumeG: 500000,
-                totalSets: 3,
-                totalReps: 15,
-                estimated1RM_G: expected1RM,
-              },
-            ],
-          ],
-        ]),
-      });
+      // If the current log is excluded from history, the previous best is effectively 0.
+      const data = makeData({ prevBest1rmByExercise: new Map() });
 
       const result = pr1rm.check(log, data);
       expect(result.earned).toBe(true);
@@ -355,24 +321,7 @@ describe('ACHIEVEMENTS', () => {
         ],
       });
       const data = makeData({
-        exerciseHistoryByExercise: new Map([
-          [
-            'ex-bench',
-            [
-              {
-                logId: 'log-1',
-                exerciseId: 'ex-bench',
-                exerciseName: 'Bench Press',
-                performedAt: '2025-05-01T10:00:00Z',
-                bestWeightG: 100000,
-                totalVolumeG: 2_500_000,
-                totalSets: 3,
-                totalReps: 25,
-                estimated1RM_G: null,
-              },
-            ],
-          ],
-        ]),
+        prevBestVolumeByExercise: new Map([['ex-bench', 2_500_000]]),
       });
 
       const result = volumeKing.check(log, data);
@@ -386,24 +335,7 @@ describe('ACHIEVEMENTS', () => {
         performedSets: [makePerformedSet('ex-bench', 100000, 5)],
       });
       const data = makeData({
-        exerciseHistoryByExercise: new Map([
-          [
-            'ex-bench',
-            [
-              {
-                logId: 'log-1',
-                exerciseId: 'ex-bench',
-                exerciseName: 'Bench Press',
-                performedAt: '2025-05-01T10:00:00Z',
-                bestWeightG: 100000,
-                totalVolumeG: 2_500_000,
-                totalSets: 3,
-                totalReps: 25,
-                estimated1RM_G: null,
-              },
-            ],
-          ],
-        ]),
+        prevBestVolumeByExercise: new Map([['ex-bench', 2_500_000]]),
       });
 
       const result = volumeKing.check(log, data);
@@ -414,7 +346,7 @@ describe('ACHIEVEMENTS', () => {
       const log = makeLog({
         performedSets: [makePerformedSet('ex-bench', 100000, 10)],
       });
-      const data = makeData({ exerciseHistoryByExercise: new Map() });
+      const data = makeData();
 
       const result = volumeKing.check(log, data);
       expect(result.earned).toBe(false);

@@ -144,7 +144,10 @@ export function WeightTrackerSection({
       await db.bodyWeights.put(entry);
 
       // Feedback: level-up sound + big overlay + checkmark in the input box.
-      playSfx('success');
+      {
+        const { soundEnabled, restTimerSound } = useSettingsStore.getState();
+        playSfx('success', { soundEnabled, restTimerSound });
+      }
       const valueText = value.toFixed(value % 1 === 0 ? 0 : 1);
       const unitText = unitSystem === 'kg' ? 'kg' : 'lbs';
 

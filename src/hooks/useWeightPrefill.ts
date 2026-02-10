@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSettingsStore } from '@/stores/settingsStore';
 import { getLastPerformedSetsForMultiple } from '@/lib/queries';
 import { displayToGrams } from '@/lib/calculations';
-import type { WorkoutStep, PerformedSet } from '@/types/workout';
+import type { WorkoutStep, ExerciseStep, PerformedSet } from '@/types/workout';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
@@ -91,7 +91,7 @@ export function findHistoricalWeight(
  *   as importable helpers for use in callbacks
  */
 export function useWeightPrefill(
-  exerciseSteps: WorkoutStep[],
+  exerciseSteps: ExerciseStep[],
   performedSets: Array<PerformedSet | null>,
 ): UseWeightPrefillReturn {
   const unitSystem = useSettingsStore((s) => s.unitSystem);
@@ -151,7 +151,7 @@ export function useWeightPrefill(
     const existing = performedSets[0];
     if (existing) return existing.repsDone;
     const step = exerciseSteps[0];
-    return step?.repsMax ?? step?.repsMin ?? 0;
+    return step?.repsMax ?? 0;
   });
 
   /** Initialize draft values when navigating to a new set. */
@@ -169,7 +169,7 @@ export function useWeightPrefill(
       }
 
       // Prefill reps to repsMax
-      setDraftReps(step.repsMax ?? step.repsMin ?? 0);
+      setDraftReps(step.repsMax);
 
       // Prefill weight: in-session first, then historical, then default.
       const prevWeight = step.exerciseId
@@ -182,7 +182,7 @@ export function useWeightPrefill(
           ? findHistoricalWeight(
               historicalSetsRef.current,
               step.exerciseId,
-              step.setIndex ?? 0,
+              step.setIndex,
             )
           : null;
         if (histWeight !== null) {

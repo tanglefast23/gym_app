@@ -116,7 +116,8 @@ export const WorkoutComplete = ({
 
   // Play celebration sound when the completion screen appears
   useEffect(() => {
-    playSfx('complete');
+    const { soundEnabled, restTimerSound } = useSettingsStore.getState();
+    playSfx('complete', { soundEnabled, restTimerSound });
   }, []);
 
   // Haptic success pattern on mount
@@ -154,6 +155,7 @@ export const WorkoutComplete = ({
   // Long-press easter egg on Total Volume.
   const [funVolume, setFunVolume] = useState(false);
   const longPressRef = useRef<number | null>(null);
+  const funVolumeTimeoutRef = useRef<number | null>(null);
 
   const funVolumeText = useMemo(() => {
     const volumeKg = totalVolumeG / 1000;
@@ -165,6 +167,20 @@ export const WorkoutComplete = ({
   }, [totalVolumeG]);
 
   const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Cleanup any in-flight timeouts on unmount.
+  useEffect(() => {
+    return () => {
+      if (longPressRef.current !== null) {
+        clearTimeout(longPressRef.current);
+        longPressRef.current = null;
+      }
+      if (funVolumeTimeoutRef.current !== null) {
+        clearTimeout(funVolumeTimeoutRef.current);
+        funVolumeTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="relative flex h-full flex-col items-center justify-center gap-8 px-6 py-8">
@@ -222,7 +238,13 @@ export const WorkoutComplete = ({
             longPressRef.current = window.setTimeout(() => {
               longPressRef.current = null;
               setFunVolume(true);
-              window.setTimeout(() => setFunVolume(false), 2000);
+              if (funVolumeTimeoutRef.current !== null) {
+                clearTimeout(funVolumeTimeoutRef.current);
+              }
+              funVolumeTimeoutRef.current = window.setTimeout(() => {
+                funVolumeTimeoutRef.current = null;
+                setFunVolume(false);
+              }, 2000);
             }, 650);
           }}
           onPointerUp={() => {

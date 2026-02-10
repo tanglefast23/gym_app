@@ -79,8 +79,10 @@ export class WorkoutDB extends Dexie {
         // Build a map of templateId -> latest startedAt
         const latestByTemplate = new Map<string, string>();
         for (const log of logs) {
+          // Dexie upgrade records are untyped (previous schema shape); cast documents the expected field type.
           const tid = log.templateId as string | null;
           if (!tid) continue;
+          // Dexie upgrade records are untyped; startedAt is an ISO string in the previous schema.
           const startedAt = log.startedAt as string;
           const existing = latestByTemplate.get(tid);
           if (!existing || startedAt > existing) {
@@ -90,6 +92,7 @@ export class WorkoutDB extends Dexie {
         // Update each template that has logs
         const templates = tx.table('templates');
         await templates.toCollection().modify((template) => {
+          // Dexie upgrade records are untyped; template.id is a string UUID in all schema versions.
           const lastPerformed = latestByTemplate.get(template.id as string);
           if (lastPerformed) {
             template.lastPerformedAt = lastPerformed;

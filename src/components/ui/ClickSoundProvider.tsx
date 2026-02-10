@@ -14,15 +14,14 @@ import { initSfxUnlock, isSfxKey, playSfx } from '@/lib/sfx';
  * without per-component wiring.
  */
 export function ClickSoundProvider(): null {
-  const soundEnabled = useSettingsStore((s) => s.soundEnabled);
-
   useEffect(() => {
     // iOS Safari requires an initial user gesture to allow later programmatic
     // audio playback (e.g. timer beeps). We set up a one-time unlock listener.
     initSfxUnlock();
 
     function handleClick(e: MouseEvent): void {
-      if (!useSettingsStore.getState().soundEnabled) return;
+      const { soundEnabled, restTimerSound } = useSettingsStore.getState();
+      if (!soundEnabled) return;
 
       const target = e.target as HTMLElement | null;
       if (!target) return;
@@ -45,12 +44,12 @@ export function ClickSoundProvider(): null {
       if (interactive instanceof HTMLButtonElement && interactive.disabled) return;
       if (interactive?.getAttribute('aria-disabled') === 'true') return;
 
-      playSfx(key);
+      playSfx(key, { soundEnabled, restTimerSound });
     }
 
     document.addEventListener('click', handleClick, { passive: true });
     return () => document.removeEventListener('click', handleClick);
-  }, [soundEnabled]);
+  }, []);
 
   return null;
 }

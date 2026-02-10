@@ -26,6 +26,7 @@ const {
   mockLogs: {
     count: vi.fn(),
     get: vi.fn(),
+    bulkGet: vi.fn(),
     delete: vi.fn(),
     clear: vi.fn(),
     where: vi.fn(),
@@ -68,6 +69,7 @@ vi.mock('@/lib/db', () => ({
 import {
   writeExerciseHistory,
   getLastPerformedSets,
+  getLastPerformedSetsForMultiple,
   deleteLog,
   getDataCounts,
   deleteAllData,
@@ -321,6 +323,96 @@ describe('getLastPerformedSets', () => {
 
     const result = await getLastPerformedSets('ex-bench');
     expect(result).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getLastPerformedSetsForMultiple
+// ---------------------------------------------------------------------------
+
+describe('getLastPerformedSetsForMultiple', () => {
+  it('returns an empty map when no exerciseIds are provided', async () => {
+    const result = await getLastPerformedSetsForMultiple([]);
+    expect(result.size).toBe(0);
+  });
+
+  it('returns the performed sets for each exerciseId from its latest log', async () => {
+    const log1 = makeLog({
+      id: 'log-1',
+      performedSets: [
+        makePerformedSet('ex-bench', 100000, 8, 'Bench Press', 0),
+        makePerformedSet('ex-squat', 140000, 5, 'Squat', 0),
+      ],
+    });
+    const log2 = makeLog({
+      id: 'log-2',
+      performedSets: [
+        makePerformedSet('ex-bench', 105000, 6, 'Bench Press', 0),
+        makePerformedSet('ex-bench', 105000, 5, 'Bench Press', 1),
+      ],
+    });
+
+    const latestEntryByExercise: Record<string, { logId: string } | undefined> = {
+      'ex-bench': { logId: 'log-2' },
+      'ex-squat': { logId: 'log-1' },
+    };
+
+    mockExerciseHistory.where.mockImplementation(() => ({
+      between: (lower: unknown[]) => {
+        const exerciseId = String(lower[0] ?? '');
+        return {
+          reverse: () => ({
+            first: vi.fn().mockResolvedValue(latestEntryByExercise[exerciseId]),
+          }),
+        };
+      },
+    }));
+
+    mockLogs.bulkGet.mockResolvedValue([log2, log1]);
+
+    const result = await getLastPerformedSetsForMultiple(['ex-bench', 'ex-squat']);
+
+    expect(mockExerciseHistory.where).toHaveBeenCalledWith('[exerciseId+performedAt]');
+    expect(mockLogs.bulkGet).toHaveBeenCalledOnce();
+
+    expect(result.get('ex-bench')).toHaveLength(2);
+    expect(result.get('ex-bench')!.every((s) => s.exerciseId === 'ex-bench')).toBe(true);
+
+    expect(result.get('ex-squat')).toHaveLength(1);
+    expect(result.get('ex-squat')![0]!.exerciseId).toBe('ex-squat');
+  });
+
+  it('deduplicates exerciseIds to avoid redundant history lookups', async () => {
+    mockExerciseHistory.where.mockImplementation(() => ({
+      between: () => ({
+        reverse: () => ({
+          first: vi.fn().mockResolvedValue(undefined),
+        }),
+      }),
+    }));
+
+    await getLastPerformedSetsForMultiple(['ex-bench', 'ex-bench', 'ex-bench']);
+    expect(mockExerciseHistory.where).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips exercises whose latest log is missing', async () => {
+    mockExerciseHistory.where.mockImplementation(() => ({
+      between: (lower: unknown[]) => {
+        const exerciseId = String(lower[0] ?? '');
+        return {
+          reverse: () => ({
+            first: vi.fn().mockResolvedValue(
+              exerciseId === 'ex-bench' ? { logId: 'log-missing' } : undefined,
+            ),
+          }),
+        };
+      },
+    }));
+
+    mockLogs.bulkGet.mockResolvedValue([undefined]);
+
+    const result = await getLastPerformedSetsForMultiple(['ex-bench']);
+    expect(result.size).toBe(0);
   });
 });
 

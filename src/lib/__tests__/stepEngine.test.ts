@@ -7,6 +7,8 @@ import {
 } from '../stepEngine';
 import type {
   ExerciseBlock,
+  ExerciseStep,
+  RestStep,
   SupersetBlock,
   TemplateBlock,
 } from '@/types/workout';
@@ -112,10 +114,11 @@ describe('generateSteps with exercise blocks', () => {
     // Block 2: ex, rest, ex  (3 steps)
     // + complete = 8 steps
     expect(steps).toHaveLength(8);
-    expect(steps[0].exerciseId).toBe('ex-bench');
-    expect(steps[2].exerciseId).toBe('ex-bench');
-    expect(steps[4].exerciseId).toBe('ex-squat');
-    expect(steps[6].exerciseId).toBe('ex-squat');
+    const exSteps = steps.filter((s): s is ExerciseStep => s.type === 'exercise');
+    expect(exSteps[0].exerciseId).toBe('ex-bench');
+    expect(exSteps[1].exerciseId).toBe('ex-bench');
+    expect(exSteps[2].exerciseId).toBe('ex-squat');
+    expect(exSteps[3].exerciseId).toBe('ex-squat');
     expect(steps[7].type).toBe('complete');
   });
 
@@ -124,7 +127,7 @@ describe('generateSteps with exercise blocks', () => {
       makeExerciseBlock({ sets: 2, restBetweenSetsSec: 45 }),
     ];
     const steps = generateSteps(blocks, 90, 120, 30);
-    const restStep = steps.find((s) => s.type === 'rest');
+    const restStep = steps.find((s): s is RestStep => s.type === 'rest');
     expect(restStep?.restDurationSec).toBe(45);
   });
 
@@ -133,14 +136,14 @@ describe('generateSteps with exercise blocks', () => {
       makeExerciseBlock({ sets: 2, restBetweenSetsSec: null }),
     ];
     const steps = generateSteps(blocks, 75, 120, 30);
-    const restStep = steps.find((s) => s.type === 'rest');
+    const restStep = steps.find((s): s is RestStep => s.type === 'rest');
     expect(restStep?.restDurationSec).toBe(75);
   });
 
   it('assigns correct setIndex and totalSets', () => {
     const blocks: TemplateBlock[] = [makeExerciseBlock({ sets: 3 })];
     const steps = generateSteps(blocks, null, 90, 30);
-    const exerciseSteps = steps.filter((s) => s.type === 'exercise');
+    const exerciseSteps = steps.filter((s): s is ExerciseStep => s.type === 'exercise');
 
     expect(exerciseSteps[0].setIndex).toBe(0);
     expect(exerciseSteps[1].setIndex).toBe(1);
@@ -163,24 +166,19 @@ describe('generateSteps with superset blocks', () => {
     // + complete
     // = 4 + 3 + 1 = 8 steps
     expect(steps).toHaveLength(8);
-    expect(steps[0].type).toBe('exercise');
-    expect(steps[0].exerciseId).toBe('ex-a');
-    expect(steps[1].type).toBe('rest');
-    expect(steps[2].type).toBe('exercise');
-    expect(steps[2].exerciseId).toBe('ex-b');
+    const exSteps = steps.filter((s): s is ExerciseStep => s.type === 'exercise');
+    expect(exSteps[0].exerciseId).toBe('ex-a');
+    expect(exSteps[1].exerciseId).toBe('ex-b');
     expect(steps[3].type).toBe('superset-rest');
-    expect(steps[4].type).toBe('exercise');
-    expect(steps[4].exerciseId).toBe('ex-a');
-    expect(steps[5].type).toBe('rest');
-    expect(steps[6].type).toBe('exercise');
-    expect(steps[6].exerciseId).toBe('ex-b');
+    expect(exSteps[2].exerciseId).toBe('ex-a');
+    expect(exSteps[3].exerciseId).toBe('ex-b');
     expect(steps[7].type).toBe('complete');
   });
 
   it('marks superset exercise steps with correct metadata', () => {
     const blocks: TemplateBlock[] = [makeSupersetBlock({ sets: 1 })];
     const steps = generateSteps(blocks, null, 90, 30);
-    const exerciseSteps = steps.filter((s) => s.type === 'exercise');
+    const exerciseSteps = steps.filter((s): s is ExerciseStep => s.type === 'exercise');
 
     exerciseSteps.forEach((s) => {
       expect(s.isSuperset).toBe(true);
@@ -205,11 +203,12 @@ describe('generateSteps with superset blocks', () => {
 
     // A, rest, B, rest, C, complete = 6 steps
     expect(steps).toHaveLength(6);
-    expect(steps[0].exerciseId).toBe('ex-a');
+    const exSteps = steps.filter((s): s is ExerciseStep => s.type === 'exercise');
+    expect(exSteps[0].exerciseId).toBe('ex-a');
     expect(steps[1].type).toBe('rest');
-    expect(steps[2].exerciseId).toBe('ex-b');
+    expect(exSteps[1].exerciseId).toBe('ex-b');
     expect(steps[3].type).toBe('rest');
-    expect(steps[4].exerciseId).toBe('ex-c');
+    expect(exSteps[2].exerciseId).toBe('ex-c');
     expect(steps[5].type).toBe('complete');
   });
 
