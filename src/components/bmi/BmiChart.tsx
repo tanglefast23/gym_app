@@ -127,6 +127,7 @@ export function BmiChart({
             tickLine={false}
             axisLine={false}
             width={38}
+            tickCount={5}
             tickFormatter={(v: number) => `${v}`}
             domain={domain}
           />
