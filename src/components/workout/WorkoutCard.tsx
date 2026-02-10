@@ -78,15 +78,14 @@ export const WorkoutCard = ({
       {/* Exercise preview pills */}
       {exerciseNames.length > 0 ? (
         <div
-          className="exercise-pills mt-3 flex gap-2 overflow-x-auto pb-1 scrollbar-none"
-          tabIndex={0}
+          className="exercise-pills mt-3 flex flex-wrap gap-2"
           role="region"
           aria-label="Exercises in workout"
         >
           {exerciseNames.map(({ id, name }) => (
             <span
               key={id}
-              className="exercise-tag shrink-0 rounded-full bg-elevated px-2.5 py-0.5 text-xs text-text-secondary"
+              className="exercise-tag rounded-full bg-elevated px-2.5 py-0.5 text-xs text-text-secondary"
             >
               {name}
             </span>
