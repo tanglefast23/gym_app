@@ -3,6 +3,7 @@ import { Inter, DM_Mono } from 'next/font/google';
 import { ClickSoundProvider } from '@/components/ui/ClickSoundProvider';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { ThemeProvider } from '@/components/ui/ThemeProvider';
+import { FontSizeProvider } from '@/components/ui/FontSizeProvider';
 import './globals.css';
 
 const inter = Inter({
@@ -56,6 +57,7 @@ export default function RootLayout({
         className={`${inter.variable} ${dmMono.variable} bg-background text-foreground antialiased`}
       >
         <ThemeProvider />
+        <FontSizeProvider />
         <ClickSoundProvider />
         <ErrorBoundary>
           {children}

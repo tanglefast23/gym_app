@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import type { UnitSystem, ThemeMode, Sex, UserSettings } from '@/types/workout';
+import type { UnitSystem, ThemeMode, Sex, FontSize, UserSettings } from '@/types/workout';
 import { DEFAULT_SETTINGS } from '@/types/workout';
 import { autoIncrementAge } from '@/lib/age';
 
@@ -28,6 +28,7 @@ interface SettingsState {
   age: number | null;
   ageUpdatedAt: string | null;
   sex: Sex | null;
+  fontSize: FontSize;
 }
 
 /** The SettingsState field names, used to pick/spread only data fields. */
@@ -46,6 +47,7 @@ const SETTINGS_KEYS: readonly (keyof SettingsState)[] = [
   'age',
   'ageUpdatedAt',
   'sex',
+  'fontSize',
 ] as const;
 
 /**
@@ -83,6 +85,7 @@ interface SettingsActions {
   setHeightCm: (cm: number | null) => void;
   setAge: (age: number | null) => void;
   setSex: (sex: Sex | null) => void;
+  cycleFontSize: () => void;
   resetToDefaults: () => void;
   /** Refresh Zustand state from imported UserSettings (e.g. after a backup restore). */
   rehydrateFromImport: (settings: UserSettings) => void;
@@ -116,6 +119,12 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
           ageUpdatedAt: age == null ? null : new Date().toISOString(),
         }),
       setSex: (sex) => set({ sex }),
+      cycleFontSize: () =>
+        set((state) => {
+          const order: FontSize[] = ['M', 'L', 'XL', 'S'];
+          const idx = order.indexOf(state.fontSize);
+          return { fontSize: order[(idx + 1) % order.length] };
+        }),
       resetToDefaults: () => set(STATE_DEFAULTS),
       rehydrateFromImport: (settings: UserSettings) =>
         set({
@@ -137,6 +146,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
             settings.ageUpdatedAt ??
             (settings.age != null ? new Date().toISOString() : STATE_DEFAULTS.ageUpdatedAt),
           sex: settings.sex ?? STATE_DEFAULTS.sex,
+          fontSize: settings.fontSize ?? STATE_DEFAULTS.fontSize,
         }),
     }),
     {

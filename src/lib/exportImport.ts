@@ -26,6 +26,7 @@ function getSettingsSnapshot(): UserSettings {
     age: s.age,
     ageUpdatedAt: s.ageUpdatedAt,
     sex: s.sex,
+    fontSize: s.fontSize,
   };
 }
 
@@ -116,6 +117,10 @@ function normalizeImportedSettings(raw: unknown): UserSettings {
   } else if (typeof r.ageUpdatedAt === 'string') {
     const d = new Date(r.ageUpdatedAt);
     next.ageUpdatedAt = Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+
+  if (r.fontSize === 'S' || r.fontSize === 'M' || r.fontSize === 'L' || r.fontSize === 'XL') {
+    next.fontSize = r.fontSize;
   }
 
   return next;

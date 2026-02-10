@@ -77,6 +77,12 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ─── Font Size Preference ─── */
+html.font-size-S  { font-size: 15px; }
+html.font-size-M  { font-size: 17.6px; }
+html.font-size-L  { font-size: 20px; }
+html.font-size-XL { font-size: 22.4px; }
+
 body {
   background: var(--background);
   color: var(--foreground);

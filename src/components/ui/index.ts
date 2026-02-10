@@ -11,4 +11,6 @@ export { Stepper } from './Stepper';
 export { NumberStepper, AMRAP_SENTINEL } from './NumberStepper';
 export { ClickSoundProvider } from './ClickSoundProvider';
 export { ThemeProvider } from './ThemeProvider';
+export { FontSizeProvider } from './FontSizeProvider';
+export { FontSizeToggle } from './FontSizeToggle';
 export { StorageWarning } from './StorageWarning';

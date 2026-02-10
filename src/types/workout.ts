@@ -139,6 +139,8 @@ export type UnitSystem = 'kg' | 'lb';
 export type ThemeMode = 'dark' | 'light' | 'system';
 export type Sex = 'male' | 'female';
 
+export type FontSize = 'S' | 'M' | 'L' | 'XL';
+
 export interface UserSettings {
   id: 'settings';
   unitSystem: UnitSystem;
@@ -163,6 +165,8 @@ export interface UserSettings {
   ageUpdatedAt: string | null;
   /** Biological sex, null if not set. */
   sex: Sex | null;
+  /** UI font size preference. */
+  fontSize: FontSize;
 }
 
 // === CRASH RECOVERY ===
@@ -250,4 +254,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   age: null,
   ageUpdatedAt: null,
   sex: null,
+  fontSize: 'M',
 };
