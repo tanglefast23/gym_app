@@ -75,20 +75,25 @@ export class WorkoutDB extends Dexie {
         crashRecovery: 'id',
       })
       .upgrade(async (tx) => {
-        const logs = await tx.table('logs').toArray();
         // Build a map of templateId -> latest startedAt
         const latestByTemplate = new Map<string, string>();
-        for (const log of logs) {
+
+        // Avoid materializing the full logs table during upgrade (which can be large);
+        // iterate records in IndexedDB instead.
+        await tx.table('logs').each((log) => {
           // Dexie upgrade records are untyped (previous schema shape); cast documents the expected field type.
-          const tid = log.templateId as string | null;
-          if (!tid) continue;
+          const tid = (log as unknown as { templateId?: unknown }).templateId as
+            | string
+            | null
+            | undefined;
+          if (!tid) return;
           // Dexie upgrade records are untyped; startedAt is an ISO string in the previous schema.
-          const startedAt = log.startedAt as string;
+          const startedAt = (log as unknown as { startedAt?: unknown }).startedAt as string;
           const existing = latestByTemplate.get(tid);
           if (!existing || startedAt > existing) {
             latestByTemplate.set(tid, startedAt);
           }
-        }
+        });
         // Update each template that has logs
         const templates = tx.table('templates');
         await templates.toCollection().modify((template) => {

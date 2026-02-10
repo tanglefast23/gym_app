@@ -17,6 +17,7 @@ export interface ExerciseGroup {
   exerciseName: string;
   entries: ExerciseHistoryEntry[];
   latestBestWeightG: number;
+  totalSessions: number;
 }
 
 interface ExerciseProgressSectionProps {
@@ -47,7 +48,7 @@ function ExerciseProgressCard({
               {group.exerciseName}
             </h3>
             <p className="text-xs text-text-muted">
-              {group.entries.length} session{group.entries.length !== 1 ? 's' : ''} · Best:{' '}
+              {group.totalSessions} session{group.totalSessions !== 1 ? 's' : ''} · Best:{' '}
               {formatWeightValue(group.latestBestWeightG, unitSystem)} {unitSystem}
             </p>
           </div>

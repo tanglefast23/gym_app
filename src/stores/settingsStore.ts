@@ -165,3 +165,29 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
     }
   )
 );
+
+/**
+ * Build a full `UserSettings` snapshot (including the static `id`) from the current store state.
+ * Used for export so the lib layer does not need to import the store directly.
+ */
+export function getSettingsSnapshot(): UserSettings {
+  const s = useSettingsStore.getState();
+  return {
+    id: 'settings',
+    unitSystem: s.unitSystem,
+    defaultRestBetweenSetsSec: s.defaultRestBetweenSetsSec,
+    defaultTransitionsSec: s.defaultTransitionsSec,
+    weightStepsKg: s.weightStepsKg,
+    weightStepsLb: s.weightStepsLb,
+    hapticFeedback: s.hapticFeedback,
+    soundEnabled: s.soundEnabled,
+    restTimerSound: s.restTimerSound,
+    autoStartRestTimer: s.autoStartRestTimer,
+    theme: s.theme,
+    heightCm: s.heightCm,
+    age: s.age,
+    ageUpdatedAt: s.ageUpdatedAt,
+    sex: s.sex,
+    fontSize: s.fontSize,
+  };
+}

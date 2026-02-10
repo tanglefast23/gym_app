@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLiveQuery } from 'dexie-react-hooks';
+import type { IndexableType } from 'dexie';
 import { Search, Play, Pencil, Copy, Trash2, ArrowRight, Settings } from 'lucide-react';
 import { db } from '@/lib/db';
 import { VALIDATION } from '@/types/workout';
@@ -167,7 +168,10 @@ export default function HomePage() {
   const allTemplates = useLiveQuery(
     () =>
       db.templates
-        .filter((t) => !t.isArchived)
+        .where('isArchived')
+        // Dexie's IndexableType typing does not include boolean, but IndexedDB does support it.
+        // We intentionally store `isArchived` as a boolean for readability.
+        .equals(false as unknown as IndexableType)
         .toArray()
         .then((templates) =>
           templates.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),

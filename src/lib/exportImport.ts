@@ -1,34 +1,11 @@
 import { db } from '@/lib/db';
 import { validateImportData } from '@/lib/validation';
-import { useSettingsStore } from '@/stores/settingsStore';
 import { DEFAULT_SETTINGS } from '@/types/workout';
 import { VALIDATION } from '@/types/workout';
 import type { ExportData, UserSettings } from '@/types/workout';
 
 /** Maximum allowed import file size in bytes (10 MB). */
 const MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024;
-
-function getSettingsSnapshot(): UserSettings {
-  const s = useSettingsStore.getState();
-  return {
-    id: 'settings',
-    unitSystem: s.unitSystem,
-    defaultRestBetweenSetsSec: s.defaultRestBetweenSetsSec,
-    defaultTransitionsSec: s.defaultTransitionsSec,
-    weightStepsKg: s.weightStepsKg,
-    weightStepsLb: s.weightStepsLb,
-    hapticFeedback: s.hapticFeedback,
-    soundEnabled: s.soundEnabled,
-    restTimerSound: s.restTimerSound,
-    autoStartRestTimer: s.autoStartRestTimer,
-    theme: s.theme,
-    heightCm: s.heightCm,
-    age: s.age,
-    ageUpdatedAt: s.ageUpdatedAt,
-    sex: s.sex,
-    fontSize: s.fontSize,
-  };
-}
 
 function normalizeImportedSettings(raw: unknown): UserSettings {
   const next: UserSettings = { ...DEFAULT_SETTINGS };
@@ -131,9 +108,10 @@ function normalizeImportedSettings(raw: unknown): UserSettings {
  * Reads every Dexie table in parallel and packages the result
  * into the `ExportData` envelope with schema version and timestamp.
  * The caller decides how to persist/download the returned object.
+ * Note: settings are supplied by the caller to avoid a hard dependency on the settings store.
  * @returns A fully-populated `ExportData` object
  */
-export async function exportAllData(): Promise<ExportData> {
+export async function exportAllData(settings: UserSettings): Promise<ExportData> {
   const [exercises, templates, logs, exerciseHistory, achievements, bodyWeights] =
     await Promise.all([
       db.exercises.toArray(),
@@ -147,7 +125,7 @@ export async function exportAllData(): Promise<ExportData> {
   return {
     schemaVersion: 1,
     exportedAt: new Date().toISOString(),
-    settings: getSettingsSnapshot(),
+    settings,
     exercises,
     templates,
     logs,
@@ -162,8 +140,8 @@ export async function exportAllData(): Promise<ExportData> {
  * download mechanism. Creates a temporary anchor element, triggers
  * the download, then cleans up the object URL.
  */
-export async function downloadExport(): Promise<void> {
-  const data = await exportAllData();
+export async function downloadExport(settings: UserSettings): Promise<void> {
+  const data = await exportAllData(settings);
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -186,9 +164,9 @@ export async function downloadExport(): Promise<void> {
  *
  * @returns `true` if the backup download was triggered successfully, `false` on error
  */
-export async function exportBackupBeforeImport(): Promise<boolean> {
+export async function exportBackupBeforeImport(settings: UserSettings): Promise<boolean> {
   try {
-    const data = await exportAllData();
+    const data = await exportAllData(settings);
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -218,7 +196,7 @@ export async function exportBackupBeforeImport(): Promise<boolean> {
  */
 export async function importData(
   file: File,
-): Promise<{ success: boolean; errors: string[] }> {
+): Promise<{ success: boolean; errors: string[]; settings?: UserSettings }> {
   try {
     // Reject oversized files before parsing to avoid freezing the browser
     if (file.size > MAX_IMPORT_FILE_SIZE) {
@@ -292,10 +270,7 @@ export async function importData(
       },
     );
 
-    // Sync the Zustand settings store so in-memory state matches the imported data
-    useSettingsStore.getState().rehydrateFromImport(normalizedSettings);
-
-    return { success: true, errors: [] };
+    return { success: true, errors: [], settings: normalizedSettings };
   } catch (err: unknown) {
     const message =
       err instanceof Error ? err.message : 'Unknown import error';

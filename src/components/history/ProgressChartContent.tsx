@@ -24,6 +24,9 @@ interface ChartDataPoint {
   value: number;
 }
 
+/** Keep Recharts responsive by limiting how many points we render per chart. */
+const MAX_CHART_POINTS = 60;
+
 /**
  * Formats a date string to MM/DD for the X-axis.
  */
@@ -56,29 +59,34 @@ function transformData(
   metric: '1rm' | 'volume' | 'weight',
   unit: UnitSystem,
 ): ChartDataPoint[] {
-  return data
-    .filter((entry) => {
-      if (metric === '1rm') return entry.estimated1RM_G !== null;
-      return true;
-    })
-    .map((entry) => {
-      let rawValue: number;
-      switch (metric) {
-        case '1rm':
-          rawValue = entry.estimated1RM_G ?? 0;
-          break;
-        case 'volume':
-          rawValue = entry.totalVolumeG;
-          break;
-        case 'weight':
-          rawValue = entry.bestWeightG;
-          break;
-      }
-      return {
-        date: formatDateAxis(entry.performedAt),
-        value: convertToDisplayUnit(rawValue, unit),
-      };
-    });
+  const filtered = data.filter((entry) => {
+    if (metric === '1rm') return entry.estimated1RM_G !== null;
+    return true;
+  });
+
+  const limited =
+    filtered.length > MAX_CHART_POINTS
+      ? filtered.slice(-MAX_CHART_POINTS)
+      : filtered;
+
+  return limited.map((entry) => {
+    let rawValue: number;
+    switch (metric) {
+      case '1rm':
+        rawValue = entry.estimated1RM_G ?? 0;
+        break;
+      case 'volume':
+        rawValue = entry.totalVolumeG;
+        break;
+      case 'weight':
+        rawValue = entry.bestWeightG;
+        break;
+    }
+    return {
+      date: formatDateAxis(entry.performedAt),
+      value: convertToDisplayUnit(rawValue, unit),
+    };
+  });
 }
 
 /**

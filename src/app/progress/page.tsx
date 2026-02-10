@@ -23,33 +23,99 @@ import type { ExercisePR } from '@/components/progress/PersonalRecordsSection';
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Group all exercise history entries by exerciseId. Sorted by most recent first. */
-function groupExerciseHistory(all: ExerciseHistoryEntry[]): ExerciseGroup[] {
-  const map = new Map<string, ExerciseGroup>();
+/**
+ * Keep charts responsive by limiting how many history points we keep per exercise.
+ * This also avoids holding the entire exerciseHistory table in memory.
+ */
+const HISTORY_POINTS_PER_EXERCISE = 60;
 
-  for (const entry of all) {
-    const existing = map.get(entry.exerciseId);
+type ExerciseGroupWithLast = { group: ExerciseGroup; lastPerformedAt: string };
+
+async function computeExerciseHistorySummary(): Promise<{
+  exerciseGroups: ExerciseGroup[];
+  personalRecords: ExercisePR[];
+}> {
+  const groups = new Map<string, ExerciseGroupWithLast>();
+  const prs = new Map<string, ExercisePR>();
+
+  // Iterate in chronological order so each exercise's `lastPerformedAt`
+  // is simply the last entry we see.
+  await db.exerciseHistory.orderBy('performedAt').each((entry: ExerciseHistoryEntry) => {
+    const existing = groups.get(entry.exerciseId);
     if (existing) {
-      existing.entries.push(entry);
-      if (entry.bestWeightG > existing.latestBestWeightG) {
-        existing.latestBestWeightG = entry.bestWeightG;
+      existing.group.totalSessions += 1;
+      existing.lastPerformedAt = entry.performedAt;
+      if (entry.bestWeightG > existing.group.latestBestWeightG) {
+        existing.group.latestBestWeightG = entry.bestWeightG;
+      }
+
+      existing.group.entries.push(entry);
+      if (existing.group.entries.length > HISTORY_POINTS_PER_EXERCISE) {
+        existing.group.entries.shift();
       }
     } else {
-      map.set(entry.exerciseId, {
-        exerciseId: entry.exerciseId,
-        exerciseName: entry.exerciseName,
-        entries: [entry],
-        latestBestWeightG: entry.bestWeightG,
+      groups.set(entry.exerciseId, {
+        group: {
+          exerciseId: entry.exerciseId,
+          exerciseName: entry.exerciseName,
+          entries: [entry],
+          latestBestWeightG: entry.bestWeightG,
+          totalSessions: 1,
+        },
+        lastPerformedAt: entry.performedAt,
       });
     }
-  }
 
-  // Sort by most recently performed exercise first
-  return Array.from(map.values()).sort((a, b) => {
-    const aLatest = a.entries[a.entries.length - 1]?.performedAt ?? '';
-    const bLatest = b.entries[b.entries.length - 1]?.performedAt ?? '';
-    return bLatest.localeCompare(aLatest);
+    const pr = prs.get(entry.exerciseId);
+    if (!pr) {
+      prs.set(entry.exerciseId, {
+        exerciseId: entry.exerciseId,
+        exerciseName: entry.exerciseName,
+        bestWeightG: entry.bestWeightG,
+        bestWeightDate: entry.performedAt,
+        best1RM_G: entry.estimated1RM_G,
+        best1RMDate: entry.estimated1RM_G ? entry.performedAt : null,
+        bestVolumeG: entry.totalVolumeG,
+        bestVolumeDate: entry.performedAt,
+      });
+    } else {
+      if (entry.bestWeightG > pr.bestWeightG) {
+        pr.bestWeightG = entry.bestWeightG;
+        pr.bestWeightDate = entry.performedAt;
+      }
+
+      if (
+        entry.estimated1RM_G !== null &&
+        (pr.best1RM_G === null || entry.estimated1RM_G > pr.best1RM_G)
+      ) {
+        pr.best1RM_G = entry.estimated1RM_G;
+        pr.best1RMDate = entry.performedAt;
+      }
+
+      if (entry.totalVolumeG > pr.bestVolumeG) {
+        pr.bestVolumeG = entry.totalVolumeG;
+        pr.bestVolumeDate = entry.performedAt;
+      }
+    }
   });
+
+  const exerciseGroups = Array.from(groups.values())
+    .sort((a, b) => b.lastPerformedAt.localeCompare(a.lastPerformedAt))
+    .map((x) => x.group);
+
+  const personalRecords = Array.from(prs.values()).sort((a, b) => {
+    const aDate = [a.bestWeightDate, a.best1RMDate, a.bestVolumeDate]
+      .filter(Boolean)
+      .sort()
+      .pop() ?? '';
+    const bDate = [b.bestWeightDate, b.best1RMDate, b.bestVolumeDate]
+      .filter(Boolean)
+      .sort()
+      .pop() ?? '';
+    return bDate.localeCompare(aDate) || a.exerciseName.localeCompare(b.exerciseName);
+  });
+
+  return { exerciseGroups, personalRecords };
 }
 
 /** Build a lookup map from achievement ID to its unlocked data. */
@@ -86,61 +152,8 @@ async function computeDurationStats(): Promise<DurationStats> {
 }
 
 // ---------------------------------------------------------------------------
-// Personal Records helpers (Feature 11)
+// Personal Records (Feature 11)
 // ---------------------------------------------------------------------------
-
-function computePersonalRecords(all: ExerciseHistoryEntry[]): ExercisePR[] {
-  const map = new Map<string, ExercisePR>();
-
-  for (const entry of all) {
-    const existing = map.get(entry.exerciseId);
-
-    if (!existing) {
-      map.set(entry.exerciseId, {
-        exerciseId: entry.exerciseId,
-        exerciseName: entry.exerciseName,
-        bestWeightG: entry.bestWeightG,
-        bestWeightDate: entry.performedAt,
-        best1RM_G: entry.estimated1RM_G,
-        best1RMDate: entry.estimated1RM_G ? entry.performedAt : null,
-        bestVolumeG: entry.totalVolumeG,
-        bestVolumeDate: entry.performedAt,
-      });
-      continue;
-    }
-
-    if (entry.bestWeightG > existing.bestWeightG) {
-      existing.bestWeightG = entry.bestWeightG;
-      existing.bestWeightDate = entry.performedAt;
-    }
-
-    if (
-      entry.estimated1RM_G !== null &&
-      (existing.best1RM_G === null || entry.estimated1RM_G > existing.best1RM_G)
-    ) {
-      existing.best1RM_G = entry.estimated1RM_G;
-      existing.best1RMDate = entry.performedAt;
-    }
-
-    if (entry.totalVolumeG > existing.bestVolumeG) {
-      existing.bestVolumeG = entry.totalVolumeG;
-      existing.bestVolumeDate = entry.performedAt;
-    }
-  }
-
-  // Sort by most recent PR date (any category)
-  return Array.from(map.values()).sort((a, b) => {
-    const aDate = [a.bestWeightDate, a.best1RMDate, a.bestVolumeDate]
-      .filter(Boolean)
-      .sort()
-      .pop() ?? '';
-    const bDate = [b.bestWeightDate, b.best1RMDate, b.bestVolumeDate]
-      .filter(Boolean)
-      .sort()
-      .pop() ?? '';
-    return bDate.localeCompare(aDate);
-  });
-}
 
 // ---------------------------------------------------------------------------
 // Page Component
@@ -179,10 +192,7 @@ export default function ProgressPage() {
 
   const totalExercises = useLiveQuery(() => db.exercises.count(), []);
 
-  const allHistory = useLiveQuery(
-    () => db.exerciseHistory.orderBy('performedAt').toArray(),
-    [],
-  );
+  const historySummary = useLiveQuery(() => computeExerciseHistorySummary(), []);
 
   const unlockedAchievements = useLiveQuery(
     () => db.achievements.toArray(),
@@ -190,26 +200,20 @@ export default function ProgressPage() {
   );
 
   // -- Derived data --
-  const exerciseGroups = useMemo(
-    () => groupExerciseHistory(allHistory ?? []),
-    [allHistory],
-  );
+  const exerciseGroups = historySummary?.exerciseGroups ?? [];
 
   const unlockedMap = useMemo(
     () => buildUnlockedMap(unlockedAchievements ?? []),
     [unlockedAchievements],
   );
 
-  const personalRecords = useMemo(
-    () => computePersonalRecords(allHistory ?? []),
-    [allHistory],
-  );
+  const personalRecords = historySummary?.personalRecords ?? [];
 
   const isLoading =
     durationStats === undefined ||
     weekWorkouts === undefined ||
     totalExercises === undefined ||
-    allHistory === undefined ||
+    historySummary === undefined ||
     unlockedAchievements === undefined;
 
   return (

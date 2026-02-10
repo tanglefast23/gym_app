@@ -16,7 +16,6 @@ const {
   mockSettings,
   mockCrashRecovery,
   mockTransaction,
-  mockRehydrateFromImport,
 } = vi.hoisted(() => ({
   mockExercises: {
     toArray: vi.fn(),
@@ -56,7 +55,6 @@ const {
     clear: vi.fn(),
   },
   mockTransaction: vi.fn(),
-  mockRehydrateFromImport: vi.fn(),
 }));
 
 vi.mock('@/lib/db', () => ({
@@ -70,27 +68,6 @@ vi.mock('@/lib/db', () => ({
     settings: mockSettings,
     crashRecovery: mockCrashRecovery,
     transaction: mockTransaction,
-  },
-}));
-
-vi.mock('@/stores/settingsStore', () => ({
-  useSettingsStore: {
-    getState: vi.fn(() => ({
-      unitSystem: 'kg' as const,
-      defaultRestBetweenSetsSec: 60,
-      defaultTransitionsSec: 60,
-      weightStepsKg: [1, 2.5, 5],
-      weightStepsLb: [2.5, 5, 10],
-      hapticFeedback: true,
-      soundEnabled: true,
-      restTimerSound: true,
-      autoStartRestTimer: true,
-      theme: 'dark' as const,
-      heightCm: null,
-      age: null,
-      sex: null,
-      rehydrateFromImport: mockRehydrateFromImport,
-    })),
   },
 }));
 
@@ -166,7 +143,7 @@ describe('exportAllData', () => {
     mockAchievements.toArray.mockResolvedValue([]);
     mockBodyWeights.toArray.mockResolvedValue([]);
 
-    const result = await exportAllData();
+    const result = await exportAllData({ ...DEFAULT_SETTINGS });
 
     expect(result.exercises).toEqual(exercises);
     expect(result.templates).toEqual(templates);
@@ -177,27 +154,29 @@ describe('exportAllData', () => {
   });
 
   it('includes schemaVersion of 1', async () => {
-    const result = await exportAllData();
+    const result = await exportAllData({ ...DEFAULT_SETTINGS });
     expect(result.schemaVersion).toBe(1);
   });
 
   it('includes exportedAt as a valid ISO timestamp', async () => {
-    const result = await exportAllData();
+    const result = await exportAllData({ ...DEFAULT_SETTINGS });
     expect(result.exportedAt).toBeDefined();
     const parsed = new Date(result.exportedAt);
     expect(parsed.getTime()).not.toBeNaN();
   });
 
-  it('includes settings snapshot from the Zustand store', async () => {
-    const result = await exportAllData();
-    expect(result.settings).toBeDefined();
-    expect(result.settings.id).toBe('settings');
-    expect(result.settings.unitSystem).toBe('kg');
-    expect(result.settings.defaultRestBetweenSetsSec).toBe(60);
+  it('includes settings snapshot provided by the caller', async () => {
+    const settings: UserSettings = {
+      ...DEFAULT_SETTINGS,
+      unitSystem: 'lb',
+      defaultRestBetweenSetsSec: 90,
+    };
+    const result = await exportAllData(settings);
+    expect(result.settings).toEqual(settings);
   });
 
   it('reads all tables in parallel', async () => {
-    await exportAllData();
+    await exportAllData({ ...DEFAULT_SETTINGS });
 
     expect(mockExercises.toArray).toHaveBeenCalledOnce();
     expect(mockTemplates.toArray).toHaveBeenCalledOnce();
@@ -363,13 +342,21 @@ describe('importData', () => {
     expect(putArg.defaultRestBetweenSetsSec).toBe(90);
   });
 
-  it('rehydrates the Zustand settings store after import', async () => {
-    const data = makeValidExportData();
+  it('returns normalized settings for the UI/store layer to rehydrate', async () => {
+    const customSettings: UserSettings = {
+      ...DEFAULT_SETTINGS,
+      unitSystem: 'lb',
+      defaultRestBetweenSetsSec: 90,
+    };
+    const data = makeValidExportData({ settings: customSettings });
     const file = makeFile(data);
 
-    await importData(file);
+    const result = await importData(file);
 
-    expect(mockRehydrateFromImport).toHaveBeenCalledOnce();
+    expect(result.success).toBe(true);
+    expect(result.settings).toBeDefined();
+    expect(result.settings!.unitSystem).toBe('lb');
+    expect(result.settings!.defaultRestBetweenSetsSec).toBe(90);
   });
 
   it('rejects a file larger than 10 MB', async () => {
@@ -468,7 +455,7 @@ describe('exportBackupBeforeImport', () => {
     vi.spyOn(document.body, 'appendChild').mockImplementation(() => mockElement as unknown as HTMLElement);
     vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockElement as unknown as HTMLElement);
 
-    const result = await exportBackupBeforeImport();
+    const result = await exportBackupBeforeImport({ ...DEFAULT_SETTINGS });
 
     expect(result).toBe(true);
     expect(mockClick).toHaveBeenCalledOnce();
@@ -483,7 +470,7 @@ describe('exportBackupBeforeImport', () => {
     // Make exportAllData fail by making a table throw
     mockExercises.toArray.mockRejectedValue(new Error('DB failure'));
 
-    const result = await exportBackupBeforeImport();
+    const result = await exportBackupBeforeImport({ ...DEFAULT_SETTINGS });
 
     expect(result).toBe(false);
   });

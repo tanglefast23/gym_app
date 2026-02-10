@@ -7,8 +7,9 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Header } from '@/components/layout/Header';
 import { Button, ConfirmDialog, useToastStore, ToastContainer, StorageWarning } from '@/components/ui';
 import { useStorageQuota } from '@/hooks';
-import { useSettingsStore } from '@/stores/settingsStore';
-import { downloadExport, importData, previewImport } from '@/lib/exportImport';
+import { useActiveWorkoutStore } from '@/stores/activeWorkoutStore';
+import { useSettingsStore, getSettingsSnapshot } from '@/stores/settingsStore';
+import { downloadExport, exportBackupBeforeImport, importData, previewImport } from '@/lib/exportImport';
 import {
   getDataCounts,
   deleteAllData,
@@ -288,7 +289,7 @@ function SettingsContent() {
   const handleExport = useCallback(async () => {
     setIsExporting(true);
     try {
-      await downloadExport();
+      await downloadExport(getSettingsSnapshot());
       addToast('Data exported successfully', 'success');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Export failed';
@@ -337,8 +338,27 @@ function SettingsContent() {
     setShowImportConfirm(false);
 
     try {
+      const backupOk = await exportBackupBeforeImport(getSettingsSnapshot());
+      if (!backupOk) {
+        addToast('Backup download failed. Import will still proceed.', 'info');
+      }
+
       const result = await importData(importFile);
       if (result.success) {
+        if (result.settings) {
+          useSettingsStore.getState().rehydrateFromImport(result.settings);
+        }
+
+        // Import is a destructive replace-all; clear any active workout session state
+        // so users do not resume into mismatched template/log IDs.
+        useActiveWorkoutStore.getState().reset();
+        try {
+          sessionStorage.removeItem('workout-pwa-active-session');
+          sessionStorage.removeItem('active-workout'); // legacy key
+        } catch {
+          // ignore
+        }
+
         addToast('Data imported successfully', 'success');
       } else {
         addToast(result.errors[0] ?? 'Import failed', 'error');

@@ -158,6 +158,10 @@ export async function buildNameMapFromBlocks(
     }
   }
 
+  if (exerciseIds.size === 0) {
+    return nameMap;
+  }
+
   // Bulk-fetch exercises from DB
   const exercises = await db.exercises
     .where('id')

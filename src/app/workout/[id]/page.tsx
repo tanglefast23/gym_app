@@ -407,17 +407,16 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   // Wake lock: acquire on mount, release on unmount
   // ---------------------------------------------------------------------------
 
-  const wakeLock = useWakeLock();
+  const { request: requestWakeLock, release: releaseWakeLock } = useWakeLock();
 
   useEffect(() => {
     if (isActive) {
-      void wakeLock.request();
+      void requestWakeLock();
     }
     return () => {
-      void wakeLock.release();
+      void releaseWakeLock();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive]);
+  }, [isActive, requestWakeLock, releaseWakeLock]);
 
   // ---------------------------------------------------------------------------
   // Body class for overscroll behavior
