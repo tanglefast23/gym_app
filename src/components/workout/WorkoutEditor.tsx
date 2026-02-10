@@ -414,7 +414,7 @@ export function WorkoutEditor({
           <Button
             variant="secondary"
             onClick={addExerciseBlock}
-            className="flex-1"
+            className="flex-1 border-accent/40 bg-accent/10 text-accent hover:bg-accent/20"
           >
             <Dumbbell className="h-4 w-4" />
             Add Exercise
@@ -422,7 +422,7 @@ export function WorkoutEditor({
           <Button
             variant="secondary"
             onClick={addSupersetBlock}
-            className="flex-1"
+            className="flex-1 border-accent/40 bg-accent/10 text-accent hover:bg-accent/20"
           >
             <Layers className="h-4 w-4" />
             Add Superset
