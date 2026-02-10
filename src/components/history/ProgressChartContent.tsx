@@ -146,6 +146,7 @@ const ProgressChartContent = ({
             tickLine={false}
             axisLine={false}
             width={45}
+            tickCount={5}
             tickFormatter={(v: number) => `${v}`}
           />
           <Tooltip content={<CustomTooltip unit={unitSystem} />} />

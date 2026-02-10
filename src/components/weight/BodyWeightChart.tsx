@@ -79,7 +79,7 @@ export function BodyWeightChart({
   return (
     <div role="img" aria-label={summaryText} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -10 }}>
           <XAxis
             dataKey="label"
             stroke="var(--text-muted, #6B6B70)"
@@ -89,7 +89,16 @@ export function BodyWeightChart({
             interval="preserveStartEnd"
             minTickGap={18}
           />
-          <YAxis hide domain={['auto', 'auto']} />
+          <YAxis
+            stroke="var(--text-muted, #6B6B70)"
+            fontSize={10}
+            tickLine={false}
+            axisLine={false}
+            width={40}
+            domain={['auto', 'auto']}
+            tickCount={5}
+            tickFormatter={(v: number) => `${v}`}
+          />
           <Tooltip content={<CustomTooltip unit={unitSystem} />} />
           <Line
             type="monotone"
