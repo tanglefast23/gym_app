@@ -7,19 +7,8 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import { useHaptics } from '@/hooks';
 import { formatDuration, formatWeight } from '@/lib/calculations';
 import { playSfx } from '@/lib/sfx';
-
-export interface NewAchievementInfo {
-  id: string;
-  name: string;
-  icon: string;
-  iconSrc: string;
-  context: string | null;
-}
-
-export interface PersonalRecordSummary {
-  oneRm: Array<{ exerciseId: string; name: string }>;
-  volume: Array<{ exerciseId: string; name: string }>;
-}
+import type { NewAchievementInfo } from '@/types/workout';
+import type { PersonalRecordSummary } from '@/lib/personalRecords';
 
 interface WorkoutCompleteProps {
   durationSec: number;

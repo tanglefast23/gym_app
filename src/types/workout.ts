@@ -207,16 +207,6 @@ export interface WorkoutStep {
   supersetTotalExercises?: number;
 }
 
-// === TIMER ===
-export type TimerMessageType = 'START' | 'STOP' | 'TICK' | 'COMPLETE' | 'ADJUST';
-
-export interface TimerMessage {
-  type: TimerMessageType;
-  endTime?: number;
-  remaining?: number;
-  adjustMs?: number;
-}
-
 // === VALIDATION CONSTRAINTS ===
 export const VALIDATION = {
   WORKOUT_NAME_MAX: 100,

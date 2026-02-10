@@ -25,8 +25,8 @@ interface ResolvedData {
  */
 export default function EditPage() {
   const router = useRouter();
-  const params = useParams();
-  const templateId = params.id as string;
+  const params = useParams<{ id: string }>();
+  const templateId = params.id;
   const addToast = useToastStore((s) => s.addToast);
 
   const template = useLiveQuery(

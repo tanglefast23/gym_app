@@ -122,10 +122,8 @@ export function validateBlock(
       const restErr = validateRestTime(block.restBetweenSetsSec);
       if (restErr) errors.push(restErr);
     }
-    if ((block as { transitionRestSec?: number | null }).transitionRestSec != null) {
-      const restErr = validateRestTime(
-        (block as { transitionRestSec: number }).transitionRestSec,
-      );
+    if (block.transitionRestSec != null) {
+      const restErr = validateRestTime(block.transitionRestSec);
       if (restErr) errors.push(`Transition rest: ${restErr}`);
     }
   } else if (block.type === 'superset') {
@@ -142,10 +140,8 @@ export function validateBlock(
     if (restBetween) errors.push(`Rest between exercises: ${restBetween}`);
     const restAfter = validateRestTime(block.restBetweenSupersetsSec);
     if (restAfter) errors.push(`Rest between supersets: ${restAfter}`);
-    if ((block as { transitionRestSec?: number | null }).transitionRestSec != null) {
-      const restErr = validateRestTime(
-        (block as { transitionRestSec: number }).transitionRestSec,
-      );
+    if (block.transitionRestSec != null) {
+      const restErr = validateRestTime(block.transitionRestSec);
       if (restErr) errors.push(`Transition rest: ${restErr}`);
     }
   }

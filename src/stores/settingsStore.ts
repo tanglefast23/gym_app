@@ -59,13 +59,14 @@ const STATE_DEFAULTS: SettingsState = (() => {
   return rest;
 })();
 
-/** Pick only SettingsState keys from an arbitrary object. */
-function pickSettingsState(source: Record<string, unknown>): SettingsState {
-  const result = {} as Record<string, unknown>;
+/** Pick only SettingsState keys from the full store object. */
+function pickSettingsState(source: SettingsState & SettingsActions): SettingsState {
+  const result: Partial<SettingsState> = {};
   for (const key of SETTINGS_KEYS) {
-    result[key] = source[key as string];
+    // Safe: SETTINGS_KEYS is derived from SettingsState, so all keys exist
+    (result as Record<string, unknown>)[key] = source[key];
   }
-  return result as unknown as SettingsState;
+  return result as SettingsState;
 }
 
 interface SettingsActions {
@@ -140,7 +141,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
     }),
     {
       name: 'workout-pwa-settings',
-      partialize: (state) => pickSettingsState(state as unknown as Record<string, unknown>),
+      partialize: (state) => pickSettingsState(state),
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         const next = autoIncrementAge({

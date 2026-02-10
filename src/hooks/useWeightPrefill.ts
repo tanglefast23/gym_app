@@ -117,32 +117,14 @@ export function useWeightPrefill(
 
     const fetchHistory = async (): Promise<void> => {
       try {
-        const results = await Promise.allSettled(
-          [[...exerciseIds]] .map(async (ids) => {
-            return getLastPerformedSetsForMultiple(ids);
-          }),
-        );
-
-        const map = new Map<string, PerformedSet[]>();
-        for (const result of results) {
-          if (result.status === 'fulfilled') {
-            for (const [eid, sets] of result.value) {
-              map.set(eid, sets);
-            }
-          } else {
-            console.warn(
-              '[useWeightPrefill] Failed to fetch exercise history batch:',
-              result.reason,
-            );
-          }
-        }
+        const result = await getLastPerformedSetsForMultiple([...exerciseIds]);
 
         if (!cancelled) {
-          historicalSetsRef.current = map;
+          historicalSetsRef.current = result;
           setHistoricalLoaded(true);
         }
       } catch (error: unknown) {
-        console.warn('[useWeightPrefill] Unexpected error fetching history:', error);
+        console.warn('[useWeightPrefill] Failed to fetch exercise history:', error);
         if (!cancelled) setHistoricalLoaded(true);
       }
     };

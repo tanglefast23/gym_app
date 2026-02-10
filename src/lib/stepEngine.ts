@@ -205,7 +205,7 @@ export function generateSteps(
     // Transition rest between top-level blocks (no trailing rest after last block)
     if (blockIndex < blocks.length - 1) {
       const restSec = resolveTransitionRest(
-        (block as { transitionRestSec?: number | null }).transitionRestSec,
+        block.transitionRestSec,
         globalDefaultTransitions,
       );
       if (restSec > 0) {

@@ -50,9 +50,9 @@ const COUNTDOWN_BEEP_INTERVAL_MS = 900; // ~1x per second (with margin for tick 
 type WorkoutPhase = 'workout' | 'recap' | 'complete';
 
 export default function ActiveWorkoutPage(): React.JSX.Element {
-  const params = useParams();
+  const params = useParams<{ id: string }>();
   const router = useRouter();
-  const id = params.id as string;
+  const id = params.id;
 
   // ---------------------------------------------------------------------------
   // Local state

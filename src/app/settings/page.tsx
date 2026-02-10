@@ -73,7 +73,7 @@ function Toggle({ enabled, onToggle, disabled = false }: ToggleProps) {
 
 interface SegmentedControlProps<T extends string> {
   options: { value: T; label: string }[];
-  value: T;
+  value: T | '';
   onChange: (v: T) => void;
 }
 
@@ -560,7 +560,7 @@ function SettingsContent() {
           <SettingRow label="Sex">
             <SegmentedControl
               options={sexOptions}
-              value={sex ?? ('' as Sex)}
+              value={sex ?? ''}
               onChange={handleSexChange}
             />
           </SettingRow>

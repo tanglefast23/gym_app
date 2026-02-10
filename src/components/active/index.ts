@@ -5,4 +5,4 @@ export { SetLogSheet } from './SetLogSheet';
 export { WeightRecap } from './WeightRecap';
 export { WorkoutComplete } from './WorkoutComplete';
 export { WorkoutTimeline } from './WorkoutTimeline';
-export type { NewAchievementInfo } from './WorkoutComplete';
+export type { NewAchievementInfo } from '@/types/workout';
