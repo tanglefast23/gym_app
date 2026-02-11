@@ -65,10 +65,9 @@ export const WorkoutCard = ({
           </h3>
         </div>
         <span
-          className="exercise-count rounded-full px-2.5 py-0.5 text-xs font-medium"
+          className="exercise-count rounded-full px-2.5 py-0.5 text-xs font-bold"
           style={{
-            backgroundColor: hexToRgba(typeColor, 0.18),
-            color: typeColor,
+            backgroundColor: hexToRgba(typeColor, 0.22),
           }}
         >
           {exerciseCount} {exerciseCount === 1 ? 'exercise' : 'exercises'}
