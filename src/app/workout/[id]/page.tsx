@@ -141,6 +141,14 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
   /** Stores the latest weight hint from ExerciseDisplay for SetLogSheet prefill. */
   const [weightHintG, setWeightHintG] = useState<number | null>(null);
 
+  /** Hidden stopwatch: records when the SetLogSheet opened so we can subtract
+   *  data-entry time from the subsequent rest timer. */
+  const entryStartTimeRef = useRef<number | null>(null);
+  /** Stores computed entry elapsed seconds for manual-start timer path. */
+  const pendingEntryElapsedRef = useRef(0);
+  /** Adjusted rest duration (ms) after subtracting entry time, for the timer ring. */
+  const [adjustedRestTotalMs, setAdjustedRestTotalMs] = useState(0);
+
   const {
     stepProgressText,
     currentExerciseName,
@@ -292,31 +300,58 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
       (step.type === 'rest' || step.type === 'superset-rest') &&
       step.restDurationSec
     ) {
-      const endTime = Date.now() + step.restDurationSec * 1000;
+      // Subtract any data-entry time that was tracked before reaching this screen
+      const entryElapsed = pendingEntryElapsedRef.current;
+      pendingEntryElapsedRef.current = 0;
+      const adjustedSec = Math.max(0, step.restDurationSec - entryElapsed);
+      if (adjustedSec <= 0) {
+        timer.skip();
+        return;
+      }
+      const endTime = Date.now() + adjustedSec * 1000;
       setTimerEndTime(endTime);
-      timer.start(step.restDurationSec);
+      setAdjustedRestTotalMs(adjustedSec * 1000);
+      timer.start(adjustedSec);
     }
   }, [steps, currentStepIndex, setTimerEndTime, timer]);
 
-  /** Advance to the next step and auto-start the rest timer if applicable. */
-  const advanceAndStartTimer = useCallback(() => {
+  /** Advance to the next step and auto-start the rest timer if applicable.
+   *  `entryElapsedSec` is subtracted from the rest duration (clamped to 0)
+   *  to account for time already spent on data entry. */
+  const advanceAndStartTimer = useCallback((entryElapsedSec = 0) => {
     advanceStep();
 
-    if (autoStartRestTimer) {
-      // Read the post-advance state directly from the store -- the closure's
-      // `currentStepIndex` is still the pre-advance value.
-      const { steps: currentSteps, currentStepIndex: newIdx } =
-        useActiveWorkoutStore.getState();
-      const nextStep = currentSteps[newIdx];
-      if (
-        nextStep &&
-        (nextStep.type === 'rest' || nextStep.type === 'superset-rest') &&
-        nextStep.restDurationSec
-      ) {
-        const endTime = Date.now() + nextStep.restDurationSec * 1000;
-        setTimerEndTime(endTime);
-        timer.start(nextStep.restDurationSec);
+    // Read the post-advance state directly from the store -- the closure's
+    // `currentStepIndex` is still the pre-advance value.
+    const { steps: currentSteps, currentStepIndex: newIdx } =
+      useActiveWorkoutStore.getState();
+    const nextStep = currentSteps[newIdx];
+    const isRestStep =
+      nextStep &&
+      (nextStep.type === 'rest' || nextStep.type === 'superset-rest') &&
+      nextStep.restDurationSec;
+
+    if (isRestStep) {
+      const adjustedSec = Math.max(0, nextStep.restDurationSec - entryElapsedSec);
+      if (adjustedSec <= 0) {
+        // Entry time consumed the entire rest period — skip it.
+        advanceStep();
+        pendingEntryElapsedRef.current = 0;
+        return;
       }
+
+      if (autoStartRestTimer) {
+        const endTime = Date.now() + adjustedSec * 1000;
+        setTimerEndTime(endTime);
+        setAdjustedRestTotalMs(adjustedSec * 1000);
+        timer.start(adjustedSec);
+        pendingEntryElapsedRef.current = 0;
+      } else {
+        // Stash for handleManualTimerStart
+        pendingEntryElapsedRef.current = entryElapsedSec;
+      }
+    } else {
+      pendingEntryElapsedRef.current = 0;
     }
   }, [advanceStep, autoStartRestTimer, setTimerEndTime, timer]);
 
@@ -324,6 +359,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
     if (showSetLogSheet) return; // sheet already open — ignore (double-tap guard)
     if (currentStep?.type !== 'exercise') return; // not on an exercise step
     haptics.tap();
+    entryStartTimeRef.current = Date.now();
     setShowSetLogSheet(true);
   }, [showSetLogSheet, currentStep, haptics]);
 
@@ -351,13 +387,25 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
       upsertSet(currentExerciseStepIndex, performedSet);
     }
     setShowSetLogSheet(false);
-    advanceAndStartTimer();
+
+    // Subtract data-entry time from the upcoming rest timer
+    const entryElapsedSec = entryStartTimeRef.current
+      ? (Date.now() - entryStartTimeRef.current) / 1000
+      : 0;
+    entryStartTimeRef.current = null;
+    advanceAndStartTimer(entryElapsedSec);
   }, [currentStep, currentExerciseName, currentExerciseStepIndex, upsertSet, advanceAndStartTimer]);
 
   /** Called when the user presses "Skip" in the SetLogSheet. */
   const handleSetLogSkip = useCallback(() => {
     setShowSetLogSheet(false);
-    advanceAndStartTimer();
+
+    // Subtract data-entry time from the upcoming rest timer
+    const entryElapsedSec = entryStartTimeRef.current
+      ? (Date.now() - entryStartTimeRef.current) / 1000
+      : 0;
+    entryStartTimeRef.current = null;
+    advanceAndStartTimer(entryElapsedSec);
   }, [advanceAndStartTimer]);
 
   /** Capture weight hint from ExerciseDisplay for SetLogSheet prefill. */
@@ -649,7 +697,7 @@ export default function ActiveWorkoutPage(): React.JSX.Element {
           <div key={`rest-${currentStepIndex}`} className="flex flex-1 flex-col animate-rest-enter">
             <RestTimer
               remainingMs={timer.remainingMs}
-              totalMs={currentStep.restDurationSec * 1000}
+              totalMs={adjustedRestTotalMs || currentStep.restDurationSec * 1000}
               isSuperset={currentStep.type === 'superset-rest'}
               ringLabel={
                 currentStep.type === 'superset-rest'
