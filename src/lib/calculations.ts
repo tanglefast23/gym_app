@@ -58,6 +58,19 @@ export function stepToGrams(step: number, unit: 'kg' | 'lb'): number {
   return unit === 'kg' ? kgToGrams(step) : lbToGrams(step);
 }
 
+// ---- Weight rounding -------------------------------------------------------
+
+/**
+ * Round a weight in grams to the nearest plate-friendly increment.
+ *
+ * `stepG` is the smallest plate increment in grams (e.g. 2500 for 2.5 kg).
+ * Returns integer grams.
+ */
+export function roundToNearestStep(grams: number, stepG: number): number {
+  if (stepG <= 0) return Math.round(grams);
+  return Math.round(grams / stepG) * stepG;
+}
+
 // ---- 1RM Calculation ------------------------------------------------------
 
 /**
