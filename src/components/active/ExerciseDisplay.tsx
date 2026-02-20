@@ -6,7 +6,7 @@ import { Button, AMRAP_SENTINEL } from '@/components/ui';
 import { useHaptics } from '@/hooks';
 import { getVisualKeyForExerciseName } from '@/lib/exerciseVisual';
 import { getLastPerformedSets } from '@/lib/queries';
-import { formatWeight } from '@/lib/calculations';
+import { formatWeight, roundToNearestStep, kgToGrams, lbToGrams } from '@/lib/calculations';
 import { useSettingsStore } from '@/stores/settingsStore';
 import type { PerformedSet } from '@/types/workout';
 
@@ -30,6 +30,7 @@ interface ExerciseDisplayProps {
 function computeWeightSuggestion(
   sets: PerformedSet[],
   unit: 'kg' | 'lb',
+  stepSize: number,
 ): { avgG: number; suggestedG: number } | null {
   const withWeight = sets.filter((s) => s.weightG > 0);
   if (withWeight.length === 0) return null;
@@ -37,9 +38,10 @@ function computeWeightSuggestion(
   const totalG = withWeight.reduce((sum, s) => sum + s.weightG, 0);
   const avgG = Math.round(totalG / withWeight.length);
 
-  // Modest increase: +2.5kg or +5lb (in grams)
-  const bumpG = unit === 'kg' ? 2500 : 2268; // 2.5kg or ~5lb
-  const suggestedG = avgG + bumpG;
+  // +5% increase, rounded to the nearest plate increment
+  const stepG = unit === 'kg' ? kgToGrams(stepSize) : lbToGrams(stepSize);
+  const rawSuggestedG = avgG * 1.05;
+  const suggestedG = roundToNearestStep(rawSuggestedG, stepG);
 
   return { avgG, suggestedG };
 }
@@ -68,6 +70,11 @@ export const ExerciseDisplay = ({
 }: ExerciseDisplayProps) => {
   const haptics = useHaptics();
   const unitSystem = useSettingsStore((s) => s.unitSystem);
+  const weightStepsKg = useSettingsStore((s) => s.weightStepsKg);
+  const weightStepsLb = useSettingsStore((s) => s.weightStepsLb);
+  const weightStep = unitSystem === 'kg'
+    ? (weightStepsKg[0] ?? 2.5)
+    : (weightStepsLb[0] ?? 5);
 
   const initialVisualSrc = useMemo(() => {
     const explicit = visualKey?.trim().toLowerCase();
@@ -94,7 +101,7 @@ export const ExerciseDisplay = ({
     if (!exerciseId) return;
 
     const applyHint = (sets: PerformedSet[]): void => {
-      const hint = computeWeightSuggestion(sets, unitSystem);
+      const hint = computeWeightSuggestion(sets, unitSystem, weightStep);
       setWeightHint(hint);
       if (hint) onWeightHintReady?.(hint.avgG);
     };
@@ -113,7 +120,7 @@ export const ExerciseDisplay = ({
       applyHint(sets);
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [exerciseId, unitSystem, onWeightHintReady]);
+  }, [exerciseId, unitSystem, weightStep, onWeightHintReady]);
 
   const [doneFeedback, setDoneFeedback] = useState(false);
   const doneTimeoutRef = useRef<number | null>(null);
