@@ -41,25 +41,66 @@ export const Stepper = ({
     [min, max],
   );
 
+  /**
+   * Check whether a value sits on the step's fractional grid.
+   * E.g. step=2.5 allows fractional parts 0.0 and 0.5;
+   * step=1 allows only whole numbers.
+   * Unaligned values (e.g. 80.3 from a unit conversion) should be
+   * snapped to the nearest whole number on the first press.
+   */
+  const isStepAligned = useCallback(
+    (v: number): boolean => {
+      const epsilon = 0.01;
+      const fStep = step % 1;
+      const fValue = ((v % 1) + 1) % 1; // always-positive fractional part
+
+      if (fStep < epsilon) {
+        // Integer step: value must be (approximately) an integer
+        return fValue < epsilon || fValue > 1 - epsilon;
+      }
+
+      // Fractional step: value's fractional part must be a multiple of step's
+      const remainder = fValue % fStep;
+      return remainder < epsilon || fStep - remainder < epsilon;
+    },
+    [step],
+  );
+
   const handleDecrement = useCallback(() => {
     if (atMin) return;
-    onChange(clamp(value - step));
-  }, [value, step, atMin, onChange, clamp]);
+    if (!isStepAligned(value)) {
+      onChange(clamp(Math.floor(value)));
+    } else {
+      onChange(clamp(value - step));
+    }
+  }, [value, step, atMin, onChange, clamp, isStepAligned]);
 
   const handleIncrement = useCallback(() => {
     if (atMax) return;
-    onChange(clamp(value + step));
-  }, [value, step, atMax, onChange, clamp]);
+    if (!isStepAligned(value)) {
+      onChange(clamp(Math.ceil(value)));
+    } else {
+      onChange(clamp(value + step));
+    }
+  }, [value, step, atMax, onChange, clamp, isStepAligned]);
 
   const handleBigDecrement = useCallback(() => {
     if (!bigStep || atMin) return;
-    onChange(clamp(value - bigStep));
-  }, [value, bigStep, atMin, onChange, clamp]);
+    if (!isStepAligned(value)) {
+      onChange(clamp(Math.floor(value)));
+    } else {
+      onChange(clamp(value - bigStep));
+    }
+  }, [value, bigStep, atMin, onChange, clamp, isStepAligned]);
 
   const handleBigIncrement = useCallback(() => {
     if (!bigStep || atMax) return;
-    onChange(clamp(value + bigStep));
-  }, [value, bigStep, atMax, onChange, clamp]);
+    if (!isStepAligned(value)) {
+      onChange(clamp(Math.ceil(value)));
+    } else {
+      onChange(clamp(value + bigStep));
+    }
+  }, [value, bigStep, atMax, onChange, clamp, isStepAligned]);
 
   const displayValue = formatValue ? formatValue(value) : String(value);
 
